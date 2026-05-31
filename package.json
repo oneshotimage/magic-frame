@@ -4,6 +4,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "start": "node backend/server.js"
+    "start": "node backend/server.js",
+    "test": "node --test backend/tests/*.test.js",
+    "backend:test": "node --test backend/tests/*.test.js"
   }
 }

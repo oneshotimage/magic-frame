@@ -32,6 +32,39 @@ docs/                      # PRD、架构文档、Swagger、开发历史
 KL_API_TOKEN="你的 KL API Token" npm start
 ```
 
+## 后端测试
+
+后端接口测试使用 Node.js 内置 `node:test`，覆盖 Swagger 文档中的 Auth、User、Credit、Upload、Generation、Order、Payment、Share、Feedback API。
+
+```bash
+npm test
+```
+
+## Docker Compose 部署
+
+后端支持 Docker Compose 部署，容器内仍由 `backend/server.js` 同时提供 API 与静态前端资源。
+
+```bash
+docker compose up -d --build
+```
+
+如需指定宿主机端口：
+
+```bash
+PORT=4180 docker compose up -d --build
+```
+
+常用环境变量：
+
+```bash
+KL_API_BASE_URL=https://api.kl-api.info
+KL_API_TOKEN=你的 KL API Token
+KL_IMAGE_MODEL=gpt-image-2
+KL_PROXY_URL=http://127.0.0.1:51004
+```
+
+如果未配置 `KL_API_TOKEN` 或 `KL_API_KEY`，生成接口会返回本地模拟作品，用于完整业务流程测试；配置后会调用 KL API `gpt-image-2` 的 `/v1/images/edits`。
+
 ## 使用流程
 
 1. 默认处于「模拟模式」，可直接点击「运行测试」体验队列、指标和 CSV 导出。

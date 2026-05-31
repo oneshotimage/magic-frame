@@ -41,3 +41,36 @@
 - `PORT=4175 npm start` 可启动拆分后的服务。
 - `http://localhost:4175/mvp.html` 返回 200。
 - `http://localhost:4175/packages` 返回套餐列表。
+
+## 2026-05-31 - 实现后端 API 测试与 Docker Compose 部署
+
+任务：参考后端架构文档和 Swagger 文档实现后端代码，完成对应单元测试，每个 API 都需要测试，并支持 Docker Compose 部署。
+
+改动项：
+
+- 补齐后端 `/credits/consume` 接口，支持按次数扣减并返回最新余额。
+- 修复 `/generation/history` 路由优先级，避免被 `/generation/{taskId}` 动态路由误匹配。
+- 新增 `backend/tests/api.test.js`，使用 Node.js 内置 `node:test` 启动测试服务并覆盖所有 Swagger API 分组：
+  - Auth：登录、刷新 token、退出。
+  - User：查询资料、更新资料、注销账号。
+  - Credit：余额、流水、扣减、广告奖励。
+  - Upload：图片上传、图片校验。
+  - Generation：创建任务、查询任务、重试、取消、历史。
+  - Order：套餐、创建订单、订单详情、订单列表、关闭订单。
+  - Payment：微信回调、对账。
+  - Share：创建海报、分享奖励。
+  - Feedback：提交反馈。
+- 更新 `package.json`，增加 `npm test` 和 `npm run backend:test`。
+- 新增 `backend/Dockerfile`，用于构建后端镜像。
+- 新增根目录 `docker-compose.yml`，支持 `docker compose up -d --build` 部署后端服务。
+- 新增 `.dockerignore`，避免把 `.git`、环境文件、构建产物打入镜像。
+- 更新 `README.md`，补充后端测试、Docker Compose 部署和 KL API 环境变量说明。
+
+验证：
+
+- `npm test` 通过，7 组测试全部成功。
+- `docker compose config` 通过。
+- 当前环境 Docker daemon 未运行，`docker compose up -d --build` 返回：`Cannot connect to the Docker daemon`。
+- 使用本地 Node 方式部署后端：`PORT=4180 npm start`。
+- `http://localhost:4180/packages` 返回 200 和套餐列表。
+- `POST http://localhost:4180/auth/wechat-login` 返回 200 和登录 token。

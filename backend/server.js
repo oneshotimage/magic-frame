@@ -1370,6 +1370,21 @@ async function handleBusinessApi(req, res) {
       return true;
     }
 
+    if (method === "POST" && pathname === "/credits/consume") {
+      const body = await readJson(req);
+      const amount = Math.max(1, Number(body.amount || 1));
+      const credits = getCredits(userId);
+      if (credits.totalCredits < amount) {
+        sendJson(res, 402, { code: "CREDIT_NOT_ENOUGH", message: "生成次数不足" });
+        return true;
+      }
+      for (let index = 0; index < amount; index += 1) {
+        consumeOneCredit(userId, body.bizId || body.idempotencyKey || `manual_${Date.now()}_${index}`);
+      }
+      sendJson(res, 200, getCredits(userId));
+      return true;
+    }
+
     if (method === "POST" && pathname === "/credits/reward-ad") {
       const body = await readJson(req);
       if (!body.completed) {
@@ -1461,6 +1476,12 @@ async function handleBusinessApi(req, res) {
       return true;
     }
 
+    if (method === "GET" && pathname === "/generation/history") {
+      const items = [...appState.tasks.values()].filter((task) => task.userId === userId).map(publicTask).reverse();
+      sendJson(res, 200, { items, total: items.length });
+      return true;
+    }
+
     const taskMatch = pathname.match(/^\/generation\/([^/]+)(?:\/(retry|cancel))?$/);
     if (taskMatch) {
       const task = appState.tasks.get(taskMatch[1]);
@@ -1489,12 +1510,6 @@ async function handleBusinessApi(req, res) {
         sendJson(res, 200, publicTask(task));
         return true;
       }
-    }
-
-    if (method === "GET" && pathname === "/generation/history") {
-      const items = [...appState.tasks.values()].filter((task) => task.userId === userId).map(publicTask).reverse();
-      sendJson(res, 200, { items, total: items.length });
-      return true;
     }
 
     if (method === "GET" && pathname === "/packages") {
