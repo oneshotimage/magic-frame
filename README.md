@@ -65,6 +65,32 @@ KL_API_TOKEN="你的 KL API Token" npm start
 npm test
 ```
 
+## FastAPI 后端
+
+除默认 Node 后端外，项目还提供了一个参考 `xinge/backend` 结构实现的 FastAPI 后端：
+
+```text
+backend_fastapi/
+├── main.py          # FastAPI 服务，接口路径与小程序保持一致
+├── test_api.py      # FastAPI TestClient 冒烟测试
+├── pyproject.toml
+└── README.md
+```
+
+启动：
+
+```bash
+python3 -m uvicorn backend_fastapi.main:app --reload --port 8000
+```
+
+测试：
+
+```bash
+python3 -m pytest backend_fastapi/test_api.py
+```
+
+微信小程序切换到 FastAPI 后端时，将 `frontend/weapp/app.js` 的 `apiBaseUrl` 改为 `http://127.0.0.1:8000`。
+
 ## Docker Compose 部署
 
 后端支持 Docker Compose 部署，容器内仍由 `backend/server.js` 同时提供 API 与静态前端资源。

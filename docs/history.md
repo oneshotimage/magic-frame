@@ -126,3 +126,27 @@
 - `find frontend/weapp -name '*.js' -print0 | xargs -0 -n1 node --check` 通过。
 - `npm test` 通过，7 组后端 API 测试全部成功。
 - `http://localhost:4180/packages` 本地后端健康检查返回 200。
+
+## 2026-05-31 - 新增参考 xinge/backend 的 FastAPI 后端
+
+任务：参考 `xinge/backend` 再写一个后端，方便小程序用 Python FastAPI 服务进行本地联调。
+
+改动项：
+
+- 新增 `backend_fastapi/`，采用与 `xinge/backend` 类似的 `main.py`、`pyproject.toml`、`test_api.py`、`README.md` 组织方式。
+- 新增 FastAPI 内存态业务后端，接口路径保持与当前微信小程序一致，无需改页面调用协议即可切换服务地址。
+- 实现 Auth、User、Credit、Upload、Generation、Order、Payment、Share、Feedback 等接口。
+- 生成接口支持两种模式：
+  - 未配置 KL Token 时返回本地 SVG mock 作品，用于微信开发者工具快速联调。
+  - 配置 `KL_API_TOKEN` 后尝试调用 KL `gpt-image-2` `/v1/images/edits`。
+- 新增 `backend_fastapi/test_api.py`，使用 FastAPI `TestClient` 覆盖健康检查、登录、资料、上传、生成、历史、订单、支付、分享、反馈、广告奖励。
+- 更新根目录 `README.md`，补充 FastAPI 后端启动、测试和小程序切换说明。
+
+验证：
+
+- `python3 -m py_compile backend_fastapi/main.py backend_fastapi/test_api.py` 通过。
+- `python3 -m pytest backend_fastapi/test_api.py` 通过，4 个测试全部成功。
+- `python3 backend_fastapi/test_api.py` 通过，冒烟测试全部成功。
+- `python3 -m uvicorn backend_fastapi.main:app --port 8000` 可启动服务。
+- `http://127.0.0.1:8000/health` 返回 `status: ok`，`/openapi.json` 返回 200。
+- `npm test` 通过，7 组现有 Node 后端测试全部成功。

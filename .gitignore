@@ -6,6 +6,8 @@ node_modules/
 dist/
 build/
 coverage/
+__pycache__/
+*.py[cod]
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
