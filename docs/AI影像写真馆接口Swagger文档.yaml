@@ -1,0 +1,884 @@
+openapi: 3.0.3
+info:
+  title: AI影像写真馆 API
+  version: 1.0.0
+  description: |
+    AI影像写真馆微信小程序后端接口。AI 生成能力通过 KL API gpt-image-2 图片编辑接口实现，
+    前端不直接调用 KL API，所有密钥和图片处理均由后端托管。
+servers:
+  - url: https://api.example.com
+    description: production
+  - url: http://localhost:3000
+    description: local
+tags:
+  - name: Auth
+  - name: User
+  - name: Credit
+  - name: Upload
+  - name: Generation
+  - name: Order
+  - name: Payment
+  - name: Share
+  - name: Feedback
+security:
+  - bearerAuth: []
+paths:
+  /auth/wechat-login:
+    post:
+      tags: [Auth]
+      security: []
+      summary: 微信小程序登录
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WechatLoginRequest'
+            examples:
+              login:
+                value:
+                  code: "wx_login_code"
+                  device:
+                    platform: "ios"
+                    model: "iPhone 15"
+      responses:
+        '200':
+          description: 登录成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+  /auth/refresh-token:
+    post:
+      tags: [Auth]
+      security: []
+      summary: 刷新 access token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [refreshToken]
+              properties:
+                refreshToken:
+                  type: string
+      responses:
+        '200':
+          description: 刷新成功
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [accessToken, refreshToken, expiresIn]
+                properties:
+                  accessToken:
+                    type: string
+                  refreshToken:
+                    type: string
+                  expiresIn:
+                    type: integer
+                    example: 7200
+  /auth/logout:
+    post:
+      tags: [Auth]
+      summary: 退出登录
+      responses:
+        '200':
+          $ref: '#/components/responses/Ok'
+
+  /user/profile:
+    get:
+      tags: [User]
+      summary: 获取当前用户资料
+      responses:
+        '200':
+          description: 用户资料
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserProfile'
+    patch:
+      tags: [User]
+      summary: 更新用户资料
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                nickname:
+                  type: string
+                  maxLength: 40
+                avatar:
+                  type: string
+                  format: uri
+      responses:
+        '200':
+          description: 更新后的用户资料
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserProfile'
+  /user/delete:
+    post:
+      tags: [User]
+      summary: 注销账号
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [confirm]
+              properties:
+                confirm:
+                  type: boolean
+                  example: true
+      responses:
+        '200':
+          $ref: '#/components/responses/Ok'
+
+  /credits:
+    get:
+      tags: [Credit]
+      summary: 查询生成次数余额
+      responses:
+        '200':
+          description: 点数余额
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreditBalance'
+  /credits/logs:
+    get:
+      tags: [Credit]
+      summary: 查询点数流水
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+        - name: type
+          in: query
+          schema:
+            $ref: '#/components/schemas/CreditType'
+      responses:
+        '200':
+          description: 点数流水
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items, total]
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/CreditLog'
+                  total:
+                    type: integer
+  /credits/consume:
+    post:
+      tags: [Credit]
+      summary: 扣减点数。仅内部或后台调试使用，正式生成由任务成功后自动扣减。
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [amount, bizType, bizId, idempotencyKey]
+              properties:
+                amount:
+                  type: integer
+                  minimum: 1
+                bizType:
+                  type: string
+                  example: generation
+                bizId:
+                  type: string
+                idempotencyKey:
+                  type: string
+      responses:
+        '200':
+          description: 扣减后的余额
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreditBalance'
+  /credits/reward-ad:
+    post:
+      tags: [Credit]
+      summary: 激励广告完成后发放次数
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [adUnitId, adEventId, completed]
+              properties:
+                adUnitId:
+                  type: string
+                adEventId:
+                  type: string
+                completed:
+                  type: boolean
+      responses:
+        '200':
+          description: 奖励结果
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [rewarded, credits]
+                properties:
+                  rewarded:
+                    type: boolean
+                  credits:
+                    $ref: '#/components/schemas/CreditBalance'
+
+  /upload/image:
+    post:
+      tags: [Upload]
+      summary: 上传用户原图到 COS
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file:
+                  type: string
+                  format: binary
+                scene:
+                  type: string
+                  enum: [generation, avatar, feedback]
+                  default: generation
+      responses:
+        '200':
+          description: 上传结果
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UploadImageResponse'
+  /upload/validate:
+    post:
+      tags: [Upload]
+      summary: 校验图片是否适合生成
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [imageId]
+              properties:
+                imageId:
+                  type: string
+      responses:
+        '200':
+          description: 校验结果
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [valid]
+                properties:
+                  valid:
+                    type: boolean
+                  reason:
+                    type: string
+                    example: "请上传清晰正面人像照片"
+
+  /generation/create:
+    post:
+      tags: [Generation]
+      summary: 创建 AI 写真生成任务
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateGenerationRequest'
+            examples:
+              allStyles:
+                value:
+                  inputImageId: "img_001"
+                  styles: ["pixar", "realistic", "handdrawn", "comic"]
+                  size: "1024x1024"
+      responses:
+        '200':
+          description: 任务已创建
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenerationTask'
+        '402':
+          description: 次数不足
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /generation/{taskId}:
+    get:
+      tags: [Generation]
+      summary: 查询生成任务状态
+      parameters:
+        - $ref: '#/components/parameters/TaskId'
+      responses:
+        '200':
+          description: 任务详情
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenerationTask'
+  /generation/{taskId}/retry:
+    post:
+      tags: [Generation]
+      summary: 重试失败或部分成功的生成任务
+      parameters:
+        - $ref: '#/components/parameters/TaskId'
+      responses:
+        '200':
+          description: 重试后的任务详情
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenerationTask'
+  /generation/{taskId}/cancel:
+    post:
+      tags: [Generation]
+      summary: 取消排队中或处理中的任务
+      parameters:
+        - $ref: '#/components/parameters/TaskId'
+      responses:
+        '200':
+          description: 取消后的任务详情
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenerationTask'
+  /generation/history:
+    get:
+      tags: [Generation]
+      summary: 查询作品历史
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+      responses:
+        '200':
+          description: 历史作品
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items, total]
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/GenerationTask'
+                  total:
+                    type: integer
+
+  /packages:
+    get:
+      tags: [Order]
+      summary: 查询次数包
+      responses:
+        '200':
+          description: 套餐列表
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Package'
+  /orders:
+    post:
+      tags: [Order]
+      summary: 创建次数包订单
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [packageId]
+              properties:
+                packageId:
+                  type: string
+                  example: pkg_6_20
+      responses:
+        '200':
+          description: 订单和支付参数
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreateOrderResponse'
+    get:
+      tags: [Order]
+      summary: 查询订单列表
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+      responses:
+        '200':
+          description: 订单列表
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items, total]
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Order'
+                  total:
+                    type: integer
+  /orders/{orderId}:
+    get:
+      tags: [Order]
+      summary: 查询订单详情
+      parameters:
+        - $ref: '#/components/parameters/OrderId'
+      responses:
+        '200':
+          description: 订单详情
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Order'
+  /orders/{orderId}/close:
+    post:
+      tags: [Order]
+      summary: 关闭未支付订单
+      parameters:
+        - $ref: '#/components/parameters/OrderId'
+      responses:
+        '200':
+          $ref: '#/components/responses/Ok'
+
+  /payment/wechat/notify:
+    post:
+      tags: [Payment]
+      security: []
+      summary: 微信支付或虚拟支付回调
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
+      responses:
+        '200':
+          description: 微信回调确认
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: string
+                    example: SUCCESS
+                  message:
+                    type: string
+                    example: OK
+  /payment/reconcile:
+    post:
+      tags: [Payment]
+      summary: 发起订单对账或补单
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                orderId:
+                  type: string
+                date:
+                  type: string
+                  format: date
+      responses:
+        '200':
+          $ref: '#/components/responses/Ok'
+
+  /share/create-poster:
+    post:
+      tags: [Share]
+      summary: 创建分享海报
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [taskId, imageId]
+              properties:
+                taskId:
+                  type: string
+                imageId:
+                  type: string
+      responses:
+        '200':
+          description: 海报地址
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [posterUrl]
+                properties:
+                  posterUrl:
+                    type: string
+                    format: uri
+  /share/reward:
+    post:
+      tags: [Share]
+      summary: 分享邀请奖励
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [shareCode]
+              properties:
+                shareCode:
+                  type: string
+      responses:
+        '200':
+          description: 奖励结果
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  rewarded:
+                    type: boolean
+
+  /feedback:
+    post:
+      tags: [Feedback]
+      summary: 提交用户反馈
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [content]
+              properties:
+                content:
+                  type: string
+                  maxLength: 1000
+                contact:
+                  type: string
+                taskId:
+                  type: string
+      responses:
+        '200':
+          $ref: '#/components/responses/Ok'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  parameters:
+    Page:
+      name: page
+      in: query
+      schema:
+        type: integer
+        minimum: 1
+        default: 1
+    PageSize:
+      name: pageSize
+      in: query
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 20
+    TaskId:
+      name: taskId
+      in: path
+      required: true
+      schema:
+        type: string
+    OrderId:
+      name: orderId
+      in: path
+      required: true
+      schema:
+        type: string
+  responses:
+    Ok:
+      description: 操作成功
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [ok]
+            properties:
+              ok:
+                type: boolean
+                example: true
+    BadRequest:
+      description: 请求参数错误
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+  schemas:
+    WechatLoginRequest:
+      type: object
+      required: [code]
+      properties:
+        code:
+          type: string
+        inviteCode:
+          type: string
+        device:
+          type: object
+          properties:
+            platform:
+              type: string
+            model:
+              type: string
+            system:
+              type: string
+    LoginResponse:
+      type: object
+      required: [accessToken, refreshToken, expiresIn, user, credits]
+      properties:
+        accessToken:
+          type: string
+        refreshToken:
+          type: string
+        expiresIn:
+          type: integer
+          example: 7200
+        user:
+          $ref: '#/components/schemas/UserProfile'
+        credits:
+          $ref: '#/components/schemas/CreditBalance'
+    UserProfile:
+      type: object
+      required: [userId, nickname, avatar, isNewUser]
+      properties:
+        userId:
+          type: string
+        nickname:
+          type: string
+        avatar:
+          type: string
+        isNewUser:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+    CreditType:
+      type: string
+      enum: [free, paid, ad, gift, refund]
+    CreditBalance:
+      type: object
+      required: [totalCredits, freeCredits, paidCredits, adCredits, giftCredits, todayAdCount, dailyAdLimit]
+      properties:
+        totalCredits:
+          type: integer
+        freeCredits:
+          type: integer
+        paidCredits:
+          type: integer
+        adCredits:
+          type: integer
+        giftCredits:
+          type: integer
+        todayAdCount:
+          type: integer
+        dailyAdLimit:
+          type: integer
+          example: 5
+    CreditLog:
+      type: object
+      required: [id, type, direction, amount, balanceAfter, createdAt]
+      properties:
+        id:
+          type: string
+        type:
+          $ref: '#/components/schemas/CreditType'
+        direction:
+          type: string
+          enum: [in, out]
+        amount:
+          type: integer
+        balanceAfter:
+          type: integer
+        bizType:
+          type: string
+        bizId:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+    UploadImageResponse:
+      type: object
+      required: [imageId, url, width, height, sizeBytes]
+      properties:
+        imageId:
+          type: string
+        url:
+          type: string
+          format: uri
+        width:
+          type: integer
+        height:
+          type: integer
+        sizeBytes:
+          type: integer
+        expiresAt:
+          type: string
+          format: date-time
+    StyleId:
+      type: string
+      enum: [pixar, realistic, handdrawn, comic]
+    CreateGenerationRequest:
+      type: object
+      required: [inputImageId, styles, size]
+      properties:
+        inputImageId:
+          type: string
+        styles:
+          type: array
+          minItems: 1
+          maxItems: 4
+          items:
+            $ref: '#/components/schemas/StyleId'
+        size:
+          type: string
+          enum: [1024x1024, 1536x1024, 1024x1536]
+    GenerationStatus:
+      type: string
+      enum: [CREATED, VALIDATING, UPLOADED, QUEUED, PROCESSING, PARTIAL_SUCCESS, SUCCESS, FAILED, TIMEOUT, CANCELLED, REFUNDED]
+    GenerationTask:
+      type: object
+      required: [taskId, status, progress, charged, images, createdAt]
+      properties:
+        taskId:
+          type: string
+        status:
+          $ref: '#/components/schemas/GenerationStatus'
+        progress:
+          type: integer
+          minimum: 0
+          maximum: 100
+        charged:
+          type: boolean
+        errorMessage:
+          type: string
+        images:
+          type: array
+          items:
+            $ref: '#/components/schemas/GeneratedImage'
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    GeneratedImage:
+      type: object
+      required: [imageId, style, status]
+      properties:
+        imageId:
+          type: string
+        style:
+          $ref: '#/components/schemas/StyleId'
+        status:
+          type: string
+          enum: [PENDING, PROCESSING, SUCCESS, FAILED]
+        url:
+          type: string
+          format: uri
+        errorMessage:
+          type: string
+        elapsedMs:
+          type: integer
+    Package:
+      type: object
+      required: [packageId, name, priceFen, credits]
+      properties:
+        packageId:
+          type: string
+          example: pkg_6_20
+        name:
+          type: string
+        priceFen:
+          type: integer
+          example: 600
+        credits:
+          type: integer
+          example: 20
+    OrderStatus:
+      type: string
+      enum: [PENDING, PAID, CLOSED, REFUNDED, FAILED]
+    Order:
+      type: object
+      required: [orderId, orderNo, packageId, amountFen, credits, status, createdAt]
+      properties:
+        orderId:
+          type: string
+        orderNo:
+          type: string
+        packageId:
+          type: string
+        amountFen:
+          type: integer
+        credits:
+          type: integer
+        status:
+          $ref: '#/components/schemas/OrderStatus'
+        createdAt:
+          type: string
+          format: date-time
+        paidAt:
+          type: string
+          format: date-time
+    CreateOrderResponse:
+      type: object
+      required: [order, paymentParams]
+      properties:
+        order:
+          $ref: '#/components/schemas/Order'
+        paymentParams:
+          type: object
+          description: 透传给 wx.requestPayment 或微信虚拟支付 API 的参数
+          additionalProperties: true
+          example:
+            timeStamp: "1780160210"
+            nonceStr: "nonce"
+            package: "prepay_id=wx123"
+            signType: "RSA"
+            paySign: "signature"
+    ErrorResponse:
+      type: object
+      required: [code, message]
+      properties:
+        code:
+          type: string
+          example: CREDIT_NOT_ENOUGH
+        message:
+          type: string
+          example: 生成次数不足
+        traceId:
+          type: string
