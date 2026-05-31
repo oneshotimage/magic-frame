@@ -170,6 +170,8 @@
 - 小程序生成中页新增 provider 摘要展示，能看到 real/mock、模型、endpoint、token 和代理状态。
 - 小程序结果页新增调试信息面板，能看到每张图的状态、耗时、错误和 KL provider 信息。
 - 更新 `backend_fastapi/README.md` 和根 `README.md`，补充真实调用、代理、mock 开关和运行状态检查说明。
+- 将 KL 返回的 `b64_json` 转存为 FastAPI 内存图片资产，并在任务结果中返回 `http://127.0.0.1:8000/assets/generated/{assetId}.png`，解决小程序 `<image>` 不稳定展示 base64 data URL 的问题。
+- 新增 `PUBLIC_BASE_URL` 配置，用于控制返回给小程序的图片资产 URL 前缀。
 
 验证：
 
@@ -177,3 +179,9 @@
 - `python3 backend_fastapi/test_api.py` 冒烟测试通过。
 - `find frontend/weapp -name '*.js' -print0 | xargs -0 -n1 node --check` 通过。
 - `npm test` 通过，现有 Node 后端测试全部成功。
+- 使用 `.env` 中的真实 KL 配置完成一次 `gpt-image-2` 单风格生成：
+  - `POST /generation/create` 创建任务成功。
+  - KL `/v1/images/edits` 返回 HTTP 200。
+  - 任务终态为 `SUCCESS`。
+  - 输出 URL 为 `http://127.0.0.1:8000/assets/generated/gen_7302d68d-9cf5-4f31-9cf3-e373ac42eba0.png`。
+  - 访问输出 URL 返回 HTTP 200，`content-type: image/png`。

@@ -66,6 +66,7 @@ KL_API_TOKEN=你的 KL API Token
 KL_IMAGE_MODEL=gpt-image-2
 KL_IMAGE_ENDPOINT=/v1/images/edits
 KL_TIMEOUT_SECONDS=600
+PUBLIC_BASE_URL=http://127.0.0.1:8000
 python3 -m uvicorn backend_fastapi.main:app --reload --port 8000
 ```
 
@@ -88,6 +89,12 @@ AI_MOCK_GENERATION=1
 ```text
 GET /config/runtime
 GET /health
+```
+
+KL `gpt-image-2` 经常返回 `b64_json`。后端会把 base64 图片转成内存图片资产，并在任务结果中返回可给小程序 `<image>` 直接使用的 HTTP 地址：
+
+```text
+http://127.0.0.1:8000/assets/generated/{assetId}.png
 ```
 
 ## 测试

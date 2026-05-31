@@ -16,7 +16,7 @@ import time
 import uuid
 
 from fastapi import Depends, FastAPI, Header, Request
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, Response
 from pydantic import BaseModel, ConfigDict
 
 
@@ -101,6 +101,7 @@ def runtime_config() -> dict[str, Any]:
         "klProxyConfigured": bool(proxy),
         "klProxyUrl": safe_url(proxy),
         "klTimeoutSeconds": int(os.getenv("KL_TIMEOUT_SECONDS", "600")),
+        "publicBaseUrl": os.getenv("PUBLIC_BASE_URL", "http://127.0.0.1:8000").rstrip("/"),
     }
 
 
@@ -124,6 +125,7 @@ class State:
         self.orders: dict[str, dict[str, Any]] = {}
         self.feedback: list[dict[str, Any]] = []
         self.ad_rewards: set[str] = set()
+        self.generated_assets: dict[str, dict[str, Any]] = {}
 
 
 STATE = State()
@@ -364,6 +366,44 @@ def extract_output_url(payload: Any) -> str:
     return ""
 
 
+def summarize_payload(payload: Any) -> str:
+    def scrub(value: Any) -> Any:
+        if isinstance(value, str):
+            if value.startswith("data:image/"):
+                return f"{value[:32]}...<data-url:{len(value)} chars>"
+            if len(value) > 180 and re.fullmatch(r"[A-Za-z0-9+/=\s]+", value):
+                return f"{value[:40]}...<base64:{len(value)} chars>"
+            if len(value) > 500:
+                return f"{value[:500]}...<truncated:{len(value)} chars>"
+            return value
+        if isinstance(value, list):
+            return [scrub(item) for item in value[:3]]
+        if isinstance(value, dict):
+            return {key: scrub(item) for key, item in value.items()}
+        return value
+
+    return json.dumps(scrub(payload), ensure_ascii=False, indent=2)[:1200]
+
+
+def store_generated_asset(data_url: str, *, style: str) -> str:
+    match = re.match(r"^data:([^;]+);base64,(.*)$", data_url)
+    if not match:
+        return data_url
+    mime_type, encoded = match.groups()
+    ext = {"image/png": "png", "image/jpeg": "jpg", "image/jpg": "jpg", "image/webp": "webp"}.get(mime_type, "png")
+    asset_id = gen_id("gen")
+    STATE.generated_assets[asset_id] = {
+        "assetId": asset_id,
+        "style": style,
+        "mimeType": mime_type,
+        "ext": ext,
+        "bytes": base64.b64decode(encoded),
+        "createdAt": now_iso(),
+    }
+    public_base = os.getenv("PUBLIC_BASE_URL", "http://127.0.0.1:8000").rstrip("/")
+    return f"{public_base}/assets/generated/{asset_id}.{ext}"
+
+
 def call_kl_image2(image_data_url: str, prompt: str, size: str) -> dict[str, Any]:
     token = os.getenv("KL_API_TOKEN") or os.getenv("KL_API_KEY")
     if not token:
@@ -424,7 +464,7 @@ def call_kl_image2(image_data_url: str, prompt: str, size: str) -> dict[str, Any
             payload = json.loads(raw_text)
             output_url = extract_output_url(payload)
             if not output_url:
-                raise RuntimeError(f"KL API 未返回图片字段: {raw_text[:1200]}")
+                raise RuntimeError(f"KL API 未返回图片字段: {summarize_payload(payload)}")
             return {
                 "url": output_url,
                 "httpStatus": resp.status,
@@ -434,7 +474,7 @@ def call_kl_image2(image_data_url: str, prompt: str, size: str) -> dict[str, Any
                 "endpoint": endpoint,
                 "requestBytes": len(body),
                 "responseKeys": list(payload.keys()) if isinstance(payload, dict) else [],
-                "rawSummary": raw_text[:1200],
+                "rawSummary": summarize_payload(payload),
             }
     except error.HTTPError as exc:
         detail = exc.read().decode("utf-8", errors="replace")
@@ -474,7 +514,7 @@ def process_generation(task_id: str) -> None:
                 }
             else:
                 output = call_kl_image2(task["inputImageDataUrl"], style["prompt"], task["size"])
-            image["url"] = output["url"]
+            image["url"] = store_generated_asset(output["url"], style=image["style"])
             image["status"] = "SUCCESS"
             image["elapsedMs"] = output["elapsedMs"]
             image["provider"] = {
@@ -526,6 +566,15 @@ def health() -> dict[str, Any]:
 @app.get("/config/runtime")
 def config_runtime() -> dict[str, Any]:
     return runtime_config()
+
+
+@app.get("/assets/generated/{filename}")
+def generated_asset(filename: str) -> Response:
+    asset_id = filename.rsplit(".", 1)[0]
+    asset = STATE.generated_assets.get(asset_id)
+    if not asset:
+        raise AppError(404, "ASSET_NOT_FOUND", "图片不存在或已过期")
+    return Response(content=asset["bytes"], media_type=asset["mimeType"])
 
 
 @app.post("/auth/wechat-login")

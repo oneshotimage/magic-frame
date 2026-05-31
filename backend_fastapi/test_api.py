@@ -68,7 +68,12 @@ def test_user_credit_upload_generation_flow() -> None:
         if last["status"] in {"SUCCESS", "PARTIAL_SUCCESS", "FAILED"}:
             break
     assert last["status"] in {"SUCCESS", "PARTIAL_SUCCESS"}
-    assert last["images"][0]["url"].startswith("data:image/")
+    output_url = last["images"][0]["url"]
+    assert output_url.startswith("http://127.0.0.1:8000/assets/generated/")
+    asset_path = output_url.replace("http://127.0.0.1:8000", "")
+    asset = client.get(asset_path)
+    assert asset.status_code == 200
+    assert asset.headers["content-type"].startswith("image/")
 
     history = client.get("/generation/history", headers=headers)
     assert history.json()["total"] >= 1

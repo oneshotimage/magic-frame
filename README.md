@@ -99,10 +99,13 @@ KL_API_TOKEN=你的 KL API Token
 KL_IMAGE_MODEL=gpt-image-2
 KL_IMAGE_ENDPOINT=/v1/images/edits
 KL_TIMEOUT_SECONDS=600
+PUBLIC_BASE_URL=http://127.0.0.1:8000
 KL_PROXY_URL=http://127.0.0.1:51004
 ```
 
 如果只想本地跑通流程，显式设置 `AI_MOCK_GENERATION=1` 才会启用 mock 图片。运行状态可看 `GET /config/runtime`，小程序生成中和结果页也会展示 KL 调用模式、模型、接口、HTTP 状态和错误摘要。
+
+当 KL 返回 `b64_json` 时，FastAPI 会转成 `/assets/generated/{assetId}.png` HTTP 图片地址，避免微信小程序 `<image>` 无法稳定展示 base64 data URL。
 
 ## Docker Compose 部署
 
