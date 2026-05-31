@@ -264,7 +264,8 @@ class AdminLoginReq(BaseModel):
 
 
 class AdminCreditAdjustReq(BaseModel):
-    amount: int
+    amount: int | None = None
+    balance: int | None = None
     reason: str | None = None
 
 
@@ -332,6 +333,10 @@ def get_credits(user_id: str) -> dict[str, Any]:
 
 def credits_response(user_id: str) -> dict[str, Any]:
     credits = clone(get_credits(user_id))
+    actual_balance = credits.get("balance", credits.get("totalCredits", 0))
+    actual_total = credits.get("totalCredits", actual_balance)
+    credits["actualBalance"] = actual_balance
+    credits["actualTotalCredits"] = actual_total
     if truthy_env("AI_UNLIMITED_CREDITS", "1"):
         credits["unlimited"] = True
         credits["balance"] = 999999
@@ -352,16 +357,24 @@ def add_credits(user_id: str, source: str, amount: int, biz_id: str) -> dict[str
     return credits_response(user_id)
 
 
-def admin_adjust_credits(user_id: str, amount: int, reason: str | None = None) -> dict[str, Any]:
+def admin_adjust_credits(user_id: str, *, amount: int | None = None, balance: int | None = None, reason: str | None = None) -> dict[str, Any]:
     credits = get_credits(user_id)
-    credits["balance"] = max(0, credits["balance"] + amount)
-    credits["totalCredits"] = max(0, credits["totalCredits"] + amount)
+    before = int(credits.get("balance", 0))
+    if balance is not None:
+        next_balance = max(0, int(balance))
+        delta = next_balance - before
+        credits["balance"] = next_balance
+        credits["totalCredits"] = max(0, int(credits.get("totalCredits", 0)) + delta)
+    else:
+        delta = int(amount or 0)
+        credits["balance"] = max(0, before + delta)
+        credits["totalCredits"] = max(0, int(credits.get("totalCredits", 0)) + delta)
     credits["updatedAt"] = now_iso()
     STATE.credit_logs.append({
         "id": gen_id("log"),
         "userId": user_id,
         "type": "admin_adjust",
-        "amount": amount,
+        "amount": delta,
         "bizId": reason or "admin",
         "createdAt": now_iso(),
     })
@@ -722,7 +735,9 @@ def admin_user_detail(user_id: str, _: str = Depends(current_admin)) -> dict[str
 def admin_update_credits(user_id: str, body: AdminCreditAdjustReq, _: str = Depends(current_admin)) -> dict[str, Any]:
     if user_id not in STATE.users:
         raise AppError(404, "USER_NOT_FOUND", "用户不存在")
-    return admin_adjust_credits(user_id, body.amount, body.reason)
+    if body.amount is None and body.balance is None:
+        raise AppError(400, "CREDIT_UPDATE_INVALID", "请填写调整次数或目标剩余次数")
+    return admin_adjust_credits(user_id, amount=body.amount, balance=body.balance, reason=body.reason)
 
 
 @app.get("/admin/api/tasks")

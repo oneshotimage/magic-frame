@@ -266,3 +266,25 @@
 - `GET /admin/app.js` 返回 200。
 - `python3 -m pytest backend_fastapi/test_api.py` 通过。
 - `node --check frontend/admin/app.js` 通过。
+
+## 2026-05-31 - 管理后台支持管理用户剩余次数
+
+任务：管理后台支持管理用户的剩余生成次数。
+
+改动项：
+
+- 管理后台用户列表增加“实际额度”列，在无限测试模式下也能看到真实可配置的剩余次数。
+- 用户操作从固定“加10次”升级为“管理次数”：
+  - 输入 `20` 可直接设置目标剩余次数为 20。
+  - 输入 `+10` 可增加 10 次。
+  - 输入 `-3` 可减少 3 次。
+- `/admin/api/users/{userId}/credits` 支持两种管理方式：
+  - `{ "amount": 10 }` 增减额度。
+  - `{ "balance": 20 }` 设置目标剩余次数。
+- `/credits` 返回中新增 `actualBalance`、`actualTotalCredits`，用于区分无限测试显示值和实际额度。
+
+验证：
+
+- `python3 -m pytest backend_fastapi/test_api.py` 覆盖额度增加和设置目标余额，测试通过。
+- `python3 -m py_compile backend_fastapi/main.py backend_fastapi/test_api.py` 通过。
+- `node --check frontend/admin/app.js` 通过。

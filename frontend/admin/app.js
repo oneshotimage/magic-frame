@@ -94,13 +94,14 @@ function metric(label, value) {
 
 async function loadUsers() {
   const data = await api('/admin/api/users');
-  $('#usersView').innerHTML = table(['用户', '昵称', '额度', '任务', '订单', '操作'], data.items.map((item) => row([
+  $('#usersView').innerHTML = table(['用户', '昵称', '剩余次数', '实际额度', '任务', '订单', '操作'], data.items.map((item) => row([
     `<code>${item.userId}</code>`,
     fmt(item.nickname),
     item.credits?.displayText || item.credits?.balance || 0,
+    item.credits?.actualBalance ?? item.credits?.balance ?? 0,
     item.taskCount,
     item.orderCount,
-    `<div class="actions"><button class="secondary" data-action="userDetail" data-id="${item.userId}">详情</button><button class="secondary" data-action="creditAdd" data-id="${item.userId}">加10次</button></div>`
+    `<div class="actions"><button class="secondary" data-action="userDetail" data-id="${item.userId}">详情</button><button class="secondary" data-action="creditManage" data-id="${item.userId}" data-balance="${item.credits?.actualBalance ?? item.credits?.balance ?? 0}">管理次数</button></div>`
   ])));
 }
 
@@ -184,10 +185,7 @@ async function loadCurrentView() {
 
 async function handleAction(action, id) {
   if (action === 'userDetail') return detail('用户详情', await api(`/admin/api/users/${id}`));
-  if (action === 'creditAdd') {
-    await api(`/admin/api/users/${id}/credits`, { method: 'POST', body: JSON.stringify({ amount: 10, reason: 'admin_test_grant' }) });
-    return loadUsers();
-  }
+  if (action === 'creditManage') return openCreditDialog(id);
   if (action === 'taskDetail') return detail('任务详情', await api(`/admin/api/tasks/${id}`));
   if (action === 'taskRetry') {
     await api(`/admin/api/tasks/${id}/retry`, { method: 'POST', body: '{}' });
@@ -201,6 +199,27 @@ async function handleAction(action, id) {
     await api(`/admin/api/orders/${id}/close`, { method: 'POST', body: '{}' });
     return loadOrders();
   }
+}
+
+async function openCreditDialog(userId) {
+  const user = await api(`/admin/api/users/${userId}`);
+  const current = user.user?.credits?.actualBalance ?? user.user?.credits?.balance ?? 0;
+  const input = prompt(`当前实际剩余次数：${current}\n输入目标剩余次数，或输入 +10 / -3 调整次数。`, String(current));
+  if (input == null) return;
+  const value = input.trim();
+  if (!value) return;
+
+  const payload = value.startsWith('+') || value.startsWith('-')
+    ? { amount: Number(value), reason: 'admin_adjust' }
+    : { balance: Number(value), reason: 'admin_set_balance' };
+
+  if (!Number.isFinite(payload.amount ?? payload.balance)) {
+    alert('请输入有效数字');
+    return;
+  }
+
+  await api(`/admin/api/users/${userId}/credits`, { method: 'POST', body: JSON.stringify(payload) });
+  await loadUsers();
 }
 
 async function login() {

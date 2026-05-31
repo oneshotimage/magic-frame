@@ -185,6 +185,11 @@ def test_admin_apis() -> None:
 
     adjusted = client.post(f"/admin/api/users/{user_id}/credits", headers=admin_headers, json={"amount": 10, "reason": "test"})
     assert adjusted.status_code == 200
+    assert adjusted.json()["actualBalance"] >= 10
+
+    set_balance = client.post(f"/admin/api/users/{user_id}/credits", headers=admin_headers, json={"balance": 2, "reason": "set_test"})
+    assert set_balance.status_code == 200
+    assert set_balance.json()["actualBalance"] == 2
 
     tasks = client.get("/admin/api/tasks", headers=admin_headers)
     assert tasks.status_code == 200
