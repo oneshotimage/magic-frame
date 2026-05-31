@@ -248,3 +248,21 @@
 - `python3 -m py_compile backend_fastapi/main.py backend_fastapi/test_api.py` 通过。
 - `node --check frontend/admin/app.js` 通过。
 - `npm test` 通过。
+
+## 2026-05-31 - 修复管理后台静态资源 404
+
+任务：修复访问 `/admin` 时管理后台没有样式，`/styles.css` 和 `/app.js` 404 的问题。
+
+改动项：
+
+- 将管理后台 HTML 中的资源引用从相对路径改为绝对路径 `/admin/styles.css` 和 `/admin/app.js`。
+- 将 `GET /admin` 改为 307 跳转到 `/admin/`，避免浏览器把相对资源解析到站点根路径。
+
+验证：
+
+- `GET /admin` 返回 307。
+- `GET /admin/` 返回 200。
+- `GET /admin/styles.css` 返回 200。
+- `GET /admin/app.js` 返回 200。
+- `python3 -m pytest backend_fastapi/test_api.py` 通过。
+- `node --check frontend/admin/app.js` 通过。

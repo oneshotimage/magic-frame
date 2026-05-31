@@ -199,9 +199,14 @@ def test_admin_apis() -> None:
     feedback = client.get("/admin/api/feedback", headers=admin_headers)
     assert feedback.status_code == 200
 
-    admin_page = client.get("/admin")
+    admin_redirect = client.get("/admin", follow_redirects=False)
+    assert admin_redirect.status_code == 307
+    assert admin_redirect.headers["location"] == "/admin/"
+    admin_page = client.get("/admin/")
     assert admin_page.status_code == 200
     assert "管理后台" in admin_page.text
+    assert client.get("/admin/styles.css").status_code == 200
+    assert client.get("/admin/app.js").status_code == 200
 
 
 if __name__ == "__main__":

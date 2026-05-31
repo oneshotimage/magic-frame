@@ -16,7 +16,7 @@ import time
 import uuid
 
 from fastapi import Depends, FastAPI, Header, Request
-from fastapi.responses import FileResponse, JSONResponse, Response
+from fastapi.responses import FileResponse, JSONResponse, RedirectResponse, Response
 from pydantic import BaseModel, ConfigDict
 
 
@@ -1081,8 +1081,8 @@ def create_feedback(body: FeedbackReq, user_id: str = Depends(current_user_id)) 
 
 
 @app.get("/admin")
-def admin_index() -> FileResponse:
-    return FileResponse(ROOT_DIR / "frontend" / "admin" / "index.html")
+def admin_index() -> RedirectResponse:
+    return RedirectResponse(url="/admin/", status_code=307)
 
 
 @app.get("/admin/{path:path}")
