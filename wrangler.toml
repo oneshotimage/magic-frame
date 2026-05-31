@@ -1,0 +1,24 @@
+name = "ai-image-backend"
+main = "worker/index.js"
+compatibility_date = "2026-05-31"
+account_id = "ade026028635934e3bcf9af5fee7af23"
+
+[vars]
+AI_UNLIMITED_CREDITS = "1"
+AI_MOCK_GENERATION = "0"
+KL_API_BASE_URL = "https://api.kl-api.info"
+KL_IMAGE_ENDPOINT = "/v1/images/edits"
+KL_IMAGE_MODEL = "gpt-image-2"
+PUBLIC_BASE_URL = "https://ai-image-backend.linjinzhu6287.workers.dev"
+
+[[durable_objects.bindings]]
+name = "API_STATE"
+class_name = "ApiState"
+
+[assets]
+directory = "frontend/admin"
+binding = "ADMIN_ASSETS"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["ApiState"]

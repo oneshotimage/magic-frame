@@ -1,16 +1,77 @@
-<view class="page stack">
-  <view class="card">
-    <view class="title">上传照片</view>
-    <view class="subtitle">建议上传清晰正面单人照，生成失败不会扣次数。</view>
+<view class="design-page upload-page">
+  <view class="design-topbar">
+    <view class="nav-symbol" bindtap="goBack">‹</view>
+    <view class="nav-title">AI影像写真馆</view>
+    <view class="nav-symbol nav-more">•••</view>
   </view>
-  <view class="upload-box" bindtap="choosePhoto">
-    <image wx:if="{{preview}}" src="{{preview}}" mode="aspectFill" />
-    <view wx:else>
-      <view class="upload-icon">＋</view>
-      <view class="title">选择照片</view>
-      <view class="subtitle">支持相册和拍摄</view>
+
+  <view class="upload-main">
+    <view class="page-intent">
+      <view class="page-title">上传正面照片</view>
+      <view class="page-subtitle">为了获得最佳的AI写真效果，请参考以下要求</view>
+    </view>
+
+    <view class="tips-card">
+      <view class="example-card">
+        <view class="example-portrait">
+          <view class="example-head"></view>
+          <view class="example-shoulder"></view>
+        </view>
+        <view class="example-label">
+          <text class="mini-check">✓</text>
+          <text>优秀示例</text>
+        </view>
+      </view>
+      <view class="tips-list">
+        <view class="tip-item">
+          <view class="tip-icon">☻</view>
+          <view>
+            <view class="tip-title">清晰正面</view>
+            <view class="tip-desc">五官无遮挡</view>
+          </view>
+        </view>
+        <view class="tip-item">
+          <view class="tip-icon">☼</view>
+          <view>
+            <view class="tip-title">光线均匀</view>
+            <view class="tip-desc">避免强烈阴影</view>
+          </view>
+        </view>
+        <view class="tip-item">
+          <view class="tip-icon">▣</view>
+          <view>
+            <view class="tip-title">背景简洁</view>
+            <view class="tip-desc">纯色背景最佳</view>
+          </view>
+        </view>
+      </view>
+    </view>
+
+    <view class="upload-box" bindtap="chooseAlbum">
+      <image wx:if="{{preview}}" class="upload-preview" src="{{preview}}" mode="aspectFill" />
+      <view wx:else class="upload-empty">
+        <view class="upload-icon">▧</view>
+        <view class="upload-title">点击上传照片</view>
+        <view class="upload-desc">支持 JPG, PNG 格式</view>
+      </view>
     </view>
   </view>
-  <button class="secondary-btn" bindtap="useDemo">使用演示照片</button>
-  <button class="primary-btn" bindtap="next">上传并继续</button>
+
+  <view class="upload-actions">
+    <button class="action-primary" bindtap="chooseAlbum">
+      <text class="button-icon">▧</text>
+      <text>从相册选择</text>
+    </button>
+    <button class="action-secondary" bindtap="chooseCamera">
+      <text class="button-icon">▣</text>
+      <text>拍摄照片</text>
+    </button>
+    <button wx:if="{{preview}}" class="continue-button" bindtap="next">继续生成</button>
+  </view>
+
+  <canvas
+    class="resize-canvas"
+    canvas-id="resizeCanvas"
+    style="width: {{canvasWidth}}px; height: {{canvasHeight}}px;"
+  ></canvas>
 </view>

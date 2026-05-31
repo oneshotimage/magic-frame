@@ -11,6 +11,7 @@ Page({
   },
 
   onShow() {
+    wx.hideTabBar({ animation: false, fail() {} });
     const app = getApp();
     app.ensureLogin()
       .then(() => refreshCredits())
@@ -24,6 +25,14 @@ Page({
       .catch(() => {
         wx.navigateTo({ url: '/pages/login/index' });
       });
+  },
+
+  onHide() {
+    wx.showTabBar({ animation: false, fail() {} });
+  },
+
+  onUnload() {
+    wx.showTabBar({ animation: false, fail() {} });
   },
 
   buildSelectedMap(ids = []) {
@@ -46,8 +55,23 @@ Page({
     wx.navigateTo({ url: '/pages/style/index' });
   },
 
+  goBack() {
+    const pages = getCurrentPages();
+    if (pages.length > 1) {
+      wx.navigateBack();
+    }
+  },
+
   goUpload() {
     wx.navigateTo({ url: '/pages/upload/index' });
+  },
+
+  goWorks() {
+    wx.switchTab({ url: '/pages/works/index' });
+  },
+
+  goProfile() {
+    wx.switchTab({ url: '/pages/profile/index' });
   },
 
   goAd() {

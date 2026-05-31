@@ -1,9 +1,15 @@
 <view class="page login-page">
   <view class="login-visual">
-    <image class="login-image" mode="aspectFill" src="{{splashImage}}" />
+    <view class="login-image css-login-visual">
+      <view class="login-face"></view>
+      <view class="login-body"></view>
+    </view>
     <view class="login-brand">AI影像写真馆</view>
     <view class="login-copy">
-      <view class="headline">登录后<br />生成你的艺术写真</view>
+      <view class="headline">
+        <view>登录后</view>
+        <view>生成你的艺术写真</view>
+      </view>
       <view class="subtitle">同步作品、保存记录，并继续使用真实 image2 生成能力。</view>
     </view>
   </view>

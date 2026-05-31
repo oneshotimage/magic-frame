@@ -4,7 +4,7 @@ function getAppSafe() {
 
 function request(options) {
   const app = getAppSafe();
-  const baseUrl = app.globalData.apiBaseUrl || 'http://localhost:4180';
+  const baseUrl = app.globalData.apiBaseUrl || 'http://192.168.0.102:8787';
   const token = app.globalData.token || wx.getStorageSync('accessToken') || '';
 
   return new Promise((resolve, reject) => {
@@ -23,6 +23,39 @@ function request(options) {
           return;
         }
         reject(res.data || { message: `HTTP ${res.statusCode}` });
+      },
+      fail: reject
+    });
+  });
+}
+
+function uploadFile(options) {
+  const app = getAppSafe();
+  const baseUrl = app.globalData.apiBaseUrl || 'http://192.168.0.102:8787';
+  const token = app.globalData.token || wx.getStorageSync('accessToken') || '';
+
+  return new Promise((resolve, reject) => {
+    wx.uploadFile({
+      url: `${baseUrl}${options.url}`,
+      filePath: options.filePath,
+      name: options.name || 'file',
+      formData: options.formData || {},
+      header: {
+        ...(token ? { authorization: `Bearer ${token}` } : {}),
+        ...(options.header || {})
+      },
+      success(res) {
+        let data = {};
+        try {
+          data = JSON.parse(res.data || '{}');
+        } catch (error) {
+          data = { message: res.data || '上传失败' };
+        }
+        if (res.statusCode >= 200 && res.statusCode < 300) {
+          resolve(data);
+          return;
+        }
+        reject(data || { message: `HTTP ${res.statusCode}` });
       },
       fail: reject
     });
@@ -103,7 +136,7 @@ function compressImage(src) {
   return new Promise((resolve) => {
     wx.compressImage({
       src,
-      quality: 82,
+      quality: 45,
       success: (res) => resolve(res.tempFilePath || src),
       fail: () => resolve(src)
     });
@@ -112,21 +145,33 @@ function compressImage(src) {
 
 function uploadLocalImage(tempFilePath) {
   return compressImage(tempFilePath)
-    .then((compressedPath) => Promise.all([readFileAsBase64(compressedPath), imageInfo(compressedPath)]))
-    .then(([base64, info]) => {
-      const mime = info.type === 'png' ? 'image/png' : 'image/jpeg';
-      const dataUrl = `data:${mime};base64,${base64}`;
-      return request({
-        url: '/upload/image',
-        method: 'POST',
-        data: {
-          dataUrl,
-          width: info.width,
-          height: info.height,
-          sizeBytes: Math.round(base64.length * 0.75)
+    .then((compressedPath) => imageInfo(compressedPath).then((info) => ({ compressedPath, info })))
+    .then(({ compressedPath, info }) => uploadFile({
+      url: '/upload/file',
+      filePath: compressedPath,
+      formData: {
+        width: String(info.width || 0),
+        height: String(info.height || 0)
+      }
+    }).then((upload) => ({ upload, dataUrl: compressedPath })).catch(() => {
+      return readFileAsBase64(compressedPath).then((base64) => {
+        if (base64.length > 330000) {
+          return Promise.reject({ message: '图片过大，请换一张更小的照片' });
         }
-      }).then((upload) => ({ upload, dataUrl }));
-    });
+        const mime = info.type === 'png' ? 'image/png' : 'image/jpeg';
+        const dataUrl = `data:${mime};base64,${base64}`;
+        return request({
+          url: '/upload/image',
+          method: 'POST',
+          data: {
+            dataUrl,
+            width: info.width,
+            height: info.height,
+            sizeBytes: Math.round(base64.length * 0.75)
+          }
+        }).then((upload) => ({ upload, dataUrl }));
+      });
+    }));
 }
 
 function demoImageDataUrl() {

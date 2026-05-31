@@ -6,6 +6,9 @@
   "scripts": {
     "start": "node backend/server.js",
     "test": "node --test backend/tests/*.test.js",
-    "backend:test": "node --test backend/tests/*.test.js"
+    "backend:test": "node --test backend/tests/*.test.js",
+    "worker:dev": "npx wrangler dev",
+    "worker:deploy": "npx wrangler deploy",
+    "cloudflare:whoami": "npx wrangler whoami"
   }
 }

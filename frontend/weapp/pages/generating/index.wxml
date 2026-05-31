@@ -1,22 +1,46 @@
-<view class="page stack">
-  <view class="card">
-    <view class="title">AI 正在绘制</view>
-    <view class="subtitle">{{task.status || 'QUEUED'}} · {{task.progress || 0}}%</view>
-    <view wx:if="{{providerSummary}}" class="muted provider-line">{{providerSummary}}</view>
-    <view class="progress-track"><view style="width: {{task.progress || 0}}%;"></view></view>
+<view class="design-page generating-page">
+  <view class="design-topbar">
+    <view class="nav-symbol" bindtap="goBack">‹</view>
+    <view class="nav-title">AI影像写真馆</view>
+    <view class="nav-symbol nav-more">•••</view>
   </view>
-  <view class="step-list">
-    <block wx:for="{{task.images}}" wx:key="imageId">
-      <view class="step">
-        <view class="step-main">
-          <text>{{styleNames[item.style] || item.style}}</text>
-          <text wx:if="{{item.errorMessage}}" class="step-error">{{item.errorMessage}}</text>
-          <text wx:elif="{{item.provider.httpStatus}}" class="step-debug">HTTP {{item.provider.httpStatus}} · {{item.elapsedMs}}ms</text>
+
+  <view class="glow glow-main"></view>
+  <view class="glow glow-side"></view>
+
+  <view class="stage">
+    <view class="progress-shell">
+      <view class="ring-back"></view>
+      <view class="ring-front" style="transform: rotate({{progressDeg}}deg);"></view>
+      <view class="avatar-wrap">
+        <view class="avatar-css">
+          <view class="avatar-hair"></view>
+          <view class="avatar-face"></view>
+          <view class="avatar-body"></view>
+          <view class="shimmer"></view>
         </view>
-        <text class="status-pill">{{item.status}}</text>
       </view>
-    </block>
+      <view class="sparkle-main">✦</view>
+      <view class="sparkle-small">✦</view>
+    </view>
+
+    <view class="percent-row">
+      <text class="percent-number">{{task.progress || 0}}</text>
+      <text class="percent-mark">%</text>
+    </view>
+    <view class="generating-title">AI正在为您创作艺术写真</view>
+    <view class="generating-subtitle">预计还需 5~15 秒，请耐心等待</view>
   </view>
-  <button class="secondary-btn" bindtap="cancelTask">取消任务</button>
-  <button class="secondary-btn" bindtap="viewResult">查看当前结果</button>
+
+  <view class="tips-panel">
+    <view class="tips-icon">💡</view>
+    <view class="tips-text">提示：照片越清晰，生成的写真效果越好。</view>
+  </view>
+
+  <view wx:if="{{providerSummary}}" class="provider-panel">{{providerSummary}}</view>
+
+  <view class="bottom-actions">
+    <button class="ghost-button" bindtap="cancelTask">取消任务</button>
+    <button class="ghost-button" bindtap="viewResult">查看当前结果</button>
+  </view>
 </view>

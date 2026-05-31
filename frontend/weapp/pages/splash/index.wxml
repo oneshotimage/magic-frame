@@ -1,7 +1,10 @@
 <view class="page splash-page">
   <view class="brand">AI影像写真馆</view>
   <view class="hero-card">
-    <image class="hero-img" src="{{splashImage}}" mode="aspectFill" />
+    <view class="hero-img css-portrait">
+      <view class="portrait-head"></view>
+      <view class="portrait-body"></view>
+    </view>
     <view class="float-badge left">♥</view>
     <view class="float-badge right">▣</view>
     <view class="glass-panel">

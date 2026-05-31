@@ -1,5 +1,5 @@
 {
-  "appid": "touristappid",
+  "appid": "wx72846c759360d6fe",
   "projectname": "AI影像写真馆",
   "compileType": "miniprogram",
   "libVersion": "3.6.3",
@@ -12,17 +12,33 @@
     "ignoreUploadUnusedFiles": true,
     "minifyWXSS": true,
     "minifyWXML": true,
-    "condition": true
+    "condition": true,
+    "compileWorklet": false,
+    "uglifyFileName": false,
+    "uploadWithSourceMap": true,
+    "packNpmManually": false,
+    "packNpmRelationList": [],
+    "localPlugins": false,
+    "disableUseStrict": false,
+    "useCompilerPlugins": false,
+    "swc": false,
+    "disableSWC": true,
+    "babelSetting": {
+      "ignore": [],
+      "disablePlugins": [],
+      "outputPath": ""
+    }
   },
   "condition": {},
   "packOptions": {
     "ignore": [
       {
-        "type": "glob",
-        "value": "**/.DS_Store"
+        "value": "**/.DS_Store",
+        "type": "glob"
       }
     ],
     "include": []
   },
-  "editorSetting": {}
+  "editorSetting": {},
+  "simulatorPluginLibVersion": {}
 }

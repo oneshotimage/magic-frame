@@ -13,6 +13,7 @@ Page({
   },
 
   onShow() {
+    wx.hideTabBar({ animation: false, fail() {} });
     const app = getApp();
     const loggedIn = Boolean(app.globalData.token || wx.getStorageSync('accessToken'));
     if (!loggedIn) {
@@ -49,6 +50,14 @@ Page({
     ]);
   },
 
+  onHide() {
+    wx.showTabBar({ animation: false, fail() {} });
+  },
+
+  onUnload() {
+    wx.showTabBar({ animation: false, fail() {} });
+  },
+
   formatUserId(userId = '') {
     if (!userId) return '未绑定';
     return userId.length > 12 ? `${userId.slice(0, 6)}...${userId.slice(-4)}` : userId;
@@ -61,6 +70,15 @@ Page({
 
   goLogin() {
     wx.navigateTo({ url: '/pages/login/index' });
+  },
+
+  goBack() {
+    const pages = getCurrentPages();
+    if (pages.length > 1) {
+      wx.navigateBack();
+      return;
+    }
+    wx.switchTab({ url: '/pages/home/index' });
   },
 
   editProfile() {
@@ -93,6 +111,10 @@ Page({
 
   goOrders() {
     wx.navigateTo({ url: '/pages/orders/index' });
+  },
+
+  goHome() {
+    wx.switchTab({ url: '/pages/home/index' });
   },
 
   goFaq() {

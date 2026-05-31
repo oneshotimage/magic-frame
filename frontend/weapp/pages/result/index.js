@@ -16,10 +16,17 @@ Page({
     const task = app.globalData.currentTask || {};
     const selected = app.globalData.selectedStyles || [];
     const styleMap = styles.reduce((map, item) => ({ ...map, [item.id]: item }), {});
-    const images = (task.images || []).map((item, index) => ({
-      ...item,
-      name: styleMap[item.style || item.styleId]?.name || selected[index]?.name || `作品 ${index + 1}`
-    }));
+    const images = (task.images || []).map((item, index) => {
+      const styleId = item.style || item.styleId;
+      const isSvg = typeof item.url === 'string' && (item.url.includes('.svg') || item.url.startsWith('data:image/svg'));
+      return {
+        ...item,
+        isSvg,
+        displayImage: item.url && !isSvg,
+        theme: styleMap[styleId]?.theme || ['realistic', 'pixar', 'handdrawn', 'comic'][index % 4],
+        name: styleMap[styleId]?.name || selected[index]?.name || `作品 ${index + 1}`
+      };
+    });
 
     this.setData({
       task,
@@ -37,6 +44,7 @@ Page({
 
   buildDebugText(task) {
     if (!task?.taskId) return '';
+    if (!['FAILED', 'TIMEOUT', 'CANCELLED'].includes(task.status)) return '';
     const provider = task.provider || {};
     const images = (task.images || []).map((image) => ({
       style: image.style,
@@ -85,7 +93,51 @@ Page({
     wx.navigateTo({ url: '/pages/share-poster/index' });
   },
 
+  saveAll() {
+    const urls = this.data.images.map((item) => item.displayImage && item.url).filter(Boolean);
+    if (!urls.length) {
+      showToast('暂无可保存图片');
+      return;
+    }
+    wx.showLoading({ title: '保存中' });
+    this.saveImages(urls)
+      .then(() => showToast('已保存到相册'))
+      .catch((error) => {
+        console.warn(error);
+        showToast('保存失败，请先授权相册');
+      })
+      .finally(() => wx.hideLoading());
+  },
+
+  saveImages(urls) {
+    return urls.reduce((chain, url) => chain.then(() => this.saveOneImage(url)), Promise.resolve());
+  },
+
+  saveOneImage(url) {
+    return new Promise((resolve, reject) => {
+      wx.downloadFile({
+        url,
+        success: (res) => {
+          if (res.statusCode !== 200 || !res.tempFilePath) {
+            reject(new Error('download failed'));
+            return;
+          }
+          wx.saveImageToPhotosAlbum({
+            filePath: res.tempFilePath,
+            success: resolve,
+            fail: reject
+          });
+        },
+        fail: reject
+      });
+    });
+  },
+
   again() {
+    wx.switchTab({ url: '/pages/home/index' });
+  },
+
+  goBack() {
     wx.switchTab({ url: '/pages/home/index' });
   }
 });

@@ -6,7 +6,9 @@
   <view class="grid-two">
     <block wx:for="{{styles}}" wx:key="id">
       <view class="style-option {{selectedMap[item.id] ? 'active' : ''}}" data-id="{{item.id}}" bindtap="toggleStyle">
-        <image src="{{item.asset}}" mode="aspectFill" />
+        <view class="style-cover {{item.theme}}">
+          <view class="style-symbol">{{item.icon}}</view>
+        </view>
         <view class="option-info">
           <view>{{item.name}}</view>
           <text>{{item.desc}}</text>

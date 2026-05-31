@@ -4,6 +4,7 @@ const { styles } = require('../../utils/constants');
 Page({
   data: {
     task: {},
+    progressDeg: 0,
     providerSummary: '',
     styleNames: styles.reduce((map, item) => {
       map[item.id] = item.name;
@@ -26,6 +27,7 @@ Page({
       getApp().globalData.currentTask = task;
       this.setData({
         task,
+        progressDeg: Math.round(((task.progress || 0) / 100) * 360),
         providerSummary: this.buildProviderSummary(task)
       });
       if (['SUCCESS', 'FAILED', 'PARTIAL_SUCCESS', 'TIMEOUT', 'CANCELLED'].includes(task.status)) {
@@ -59,5 +61,9 @@ Page({
 
   viewResult() {
     wx.navigateTo({ url: '/pages/result/index' });
+  },
+
+  goBack() {
+    this.cancelTask();
   }
 });

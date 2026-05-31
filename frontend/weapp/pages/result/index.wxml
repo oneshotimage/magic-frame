@@ -1,33 +1,53 @@
-<view class="page safe-tab stack">
-  <view class="result-head">
-    <view>
-      <view class="title">生成结果</view>
-      <view class="subtitle">剩余 {{creditText}} 次额度</view>
+<view class="design-page result-page">
+  <view class="design-topbar">
+    <view class="nav-symbol" bindtap="goBack">‹</view>
+    <view class="nav-title">AI影像写真馆</view>
+    <view class="nav-symbol nav-more">•••</view>
+  </view>
+
+  <view class="result-main">
+    <view class="result-hero">
+      <view class="success-dot">✓</view>
+      <view class="result-title">太美了！您的艺术写真已生成</view>
+      <view class="result-subtitle">已为您生成{{images.length || 0}}张不同风格的专属大片</view>
     </view>
-    <view class="status-pill">{{task.status || 'UNKNOWN'}}</view>
-  </view>
 
-  <view wx:if="{{images.length}}" class="result-grid">
-    <view wx:for="{{images}}" wx:key="url" class="result-card" bindtap="preview" data-url="{{item.url}}">
-      <image wx:if="{{item.url}}" class="result-image" mode="aspectFill" src="{{item.url}}" />
-      <view wx:else class="result-image result-failed">生成失败</view>
-      <view class="result-name">{{item.name}}</view>
-      <view wx:if="{{item.status !== 'SUCCESS'}}" class="result-error">{{item.errorMessage || item.status}}</view>
-      <view wx:elif="{{item.provider.httpStatus}}" class="result-debug">HTTP {{item.provider.httpStatus}} · {{item.elapsedMs}}ms</view>
+    <view wx:if="{{images.length}}" class="result-grid">
+      <view wx:for="{{images}}" wx:key="url" class="result-card" bindtap="preview" data-url="{{item.url}}">
+        <image wx:if="{{item.displayImage}}" class="result-image" mode="aspectFill" src="{{item.url}}" />
+        <view wx:elif="{{item.isSvg}}" class="result-image css-result {{item.theme}}">
+          <view class="css-face"></view>
+          <view class="css-body"></view>
+        </view>
+        <view wx:else class="result-image result-failed">生成失败</view>
+        <view class="image-actions">
+          <view class="round-action">⇩</view>
+          <view class="round-action">↗</view>
+        </view>
+        <view wx:if="{{item.status !== 'SUCCESS'}}" class="result-error">{{item.errorMessage || item.status}}</view>
+      </view>
+    </view>
+
+    <view wx:else class="empty-card">
+      <view class="empty-title">暂无输出图片</view>
+      <view class="empty-desc">如果任务失败，可以重试一次；如果仍失败，请检查后端日志或 KL API 返回。</view>
+    </view>
+
+    <view wx:if="{{debugText}}" class="debug-panel">
+      <view class="debug-title">调试信息</view>
+      <text selectable="true">{{debugText}}</text>
     </view>
   </view>
 
-  <view wx:else class="card empty">
-    <view class="title">暂无输出图片</view>
-    <view class="subtitle">如果任务失败，可以重试一次；如果仍失败，请检查后端日志或 KL API 返回。</view>
-  </view>
-
-  <button wx:if="{{canRetry}}" class="secondary-btn" bindtap="retryTask">重试失败项</button>
-  <button wx:if="{{images.length}}" class="primary-btn" bindtap="sharePoster">生成分享海报</button>
-  <button class="secondary-btn" bindtap="again">继续生成</button>
-
-  <view wx:if="{{debugText}}" class="debug-panel">
-    <view class="debug-title">调试信息</view>
-    <text selectable="true">{{debugText}}</text>
+  <view class="result-actions">
+    <button wx:if="{{images.length}}" class="save-all" bindtap="saveAll">
+      <text class="button-icon">✓</text>
+      <text>全部保存到相册</text>
+    </button>
+    <view class="action-row">
+      <button class="share-button" bindtap="sharePoster">⇧ 分享给好友</button>
+      <button class="again-button" bindtap="again">✧ 再次制作</button>
+    </view>
+    <button wx:if="{{canRetry}}" class="retry-button" bindtap="retryTask">重试失败项</button>
   </view>
 </view>

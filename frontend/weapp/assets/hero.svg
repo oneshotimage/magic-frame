@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="720" height="384" viewBox="0 0 720 384">
+  <defs>
+    <linearGradient id="room" x1="0" y1="0" x2="720" y2="384" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#716756"/>
+      <stop offset=".45" stop-color="#D8CCB9"/>
+      <stop offset="1" stop-color="#1B3033"/>
+    </linearGradient>
+    <linearGradient id="skin" x1="270" y1="80" x2="450" y2="260" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#F6D4BC"/>
+      <stop offset="1" stop-color="#C98769"/>
+    </linearGradient>
+    <linearGradient id="hair" x1="224" y1="28" x2="484" y2="286" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#4A2A1D"/>
+      <stop offset="1" stop-color="#1D110D"/>
+    </linearGradient>
+    <filter id="soft" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="10"/>
+    </filter>
+  </defs>
+  <rect width="720" height="384" fill="url(#room)"/>
+  <rect x="42" y="0" width="120" height="384" fill="#2E251E" opacity=".45"/>
+  <rect x="545" y="0" width="108" height="384" fill="#E7EFEF" opacity=".28"/>
+  <circle cx="356" cy="160" r="150" fill="#fff" opacity=".12" filter="url(#soft)"/>
+  <path d="M190 384c40-118 92-174 162-174s122 56 162 174H190z" fill="#E8E0D4"/>
+  <path d="M222 164c0-92 54-144 132-144s132 52 132 144c0 86-58 136-132 136s-132-50-132-136z" fill="url(#hair)"/>
+  <ellipse cx="354" cy="158" rx="72" ry="86" fill="url(#skin)"/>
+  <path d="M244 144c30-68 74-102 132-102 45 18 75 54 90 108-60-4-106-28-140-72-24 32-52 54-82 66z" fill="#2B1811"/>
+  <circle cx="326" cy="156" r="8" fill="#2B1811"/>
+  <circle cx="382" cy="156" r="8" fill="#2B1811"/>
+  <path d="M326 198c20 18 42 18 62 0" fill="none" stroke="#8C493C" stroke-width="9" stroke-linecap="round"/>
+  <path d="M250 296c64 40 140 40 208 0 18 24 36 54 54 88H190c18-36 38-65 60-88z" fill="#EDE5D9"/>
+</svg>

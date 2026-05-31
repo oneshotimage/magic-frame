@@ -1,24 +1,71 @@
-<view class="page stack">
-  <view>
-    <view class="title">购买生成次数</view>
-    <view class="subtitle">当前剩余 {{creditText}} 次</view>
+<view class="design-page purchase-page">
+  <view class="warm-bg"></view>
+  <view class="design-topbar">
+    <view class="nav-symbol" bindtap="goBack">‹</view>
+    <view class="nav-title">AI影像写真馆</view>
+    <view class="nav-symbol nav-more">•••</view>
   </view>
 
-  <view class="package-list">
-    <view wx:for="{{packages}}" wx:key="packageId" class="package-card" bindtap="createOrder" data-id="{{item.packageId}}">
-      <view>
-        <view class="package-name">{{item.name}}</view>
-        <view class="muted">{{item.credits}} 次生成额度</view>
+  <view class="purchase-main">
+    <view class="balance-card">
+      <view class="balance-label">
+        <text class="star-dot">✦</text>
+        <text>当前可用算力</text>
       </view>
-      <view class="package-price">¥{{item.priceFen / 100}}</view>
+      <view class="balance-value">
+        <text>{{creditText}}</text>
+        <text class="balance-unit">次</text>
+      </view>
+    </view>
+
+    <view class="section-title">选择充值套餐</view>
+    <view class="package-list">
+      <view wx:for="{{packages}}" wx:key="packageId" class="package-card {{selectedPackageId === item.packageId ? 'selected' : ''}}" bindtap="selectPackage" data-id="{{item.packageId}}">
+        <view wx:if="{{item.packageId === popularPackageId}}" class="popular-badge">最受欢迎</view>
+        <view wx:if="{{selectedPackageId === item.packageId}}" class="checkmark">✓</view>
+        <view>
+          <view class="credit-row">
+            <text class="package-count">{{item.credits}}</text>
+            <text class="package-unit">次生成</text>
+          </view>
+          <view wx:if="{{item.note}}" class="package-note">{{item.note}}</view>
+        </view>
+        <view class="package-price">¥ {{item.priceYuan}}</view>
+      </view>
+    </view>
+
+    <view class="trust-banner">
+      <view class="trust-item">
+        <view class="trust-icon">⚡</view>
+        <view>极速出图</view>
+      </view>
+      <view class="trust-divider"></view>
+      <view class="trust-item">
+        <view class="trust-icon">▿</view>
+        <view>安全支付</view>
+      </view>
+      <view class="trust-divider"></view>
+      <view class="trust-item">
+        <view class="trust-icon">↺</view>
+        <view>长期有效</view>
+      </view>
+    </view>
+
+    <view wx:if="{{order}}" class="order-card">
+      <view class="order-title">待支付订单</view>
+      <view class="order-id">订单号：{{order.orderId}}</view>
+      <view class="order-price">¥ {{orderPriceText}}</view>
+      <view class="order-actions">
+        <button class="pay-button" bindtap="payOrder">模拟微信支付成功</button>
+        <button class="close-button" bindtap="closeOrder">关闭订单</button>
+      </view>
     </view>
   </view>
 
-  <view wx:if="{{order}}" class="card stack">
-    <view class="title">待支付订单</view>
-    <view class="muted">订单号：{{order.orderId}}</view>
-    <view class="package-price">¥{{order.amountFen / 100}}</view>
-    <button class="primary-btn" bindtap="payOrder">模拟微信支付成功</button>
-    <button class="secondary-btn" bindtap="closeOrder">关闭订单</button>
+  <view class="purchase-bottom">
+    <button class="buy-button" bindtap="buySelected">
+      <text>立即购买</text>
+      <text class="buy-price">¥ {{selectedPriceText}}</text>
+    </button>
   </view>
 </view>

@@ -1,67 +1,121 @@
-<view class="page profile-page safe-tab">
+<view class="profile-page">
+  <view class="top-bar">
+    <button class="bar-button" bindtap="goBack">
+      <text class="back-icon">‹</text>
+    </button>
+    <view class="bar-title">AI影像写真馆</view>
+    <button class="bar-button more-button">
+      <text class="more-icon">•••</text>
+    </button>
+  </view>
+
   <view wx:if="{{!loggedIn}}" class="guest-hero">
-    <view class="guest-orbit one"></view>
-    <view class="guest-orbit two"></view>
-    <view class="avatar-shell guest-avatar">AI</view>
+    <view class="guest-avatar-image avatar-fallback">AI</view>
     <view class="guest-title">登录后查看我的</view>
     <view class="guest-copy">同步作品、订单和生成额度，继续保存你的 AI 写真记录。</view>
-    <button class="primary-btn login-cta" bindtap="goLogin">微信登录</button>
+    <button class="login-cta" bindtap="goLogin">微信登录</button>
   </view>
 
   <block wx:else>
-  <view class="profile-hero">
-    <view class="hero-top">
-      <view class="avatar-shell">
-        <image class="avatar" mode="aspectFill" src="{{user.avatarUrl || avatarImage}}" />
+    <view class="main">
+      <view class="profile-card">
+        <view class="avatar-shell">
+          <image wx:if="{{user && user.avatarUrl}}" class="avatar" mode="aspectFill" src="{{user.avatarUrl}}" />
+          <view wx:else class="avatar avatar-fallback">AI</view>
+        </view>
+        <view class="identity">
+          <view class="profile-name">{{(user && user.nickname) || '张小光影'}}</view>
+          <view class="profile-id">ID: {{userIdText || '8839201'}}</view>
+        </view>
+        <button class="edit-button" bindtap="editProfile" aria-label="编辑资料">
+          <text class="edit-icon">✎</text>
+        </button>
       </view>
-      <view class="profile-main">
-        <view class="profile-name">{{user.nickname || '微信用户'}}</view>
-        <view class="profile-id">ID {{userIdText}}</view>
+
+      <view class="credits-card">
+        <view class="glow glow-top"></view>
+        <view class="glow glow-bottom"></view>
+        <view class="credits-copy">
+          <view class="credits-label">当前剩余点数</view>
+          <view class="credits-row">
+            <text class="credits-value">{{creditText || '5'}}</text>
+            <text class="credit-icon">✦</text>
+          </view>
+        </view>
+        <button class="recharge-button" bindtap="goPurchase">去充值</button>
       </view>
-      <button class="edit-chip" bindtap="editProfile">编辑</button>
-    </view>
 
-    <view class="credits-card">
-      <view>
-        <view class="credits-label">可用生成次数</view>
-        <view class="credits-value">{{creditText}}</view>
+      <view class="section">
+        <view class="section-title">常用功能</view>
+        <view class="menu-card">
+          <view class="menu-row bordered" bindtap="goOrders">
+            <view class="menu-left">
+              <view class="action-icon-shell">
+                <text class="orders-icon">▣</text>
+              </view>
+              <view class="menu-text">购买记录</view>
+            </view>
+            <text class="chevron">›</text>
+          </view>
+          <view class="menu-row" bindtap="goWorks">
+            <view class="menu-left">
+              <view class="action-icon-shell">
+                <text class="works-icon">↺</text>
+              </view>
+              <view class="menu-text">作品历史</view>
+            </view>
+            <text class="chevron">›</text>
+          </view>
+        </view>
       </view>
-      <view class="credits-side">
-        <view>实际额度 {{actualCreditText}}</view>
-        <view>测试期可无限生成</view>
+
+      <view class="section about-section">
+        <view class="section-title">关于</view>
+        <view class="menu-card">
+          <view class="menu-row bordered" bindtap="goFaq">
+            <view class="menu-left">
+              <view class="about-icon-shell">
+                <text class="about-icon">?</text>
+              </view>
+              <view class="menu-text">常见问题</view>
+            </view>
+            <text class="chevron">›</text>
+          </view>
+          <view class="menu-row bordered" bindtap="goLegal">
+            <view class="menu-left">
+              <view class="about-icon-shell">
+                <text class="privacy-icon">i</text>
+              </view>
+              <view class="menu-text">隐私政策</view>
+            </view>
+            <text class="chevron">›</text>
+          </view>
+          <view class="menu-row" bindtap="goLegal">
+            <view class="menu-left">
+              <view class="about-icon-shell">
+                <text class="privacy-icon">□</text>
+              </view>
+              <view class="menu-text">用户协议</view>
+            </view>
+            <text class="chevron">›</text>
+          </view>
+        </view>
       </view>
     </view>
-  </view>
-
-  <view class="quick-grid">
-    <view class="quick-item" bindtap="goWorks">
-      <view class="quick-icon">作</view>
-      <view>我的作品</view>
-    </view>
-    <view class="quick-item" bindtap="goOrders">
-      <view class="quick-icon">单</view>
-      <view>订单记录</view>
-    </view>
-    <view class="quick-item" bindtap="goPurchase">
-      <view class="quick-icon">次</view>
-      <view>购买次数</view>
-    </view>
-    <view class="quick-item" bindtap="goAd">
-      <view class="quick-icon">赠</view>
-      <view>领取奖励</view>
-    </view>
-  </view>
-
-  <view class="menu-section">
-    <view class="section-title">服务与支持</view>
-    <view class="menu-item" bindtap="goFaq">常见问题</view>
-    <view class="menu-item" bindtap="goFeedback">意见反馈</view>
-    <view class="menu-item" bindtap="goLegal">隐私与协议</view>
-  </view>
-
-  <view class="account-section">
-    <button class="secondary-btn compact-btn" bindtap="logout">退出登录</button>
-    <button class="danger-btn compact-btn" bindtap="deleteUser">删除账号</button>
-  </view>
   </block>
+
+  <view class="bottom-nav">
+    <view class="tab-item" bindtap="goHome">
+      <text class="tab-icon home-tab">⌂</text>
+      <view class="tab-label">首页</view>
+    </view>
+    <view class="tab-item" bindtap="goWorks">
+      <text class="tab-icon works-tab">▧</text>
+      <view class="tab-label">作品集</view>
+    </view>
+    <view class="tab-item active">
+      <text class="tab-icon mine-tab">♙</text>
+      <view class="tab-label active-label">我的</view>
+    </view>
+  </view>
 </view>

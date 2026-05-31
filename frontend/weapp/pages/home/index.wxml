@@ -1,30 +1,81 @@
-<view class="page safe-tab stack">
-  <view class="home-hero">
-    <image class="home-hero-img" src="{{heroImage}}" mode="aspectFill" />
-    <view class="hero-info">
-      <view>
-        <view class="hero-title">AI艺术写真<br />一键生成</view>
-        <view class="subtitle">上传一张照片，遇见不同风格的自己</view>
+<view class="home-page">
+  <view class="top-bar">
+    <view class="top-word" bindtap="goBack">‹</view>
+    <view class="bar-title">AI影像写真馆</view>
+    <view class="top-word top-more">•••</view>
+  </view>
+
+  <view class="main">
+    <view class="home-hero">
+      <view class="hero-image-wrap">
+        <view class="home-hero-img hero-css">
+          <view class="hero-face"></view>
+          <view class="hero-body"></view>
+        </view>
+        <view class="hero-gradient"></view>
       </view>
-      <view class="credit-badge">剩余次数：{{creditText}}</view>
-    </view>
-  </view>
-  <view class="section-head">
-    <view class="title">选择风格</view>
-    <text bindtap="goStyle">查看全部</text>
-  </view>
-  <view class="grid-two">
-    <block wx:for="{{styles}}" wx:key="id">
-      <view class="style-card {{selectedMap[item.id] ? 'active' : ''}}" data-id="{{item.id}}" bindtap="toggleStyle">
-        <image src="{{item.asset}}" mode="aspectFill" />
-        <view wx:if="{{item.badge}}" class="hot">{{item.badge}}</view>
-        <view class="style-mask">
-          <view class="style-name">{{item.short}}</view>
-          <view class="style-desc">{{item.desc}}</view>
+      <view class="hero-info">
+        <view class="hero-copy">
+          <view class="hero-title">
+            <view>AI艺术写真</view>
+            <view>一键生成</view>
+          </view>
+          <view class="hero-subtitle">
+            <view>上传一张照片，遇见不同风格的</view>
+            <view>自己</view>
+          </view>
+        </view>
+        <view class="credit-badge">
+          <view class="credit-icon">✦</view>
+          <view class="credit-text">
+            <view>剩余次数:</view>
+            <view>{{creditText}}</view>
+          </view>
         </view>
       </view>
-    </block>
+    </view>
+
+    <view class="style-section">
+      <view class="section-head">
+        <view class="section-title">选择风格</view>
+        <view class="view-all" bindtap="goStyle">查看全部</view>
+      </view>
+      <view class="style-grid">
+        <block wx:for="{{styles}}" wx:key="id">
+          <view class="style-card {{selectedMap[item.id] ? 'active' : ''}}" data-id="{{item.id}}" bindtap="toggleStyle">
+            <view class="style-image style-theme {{item.theme}}">
+              <view class="style-face">{{item.icon}}</view>
+            </view>
+            <view wx:if="{{item.badge}}" class="hot">{{item.badge}}</view>
+            <view class="style-mask">
+              <view class="style-name">{{item.short}}</view>
+              <view class="style-desc">{{item.desc}}</view>
+            </view>
+          </view>
+        </block>
+      </view>
+    </view>
   </view>
-  <button class="primary-btn" bindtap="goUpload">✨ 立即制作</button>
-  <button class="secondary-btn" bindtap="goAd">看广告得次数</button>
+
+  <view class="cta-wrap">
+    <button class="make-button" bindtap="goUpload">
+      <text class="sparkle-icon">✦</text>
+      <text>立即制作</text>
+    </button>
+  </view>
+
+  <view class="bottom-nav">
+    <view class="tab-item active">
+      <view class="tab-icon home-tab">⌂</view>
+      <view class="tab-label active-label">首页</view>
+    </view>
+    <view class="tab-item" bindtap="goWorks">
+      <view class="tab-icon works-tab">▧</view>
+      <view class="tab-label">作品集</view>
+    </view>
+    <view class="tab-item" bindtap="goProfile">
+      <view class="tab-icon mine-tab">♙</view>
+      <view class="tab-label">我的</view>
+    </view>
+  </view>
 </view>

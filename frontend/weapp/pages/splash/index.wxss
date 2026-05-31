@@ -29,6 +29,36 @@
   height: 100%;
 }
 
+.css-portrait {
+  position: relative;
+  background:
+    radial-gradient(circle at 22% 18%, rgba(255, 255, 255, 0.82), transparent 24%),
+    linear-gradient(145deg, #fff8e7 0%, #ffb800 52%, #ffb599 100%);
+}
+
+.portrait-head {
+  position: absolute;
+  left: 50%;
+  top: 180rpx;
+  width: 210rpx;
+  height: 210rpx;
+  border-radius: 50%;
+  transform: translateX(-50%);
+  background: #fff3df;
+  box-shadow: 0 -30rpx 0 34rpx rgba(90, 49, 30, 0.82);
+}
+
+.portrait-body {
+  position: absolute;
+  left: 50%;
+  bottom: 170rpx;
+  width: 390rpx;
+  height: 260rpx;
+  border-radius: 160rpx 160rpx 48rpx 48rpx;
+  transform: translateX(-50%);
+  background: rgba(255, 255, 255, 0.64);
+}
+
 .float-badge {
   position: absolute;
   width: 96rpx;
