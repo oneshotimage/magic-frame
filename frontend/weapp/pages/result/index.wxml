@@ -1,0 +1,25 @@
+<view class="page safe-tab stack">
+  <view class="result-head">
+    <view>
+      <view class="title">生成结果</view>
+      <view class="subtitle">剩余 {{credits}} 次额度</view>
+    </view>
+    <view class="status-pill">{{task.status || 'UNKNOWN'}}</view>
+  </view>
+
+  <view wx:if="{{images.length}}" class="result-grid">
+    <view wx:for="{{images}}" wx:key="url" class="result-card" bindtap="preview" data-url="{{item.url}}">
+      <image class="result-image" mode="aspectFill" src="{{item.url}}" />
+      <view class="result-name">{{item.name}}</view>
+    </view>
+  </view>
+
+  <view wx:else class="card empty">
+    <view class="title">暂无输出图片</view>
+    <view class="subtitle">如果任务失败，可以重试一次；如果仍失败，请检查后端日志或 KL API 返回。</view>
+  </view>
+
+  <button wx:if="{{canRetry}}" class="secondary-btn" bindtap="retryTask">重试失败项</button>
+  <button wx:if="{{images.length}}" class="primary-btn" bindtap="sharePoster">生成分享海报</button>
+  <button class="secondary-btn" bindtap="again">继续生成</button>
+</view>

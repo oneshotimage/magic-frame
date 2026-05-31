@@ -1,0 +1,29 @@
+.preview-page {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: #111111;
+}
+
+.preview-image {
+  flex: 1;
+  width: 100%;
+  min-height: 0;
+}
+
+.empty {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #ffffff;
+  font-size: 28rpx;
+}
+
+.preview-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20rpx;
+  padding: 24rpx 32rpx calc(env(safe-area-inset-bottom) + 24rpx);
+  background: rgba(17, 17, 17, 0.92);
+}

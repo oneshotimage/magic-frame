@@ -1,0 +1,19 @@
+.success-page {
+  align-items: stretch;
+  justify-content: center;
+  text-align: center;
+}
+
+.success-mark {
+  width: 160rpx;
+  height: 160rpx;
+  margin: 0 auto;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #ffb800;
+  color: #222222;
+  font-size: 88rpx;
+  font-weight: 800;
+}

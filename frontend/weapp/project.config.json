@@ -1,0 +1,28 @@
+{
+  "appid": "touristappid",
+  "projectname": "AI影像写真馆",
+  "compileType": "miniprogram",
+  "libVersion": "3.6.3",
+  "setting": {
+    "urlCheck": false,
+    "es6": true,
+    "enhance": true,
+    "postcss": true,
+    "minified": true,
+    "ignoreUploadUnusedFiles": true,
+    "minifyWXSS": true,
+    "minifyWXML": true,
+    "condition": true
+  },
+  "condition": {},
+  "packOptions": {
+    "ignore": [
+      {
+        "type": "glob",
+        "value": "**/.DS_Store"
+      }
+    ],
+    "include": []
+  },
+  "editorSetting": {}
+}

@@ -1,0 +1,17 @@
+<view class="page stack">
+  <view class="card">
+    <view class="title">AI 正在绘制</view>
+    <view class="subtitle">{{task.status || 'QUEUED'}} · {{task.progress || 0}}%</view>
+    <view class="progress-track"><view style="width: {{task.progress || 0}}%;"></view></view>
+  </view>
+  <view class="step-list">
+    <block wx:for="{{task.images}}" wx:key="imageId">
+      <view class="step">
+        <text>{{styleNames[item.style] || item.style}}</text>
+        <text class="status-pill">{{item.status}}</text>
+      </view>
+    </block>
+  </view>
+  <button class="secondary-btn" bindtap="cancelTask">取消任务</button>
+  <button class="secondary-btn" bindtap="viewResult">查看当前结果</button>
+</view>

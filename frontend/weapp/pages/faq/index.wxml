@@ -1,0 +1,9 @@
+<view class="page stack">
+  <view class="title">常见问题</view>
+  <view class="faq-list">
+    <view wx:for="{{faqs}}" wx:key="q" class="faq-card">
+      <view class="question">{{item.q}}</view>
+      <view class="answer">{{item.a}}</view>
+    </view>
+  </view>
+</view>

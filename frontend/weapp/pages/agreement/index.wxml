@@ -1,0 +1,12 @@
+<view class="page stack">
+  <view class="card">
+    <view class="title">授权与合规确认</view>
+    <view class="subtitle">我确认上传本人或已获得授权的人像照片，并同意图片仅用于本次 AI 生成与必要安全审核。</view>
+  </view>
+  <view class="card legal">
+    <view>禁止上传色情、暴力、政治敏感、侵犯他人肖像权或未经授权的照片。</view>
+    <view>AI 生成可能存在轻微五官偏差。生成失败、超时或内容拦截不会扣减生成次数。</view>
+    <view>用户可在“我的”页面提交反馈、查看协议或注销账号。</view>
+  </view>
+  <button class="primary-btn" bindtap="createTask">同意并开始生成</button>
+</view>

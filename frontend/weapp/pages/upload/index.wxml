@@ -1,0 +1,16 @@
+<view class="page stack">
+  <view class="card">
+    <view class="title">上传照片</view>
+    <view class="subtitle">建议上传清晰正面单人照，生成失败不会扣次数。</view>
+  </view>
+  <view class="upload-box" bindtap="choosePhoto">
+    <image wx:if="{{preview}}" src="{{preview}}" mode="aspectFill" />
+    <view wx:else>
+      <view class="upload-icon">＋</view>
+      <view class="title">选择照片</view>
+      <view class="subtitle">支持相册和拍摄</view>
+    </view>
+  </view>
+  <button class="secondary-btn" bindtap="useDemo">使用演示照片</button>
+  <button class="primary-btn" bindtap="next">上传并继续</button>
+</view>

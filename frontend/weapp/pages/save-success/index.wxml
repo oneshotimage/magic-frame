@@ -1,0 +1,9 @@
+<view class="page stack success-page">
+  <view class="success-mark">✓</view>
+  <view class="headline">已保存</view>
+  <view class="subtitle">作品已保存到相册，也可以继续生成分享海报。</view>
+
+  <button class="primary-btn" bindtap="sharePoster">生成分享海报</button>
+  <button class="secondary-btn" bindtap="works">查看作品集</button>
+  <button class="secondary-btn" bindtap="home">回到首页</button>
+</view>

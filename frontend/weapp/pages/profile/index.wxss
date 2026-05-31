@@ -1,0 +1,38 @@
+.profile-card {
+  padding: 36rpx;
+  border-radius: 48rpx;
+  display: flex;
+  align-items: center;
+  gap: 28rpx;
+  background: #ffffff;
+  border: 1rpx solid rgba(213, 196, 171, 0.62);
+}
+
+.avatar {
+  width: 132rpx;
+  height: 132rpx;
+  border-radius: 50%;
+  background: #fff5e8;
+}
+
+.profile-main {
+  min-width: 0;
+}
+
+.menu {
+  overflow: hidden;
+  border-radius: 36rpx;
+  background: #ffffff;
+  border: 1rpx solid rgba(213, 196, 171, 0.62);
+}
+
+.menu-item {
+  padding: 34rpx 32rpx;
+  border-bottom: 1rpx solid #f1ece5;
+  font-size: 30rpx;
+  font-weight: 700;
+}
+
+.menu-item:last-child {
+  border-bottom: 0;
+}

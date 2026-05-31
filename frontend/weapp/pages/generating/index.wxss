@@ -1,0 +1,29 @@
+.progress-track {
+  height: 18rpx;
+  margin-top: 28rpx;
+  border-radius: 999rpx;
+  overflow: hidden;
+  background: #fff5e8;
+}
+
+.progress-track view {
+  height: 100%;
+  border-radius: 999rpx;
+  background: #ffb800;
+}
+
+.step-list {
+  display: flex;
+  flex-direction: column;
+  gap: 20rpx;
+}
+
+.step {
+  padding: 24rpx;
+  border-radius: 36rpx;
+  background: #fff5e8;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 28rpx;
+}

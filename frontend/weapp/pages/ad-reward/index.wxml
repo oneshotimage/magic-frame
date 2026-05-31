@@ -1,0 +1,8 @@
+<view class="page stack ad-page">
+  <view class="card stack">
+    <view class="title">观看激励视频</view>
+    <view class="subtitle">开发调试模式下点击完成即可模拟广告完整观看，并获得 1 次生成额度。</view>
+    <view class="credit-badge">当前 {{credits}} 次</view>
+  </view>
+  <button class="primary-btn" loading="{{loading}}" bindtap="completeAd">模拟观看完成</button>
+</view>

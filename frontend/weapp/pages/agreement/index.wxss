@@ -1,0 +1,8 @@
+.legal {
+  color: #666;
+  font-size: 28rpx;
+  line-height: 48rpx;
+  display: flex;
+  flex-direction: column;
+  gap: 20rpx;
+}

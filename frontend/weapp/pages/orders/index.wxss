@@ -1,0 +1,29 @@
+.order-list {
+  display: flex;
+  flex-direction: column;
+  gap: 24rpx;
+}
+
+.order-card {
+  padding: 32rpx;
+  border-radius: 36rpx;
+  background: #ffffff;
+  border: 1rpx solid rgba(213, 196, 171, 0.62);
+}
+
+.order-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20rpx;
+}
+
+.order-name,
+.order-price {
+  font-size: 32rpx;
+  font-weight: 800;
+}
+
+.order-price {
+  margin: 16rpx 0 24rpx;
+}

@@ -1,0 +1,88 @@
+.splash-page {
+  display: flex;
+  min-height: 100vh;
+  flex-direction: column;
+  justify-content: space-between;
+  text-align: center;
+}
+
+.brand {
+  padding-top: 64rpx;
+  color: #1a1c1c;
+  font-size: 32rpx;
+  font-weight: 600;
+}
+
+.hero-card {
+  position: relative;
+  width: 680rpx;
+  height: 850rpx;
+  margin: 40rpx auto 0;
+  overflow: hidden;
+  border-radius: 64rpx;
+  background: #fff5e8;
+  box-shadow: 0 16rpx 48rpx rgba(255, 184, 0, 0.15);
+}
+
+.hero-img {
+  width: 100%;
+  height: 100%;
+}
+
+.float-badge {
+  position: absolute;
+  width: 96rpx;
+  height: 96rpx;
+  border-radius: 999rpx;
+  background: rgba(255, 255, 255, 0.76);
+  color: #ff7d45;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+}
+
+.float-badge.left {
+  left: -16rpx;
+  top: 176rpx;
+}
+
+.float-badge.right {
+  right: -16rpx;
+  bottom: 360rpx;
+  color: #ffb800;
+}
+
+.glass-panel {
+  position: absolute;
+  left: 48rpx;
+  right: 48rpx;
+  bottom: 48rpx;
+  display: flex;
+  align-items: center;
+  gap: 24rpx;
+  padding: 34rpx;
+  border-radius: 48rpx;
+  background: rgba(255, 255, 255, 0.76);
+  text-align: left;
+}
+
+.ai-dot {
+  width: 80rpx;
+  height: 80rpx;
+  border-radius: 999rpx;
+  background: #ffb800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+}
+
+.glass-title {
+  font-size: 32rpx;
+  font-weight: 700;
+}
+
+.bottom-copy {
+  padding-bottom: 48rpx;
+}

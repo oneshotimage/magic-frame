@@ -21,10 +21,35 @@ backend/
 └── server.js              # 本地 API 服务、KL API 代理、MVP 业务接口
 
 frontend/
-└── public/                # 静态前端页面与样式脚本
+├── public/                # 静态前端页面与样式脚本
+└── weapp/                 # 微信原生小程序，可直接导入微信开发者工具
 
 docs/                      # PRD、架构文档、Swagger、开发历史
 ```
+
+## 微信小程序调试
+
+原生小程序代码位于 `frontend/weapp`，目录结构参考了 `xinge` 小程序的可导入项目方式，包含 `project.config.json`、`app.json`、页面级 `wxml/js/wxss`。
+
+1. 启动本地后端：
+
+```bash
+PORT=4180 npm start
+```
+
+2. 在微信开发者工具中导入目录：
+
+```text
+frontend/weapp
+```
+
+3. 使用测试号或游客 AppID 打开项目。`project.config.json` 已设置 `urlCheck: false`，本地调试会请求：
+
+```text
+http://localhost:4180
+```
+
+如需改后端地址，修改 `frontend/weapp/app.js` 中的 `globalData.apiBaseUrl`。上传照片、风格选择、生成任务、作品集、购买、广告奖励、分享海报、反馈、个人中心等页面均已接入后端 API。
 
 也可以用环境变量启动，避免每次在页面输入 Token：
 

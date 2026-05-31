@@ -1,0 +1,22 @@
+<view class="page safe-tab stack">
+  <view class="profile-card">
+    <image class="avatar" mode="aspectFill" src="{{avatarImage}}" />
+    <view class="profile-main">
+      <view class="title">{{user.nickname || '微信用户'}}</view>
+      <view class="subtitle">剩余 {{credits}} 次生成额度</view>
+    </view>
+  </view>
+
+  <button class="primary-btn" bindtap="goPurchase">购买生成次数</button>
+
+  <view class="menu">
+    <view class="menu-item" bindtap="editProfile">编辑资料</view>
+    <view class="menu-item" bindtap="goWorks">我的作品</view>
+    <view class="menu-item" bindtap="goOrders">订单记录</view>
+    <view class="menu-item" bindtap="goFaq">常见问题</view>
+    <view class="menu-item" bindtap="goLegal">隐私与协议</view>
+    <view class="menu-item" bindtap="goFeedback">意见反馈</view>
+  </view>
+
+  <button class="danger-btn" bindtap="deleteUser">删除账号</button>
+</view>

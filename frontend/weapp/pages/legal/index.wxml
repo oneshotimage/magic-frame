@@ -1,0 +1,10 @@
+<view class="page stack">
+  <view>
+    <view class="title">隐私与协议</view>
+    <view class="subtitle">MVP 调试版协议摘要</view>
+  </view>
+  <view wx:for="{{sections}}" wx:key="title" class="card">
+    <view class="section-title">{{item.title}}</view>
+    <view class="section-text">{{item.text}}</view>
+  </view>
+</view>

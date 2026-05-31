@@ -1,0 +1,11 @@
+<view class="page stack">
+  <view class="title">分享海报</view>
+  <view class="poster-card">
+    <image wx:if="{{posterUrl || image}}" class="poster-image" mode="aspectFill" src="{{posterUrl || image}}" />
+    <view wx:else class="poster-empty">暂无图片</view>
+    <view class="poster-caption">AI 影像写真馆</view>
+  </view>
+  <view wx:if="{{creating}}" class="muted">正在生成海报...</view>
+  <button open-type="share" class="primary-btn">分享给好友</button>
+  <button class="secondary-btn" bindtap="reward">已分享，领取奖励</button>
+</view>

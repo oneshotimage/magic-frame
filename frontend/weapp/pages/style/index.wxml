@@ -1,0 +1,18 @@
+<view class="page stack">
+  <view class="card">
+    <view class="title">选择风格</view>
+    <view class="subtitle">默认生成四种风格，也可以只保留你想要的风格。</view>
+  </view>
+  <view class="grid-two">
+    <block wx:for="{{styles}}" wx:key="id">
+      <view class="style-option {{selectedMap[item.id] ? 'active' : ''}}" data-id="{{item.id}}" bindtap="toggleStyle">
+        <image src="{{item.asset}}" mode="aspectFill" />
+        <view class="option-info">
+          <view>{{item.name}}</view>
+          <text>{{item.desc}}</text>
+        </view>
+      </view>
+    </block>
+  </view>
+  <button class="primary-btn" bindtap="next">下一步</button>
+</view>

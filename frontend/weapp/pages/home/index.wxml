@@ -1,0 +1,30 @@
+<view class="page safe-tab stack">
+  <view class="home-hero">
+    <image class="home-hero-img" src="{{heroImage}}" mode="aspectFill" />
+    <view class="hero-info">
+      <view>
+        <view class="hero-title">AI艺术写真<br />一键生成</view>
+        <view class="subtitle">上传一张照片，遇见不同风格的自己</view>
+      </view>
+      <view class="credit-badge">剩余次数：{{credits.totalCredits || 0}}</view>
+    </view>
+  </view>
+  <view class="section-head">
+    <view class="title">选择风格</view>
+    <text bindtap="goStyle">查看全部</text>
+  </view>
+  <view class="grid-two">
+    <block wx:for="{{styles}}" wx:key="id">
+      <view class="style-card {{selectedMap[item.id] ? 'active' : ''}}" data-id="{{item.id}}" bindtap="toggleStyle">
+        <image src="{{item.asset}}" mode="aspectFill" />
+        <view wx:if="{{item.badge}}" class="hot">{{item.badge}}</view>
+        <view class="style-mask">
+          <view class="style-name">{{item.short}}</view>
+          <view class="style-desc">{{item.desc}}</view>
+        </view>
+      </view>
+    </block>
+  </view>
+  <button class="primary-btn" bindtap="goUpload">✨ 立即制作</button>
+  <button class="secondary-btn" bindtap="goAd">看广告得次数</button>
+</view>

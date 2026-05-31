@@ -1,0 +1,19 @@
+<view class="page splash-page">
+  <view class="brand">AI影像写真馆</view>
+  <view class="hero-card">
+    <image class="hero-img" src="{{splashImage}}" mode="aspectFill" />
+    <view class="float-badge left">♥</view>
+    <view class="float-badge right">▣</view>
+    <view class="glass-panel">
+      <view class="ai-dot">AI</view>
+      <view>
+        <view class="glass-title">AI 智能生成</view>
+        <view class="muted">快速解锁多款风格</view>
+      </view>
+    </view>
+  </view>
+  <view class="bottom-copy">
+    <view class="subtitle">一张照片 解锁你的艺术写真</view>
+    <button class="primary-btn" bindtap="start">开始制作 →</button>
+  </view>
+</view>

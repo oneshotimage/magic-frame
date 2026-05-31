@@ -104,3 +104,25 @@
 - `http://localhost:4181/mvp.html` 返回 200。
 - `mvp.js` 中确认包含 `openWorks`、`payOrder`、`submitFeedback`、`useDemoPhoto` 等关键功能入口。
 - `mvp.css` 中确认包含 `home-hero`、`profile-card`、`credits-card`、`list-card`、`feedback-input` 等 Figma 视觉样式。
+
+## 2026-05-31 - 改造为微信原生 WXML 小程序
+
+任务：将微信小程序前端改造成原生 `wxml/js/wxss`，参考之前的 `xinge` 小程序结构，并支持在微信开发者工具里直接导入调试。
+
+改动项：
+
+- 新增 `frontend/weapp/project.config.json`、`app.json`、`app.js`、`app.wxss` 和 `sitemap.json`，形成独立微信开发者工具项目。
+- 新增 `frontend/weapp/utils/api.js`，封装登录、鉴权请求、额度刷新、本地图片压缩和 dataUrl 上传。
+- 新增 `frontend/weapp/utils/constants.js`，沉淀 4 种写真风格、Figma 图片资产和默认视觉素材。
+- 新增 19 个原生小程序页面：
+  - 开屏、首页、风格选择、上传、确认、授权协议、生成中、生成结果、图片预览、保存成功、分享海报。
+  - 购买、激励广告、我的、作品集、订单、常见问题、隐私协议、意见反馈。
+- 首页、作品集、我的接入原生 tabBar；其它流程页使用微信原生导航。
+- 小程序默认请求本地后端 `http://localhost:4180`，并在 `project.config.json` 中关闭本地调试域名校验。
+- 更新 `README.md`，补充微信开发者工具导入目录、本地后端启动命令和 API 地址配置说明。
+
+验证：
+
+- `find frontend/weapp -name '*.js' -print0 | xargs -0 -n1 node --check` 通过。
+- `npm test` 通过，7 组后端 API 测试全部成功。
+- `http://localhost:4180/packages` 本地后端健康检查返回 200。

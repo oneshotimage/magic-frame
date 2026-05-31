@@ -1,0 +1,6 @@
+.confirm-img {
+  width: 100%;
+  height: 760rpx;
+  border-radius: 48rpx;
+  background: #fff5e8;
+}

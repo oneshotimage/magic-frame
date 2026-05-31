@@ -1,0 +1,9 @@
+<view class="preview-page">
+  <image wx:if="{{image}}" class="preview-image" mode="aspectFit" src="{{image}}" />
+  <view wx:else class="empty">暂无可预览图片</view>
+
+  <view class="preview-actions">
+    <button class="secondary-btn" bindtap="sharePoster">分享</button>
+    <button class="primary-btn" bindtap="saveImage">保存到相册</button>
+  </view>
+</view>
