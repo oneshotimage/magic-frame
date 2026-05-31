@@ -2,7 +2,7 @@ const { login } = require('./utils/api');
 
 App({
   globalData: {
-    apiBaseUrl: 'http://localhost:4180',
+    apiBaseUrl: 'http://127.0.0.1:8000',
     token: '',
     user: null,
     credits: null,
@@ -25,7 +25,11 @@ App({
     if (this.globalData.token) {
       return Promise.resolve(this.globalData);
     }
-    return login().then((data) => {
+    return Promise.reject(new Error('LOGIN_REQUIRED'));
+  },
+
+  login(userInfo = {}) {
+    return login(userInfo).then((data) => {
       this.globalData.token = data.accessToken;
       this.globalData.user = data.user;
       this.globalData.credits = data.credits;
@@ -33,5 +37,18 @@ App({
       wx.setStorageSync('refreshToken', data.refreshToken);
       return this.globalData;
     });
+  },
+
+  clearSession() {
+    this.globalData.token = '';
+    this.globalData.user = null;
+    this.globalData.credits = null;
+    this.globalData.upload = null;
+    this.globalData.uploadDataUrl = '';
+    this.globalData.currentTask = null;
+    this.globalData.previewImage = '';
+    this.globalData.currentOrder = null;
+    wx.removeStorageSync('accessToken');
+    wx.removeStorageSync('refreshToken');
   }
 });

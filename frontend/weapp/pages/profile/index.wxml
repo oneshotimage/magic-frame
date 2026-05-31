@@ -1,4 +1,11 @@
 <view class="page safe-tab stack">
+  <view wx:if="{{!loggedIn}}" class="login-empty card stack">
+    <view class="title">登录后查看我的</view>
+    <view class="subtitle">同步作品、订单和生成额度，继续保存你的 AI 写真记录。</view>
+    <button class="primary-btn" bindtap="goLogin">微信登录</button>
+  </view>
+
+  <block wx:else>
   <view class="profile-card">
     <image class="avatar" mode="aspectFill" src="{{avatarImage}}" />
     <view class="profile-main">
@@ -18,5 +25,7 @@
     <view class="menu-item" bindtap="goFeedback">意见反馈</view>
   </view>
 
+  <button class="secondary-btn" bindtap="logout">退出登录</button>
   <button class="danger-btn" bindtap="deleteUser">删除账号</button>
+  </block>
 </view>

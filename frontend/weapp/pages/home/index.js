@@ -20,6 +20,9 @@ Page({
           creditText: creditText(credits),
           selectedMap: this.buildSelectedMap(app.globalData.selectedStyles)
         });
+      })
+      .catch(() => {
+        wx.navigateTo({ url: '/pages/login/index' });
       });
   },
 

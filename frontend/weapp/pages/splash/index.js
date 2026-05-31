@@ -2,14 +2,19 @@ const { splashImage } = require('../../utils/constants');
 
 Page({
   data: {
-    splashImage
+    splashImage,
+    loggedIn: false
   },
 
-  onLoad() {
-    getApp().ensureLogin().catch(() => {});
+  onShow() {
+    this.setData({ loggedIn: Boolean(getApp().globalData.token || wx.getStorageSync('accessToken')) });
   },
 
   start() {
-    wx.switchTab({ url: '/pages/home/index' });
+    if (this.data.loggedIn) {
+      wx.switchTab({ url: '/pages/home/index' });
+      return;
+    }
+    wx.navigateTo({ url: '/pages/login/index' });
   }
 });

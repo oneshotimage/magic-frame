@@ -196,6 +196,7 @@ def cors_headers() -> dict[str, str]:
 class LoginReq(BaseModel):
     code: str | None = None
     device: dict[str, Any] | None = None
+    userInfo: dict[str, Any] | None = None
 
 
 class RefreshReq(BaseModel):
@@ -832,6 +833,14 @@ def admin_assets(_: str = Depends(current_admin)) -> dict[str, Any]:
 @app.post("/auth/wechat-login")
 def wechat_login(body: LoginReq) -> dict[str, Any]:
     user = get_or_create_user(body.code)
+    if body.userInfo:
+        nickname = body.userInfo.get("nickname") or body.userInfo.get("nickName")
+        avatar_url = body.userInfo.get("avatarUrl") or body.userInfo.get("avatar_url")
+        if nickname:
+            user["nickname"] = nickname
+        if avatar_url:
+            user["avatarUrl"] = avatar_url
+        user["updatedAt"] = now_iso()
     return {**issue_tokens(user["userId"]), "user": clone(user), "credits": credits_response(user["userId"])}
 
 

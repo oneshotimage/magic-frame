@@ -1,0 +1,29 @@
+<view class="page login-page">
+  <view class="login-visual">
+    <image class="login-image" mode="aspectFill" src="{{splashImage}}" />
+    <view class="login-brand">AI影像写真馆</view>
+    <view class="login-copy">
+      <view class="headline">登录后<br />生成你的艺术写真</view>
+      <view class="subtitle">同步作品、保存记录，并继续使用真实 image2 生成能力。</view>
+    </view>
+  </view>
+
+  <view class="login-panel">
+    <view class="profile-form">
+      <button class="avatar-picker" open-type="chooseAvatar" bindchooseavatar="chooseAvatar">
+        <image wx:if="{{userInfo.avatarUrl}}" class="avatar-img" src="{{userInfo.avatarUrl}}" mode="aspectFill" />
+        <text wx:else>头像</text>
+      </button>
+      <input class="nickname-input" type="nickname" placeholder="微信昵称（选填）" value="{{userInfo.nickname}}" bindinput="onNicknameInput" />
+    </view>
+
+    <view class="agreement-row" bindtap="toggleAgree">
+      <view class="check {{agreed ? 'checked' : ''}}">{{agreed ? '✓' : ''}}</view>
+      <text>我已阅读并同意</text>
+      <text class="link" catchtap="openLegal">用户协议与隐私政策</text>
+    </view>
+
+    <button class="primary-btn" loading="{{loading}}" bindtap="login">微信登录</button>
+    <button class="secondary-btn" loading="{{loading}}" bindtap="skipProfile">暂不填写资料</button>
+  </view>
+</view>

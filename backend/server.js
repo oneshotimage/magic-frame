@@ -1320,6 +1320,11 @@ async function handleBusinessApi(req, res) {
       const body = await readJson(req);
       const id = body.code ? `wx_${String(body.code).slice(-8)}` : userId;
       const user = ensureUser(id);
+      if (body.userInfo) {
+        user.nickname = body.userInfo.nickname || body.userInfo.nickName || user.nickname;
+        user.avatarUrl = body.userInfo.avatarUrl || body.userInfo.avatar_url || user.avatarUrl;
+        user.updatedAt = new Date().toISOString();
+      }
       sendJson(res, 200, {
         accessToken: `dev-token-${id}`,
         refreshToken: `dev-refresh-${id}`,

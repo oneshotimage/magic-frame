@@ -8,7 +8,9 @@ Page({
   },
 
   onShow() {
-    this.load();
+    getApp().ensureLogin().then(() => this.load()).catch(() => {
+      wx.navigateTo({ url: '/pages/login/index' });
+    });
   },
 
   load() {

@@ -1,6 +1,7 @@
 {
   "pages": [
     "pages/splash/index",
+    "pages/login/index",
     "pages/home/index",
     "pages/style/index",
     "pages/upload/index",

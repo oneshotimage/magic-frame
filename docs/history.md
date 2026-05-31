@@ -247,6 +247,32 @@
 - `python3 -m pytest backend_fastapi/test_api.py` 覆盖管理登录、统计、用户、额度、任务、图片资产、反馈、后台页面访问，测试通过。
 - `python3 -m py_compile backend_fastapi/main.py backend_fastapi/test_api.py` 通过。
 - `node --check frontend/admin/app.js` 通过。
+
+## 2026-05-31 - 补齐小程序登录与注销流程
+
+任务：参考 Figma 登录/个人中心相关视觉稿，为小程序补齐用户登录和注销能力。
+
+说明：
+
+- Figma MCP 当前返回 `token_expired`，无法获取节点 `3306:1707`、`3306:1669`、`3306:1931`、`3306:1287` 的设计上下文和截图。
+- 本次先按项目已有 Warm Minimalism 视觉体系实现功能闭环，后续 Figma 重新登录后可继续做像素级对齐。
+
+改动项：
+
+- 新增 `pages/login/index` 微信原生登录页，支持头像选择、昵称填写、协议勾选、微信登录。
+- 开屏页不再自动登录，未登录时点击进入登录页，已登录时进入首页。
+- `App.ensureLogin()` 改为只校验登录态，不再静默登录。
+- 新增 `App.login()`、`App.clearSession()`，统一处理登录态写入和清理。
+- `utils/api.js` 新增 `logout()`，调用 `/auth/logout` 后清空本地登录态。
+- 首页、作品集、个人中心在未登录时跳转登录页。
+- 个人中心支持未登录态展示、登录入口、退出登录、注销账号。
+- FastAPI 和 Node 后端登录接口支持保存 `userInfo.nickname`、`userInfo.avatarUrl`。
+
+验证：
+
+- `python3 -m pytest backend_fastapi/test_api.py` 覆盖登录保存昵称头像，测试通过。
+- `find frontend/weapp -name '*.js' -print0 | xargs -0 -n1 node --check` 通过。
+- `npm test` 通过。
 - `npm test` 通过。
 
 ## 2026-05-31 - 修复管理后台静态资源 404

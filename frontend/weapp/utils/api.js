@@ -29,7 +29,7 @@ function request(options) {
   });
 }
 
-function login() {
+function login(userInfo = {}) {
   return new Promise((resolve) => {
     wx.login({
       success(res) {
@@ -44,9 +44,16 @@ function login() {
     method: 'POST',
     data: {
       code,
-      device: wx.getSystemInfoSync()
+      device: wx.getSystemInfoSync(),
+      userInfo
     }
   }));
+}
+
+function logout() {
+  return request({ url: '/auth/logout', method: 'POST' }).catch(() => ({ ok: false })).finally(() => {
+    getAppSafe().clearSession();
+  });
 }
 
 function refreshCredits() {
@@ -130,6 +137,7 @@ function demoImageDataUrl() {
 module.exports = {
   request,
   login,
+  logout,
   refreshCredits,
   creditText,
   showToast,

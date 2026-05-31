@@ -29,6 +29,20 @@ def auth_headers() -> dict[str, str]:
     return {"Authorization": f"Bearer {token}"}
 
 
+def test_auth_login_accepts_user_info() -> None:
+    res = client.post("/auth/wechat-login", json={
+        "code": "profile-code",
+        "userInfo": {
+            "nickname": "写真用户",
+            "avatarUrl": "https://example.com/avatar.png",
+        },
+    })
+    assert res.status_code == 200
+    data = res.json()
+    assert data["user"]["nickname"] == "写真用户"
+    assert data["user"]["avatarUrl"] == "https://example.com/avatar.png"
+
+
 def test_health() -> None:
     res = client.get("/health")
     assert res.status_code == 200
