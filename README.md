@@ -107,6 +107,14 @@ KL_PROXY_URL=http://127.0.0.1:51004
 
 当 KL 返回 `b64_json` 时，FastAPI 会转成 `/assets/generated/{assetId}.png` HTTP 图片地址，避免微信小程序 `<image>` 无法稳定展示 base64 data URL。
 
+测试期间 FastAPI 默认开启无限生成次数：
+
+```bash
+AI_UNLIMITED_CREDITS=1
+```
+
+此时 `/credits` 返回 `displayText: "无限"`，生成任务不会因余额不足失败，也不会扣减次数。正式计费测试时改为 `AI_UNLIMITED_CREDITS=0`。
+
 ## Docker Compose 部署
 
 后端支持 Docker Compose 部署，容器内仍由 `backend/server.js` 同时提供 API 与静态前端资源。

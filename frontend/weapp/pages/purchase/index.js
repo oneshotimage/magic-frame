@@ -1,9 +1,10 @@
-const { request, refreshCredits, showToast } = require('../../utils/api');
+const { request, refreshCredits, creditText, showToast } = require('../../utils/api');
 
 Page({
   data: {
     packages: [],
     credits: 0,
+    creditText: '0',
     order: null
   },
 
@@ -16,7 +17,7 @@ Page({
       request({ url: '/packages' }),
       refreshCredits().catch(() => ({ balance: 0 }))
     ]).then(([packages, credits]) => {
-      this.setData({ packages, credits: credits.balance });
+      this.setData({ packages, credits: credits.balance, creditText: creditText(credits) });
     }).catch((error) => {
       showToast(error.message || '套餐加载失败');
     });
@@ -53,7 +54,7 @@ Page({
         paid: true
       }
     }).then(() => refreshCredits()).then((credits) => {
-      this.setData({ order: null, credits: credits.balance });
+      this.setData({ order: null, credits: credits.balance, creditText: creditText(credits) });
       showToast('购买成功');
     }).catch((error) => {
       showToast(error.message || '支付失败');

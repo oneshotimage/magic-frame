@@ -2,7 +2,7 @@
   <view class="result-head">
     <view>
       <view class="title">生成结果</view>
-      <view class="subtitle">剩余 {{credits}} 次额度</view>
+      <view class="subtitle">剩余 {{creditText}} 次额度</view>
     </view>
     <view class="status-pill">{{task.status || 'UNKNOWN'}}</view>
   </view>

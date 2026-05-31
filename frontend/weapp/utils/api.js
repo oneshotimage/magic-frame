@@ -57,6 +57,12 @@ function refreshCredits() {
   });
 }
 
+function creditText(credits) {
+  if (!credits) return '0';
+  if (credits.unlimited) return credits.displayText || '无限';
+  return String(credits.balance ?? credits.totalCredits ?? 0);
+}
+
 function showToast(title) {
   wx.showToast({
     title,
@@ -125,6 +131,7 @@ module.exports = {
   request,
   login,
   refreshCredits,
+  creditText,
   showToast,
   uploadLocalImage,
   demoImageDataUrl

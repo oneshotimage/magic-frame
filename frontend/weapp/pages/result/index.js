@@ -1,11 +1,12 @@
 const { styles } = require('../../utils/constants');
-const { request, refreshCredits, showToast } = require('../../utils/api');
+const { request, refreshCredits, creditText, showToast } = require('../../utils/api');
 
 Page({
   data: {
     task: null,
     images: [],
     credits: 0,
+    creditText: '0',
     canRetry: false,
     debugText: ''
   },
@@ -24,12 +25,13 @@ Page({
       task,
       images,
       credits: app.globalData.credits?.balance || 0,
+      creditText: creditText(app.globalData.credits),
       canRetry: ['FAILED', 'PARTIAL_SUCCESS', 'TIMEOUT'].includes(task.status),
       debugText: this.buildDebugText(task)
     });
 
     refreshCredits().then((credits) => {
-      this.setData({ credits: credits.balance });
+      this.setData({ credits: credits.balance, creditText: creditText(credits) });
     }).catch(() => {});
   },
 

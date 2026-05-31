@@ -185,3 +185,24 @@
   - 任务终态为 `SUCCESS`。
   - 输出 URL 为 `http://127.0.0.1:8000/assets/generated/gen_7302d68d-9cf5-4f31-9cf3-e373ac42eba0.png`。
   - 访问输出 URL 返回 HTTP 200，`content-type: image/png`。
+
+## 2026-05-31 - 测试期生成次数改为无限
+
+任务：测试期间把生成改成无限次，避免真实 image2 联调被额度限制阻塞。
+
+改动项：
+
+- FastAPI 后端新增 `AI_UNLIMITED_CREDITS` 配置，默认 `1`。
+- 开启无限次数时：
+  - `/credits` 返回 `unlimited: true`、`displayText: "无限"`。
+  - `/generation/create` 不再校验余额。
+  - 任务成功后不扣减额度。
+  - `/credits/consume` 返回无限额度视图，不减少余额。
+- 小程序首页、生成结果、我的、购买、激励广告页改为使用后端 `displayText`，显示“无限”。
+- 更新 `.env.example`、`README.md`、`backend_fastapi/README.md` 说明无限额度开关。
+
+验证：
+
+- `python3 -m pytest backend_fastapi/test_api.py` 通过。
+- `find frontend/weapp -name '*.js' -print0 | xargs -0 -n1 node --check` 通过。
+- `npm test` 通过。

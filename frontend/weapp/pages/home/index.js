@@ -1,11 +1,12 @@
 const { styles, heroImage } = require('../../utils/constants');
-const { refreshCredits } = require('../../utils/api');
+const { refreshCredits, creditText } = require('../../utils/api');
 
 Page({
   data: {
     styles,
     heroImage,
     credits: {},
+    creditText: '0',
     selectedMap: {}
   },
 
@@ -16,6 +17,7 @@ Page({
       .then((credits) => {
         this.setData({
           credits,
+          creditText: creditText(credits),
           selectedMap: this.buildSelectedMap(app.globalData.selectedStyles)
         });
       });

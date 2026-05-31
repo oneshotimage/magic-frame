@@ -84,6 +84,14 @@ KL_PROXY_URL=http://127.0.0.1:51004
 AI_MOCK_GENERATION=1
 ```
 
+测试期默认开启无限生成次数：
+
+```bash
+AI_UNLIMITED_CREDITS=1
+```
+
+开启后 `/credits` 会返回 `unlimited: true`、`displayText: "无限"`，创建生成任务不再校验余额，任务成功后也不会扣减次数。需要恢复正式扣费逻辑时设置 `AI_UNLIMITED_CREDITS=0`。
+
 运行状态可通过以下接口检查：
 
 ```text

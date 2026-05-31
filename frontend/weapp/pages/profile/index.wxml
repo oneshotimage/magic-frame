@@ -3,7 +3,7 @@
     <image class="avatar" mode="aspectFill" src="{{avatarImage}}" />
     <view class="profile-main">
       <view class="title">{{user.nickname || '微信用户'}}</view>
-      <view class="subtitle">剩余 {{credits}} 次生成额度</view>
+      <view class="subtitle">剩余 {{creditText}} 次生成额度</view>
     </view>
   </view>
 

@@ -1,7 +1,7 @@
 <view class="page stack">
   <view>
     <view class="title">购买生成次数</view>
-    <view class="subtitle">当前剩余 {{credits}} 次</view>
+    <view class="subtitle">当前剩余 {{creditText}} 次</view>
   </view>
 
   <view class="package-list">

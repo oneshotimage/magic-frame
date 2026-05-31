@@ -1,10 +1,11 @@
 const { avatarImage } = require('../../utils/constants');
-const { request, refreshCredits, showToast } = require('../../utils/api');
+const { request, refreshCredits, creditText, showToast } = require('../../utils/api');
 
 Page({
   data: {
     user: null,
     credits: 0,
+    creditText: '0',
     avatarImage
   },
 
@@ -12,10 +13,11 @@ Page({
     const app = getApp();
     this.setData({
       user: app.globalData.user,
-      credits: app.globalData.credits?.balance || 0
+      credits: app.globalData.credits?.balance || 0,
+      creditText: creditText(app.globalData.credits)
     });
     refreshCredits().then((credits) => {
-      this.setData({ credits: credits.balance });
+      this.setData({ credits: credits.balance, creditText: creditText(credits) });
     }).catch(() => {});
   },
 

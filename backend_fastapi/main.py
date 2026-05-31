@@ -102,6 +102,7 @@ def runtime_config() -> dict[str, Any]:
         "klProxyUrl": safe_url(proxy),
         "klTimeoutSeconds": int(os.getenv("KL_TIMEOUT_SECONDS", "600")),
         "publicBaseUrl": os.getenv("PUBLIC_BASE_URL", "http://127.0.0.1:8000").rstrip("/"),
+        "unlimitedCredits": truthy_env("AI_UNLIMITED_CREDITS", "1"),
     }
 
 
@@ -309,16 +310,31 @@ def get_credits(user_id: str) -> dict[str, Any]:
     )
 
 
+def credits_response(user_id: str) -> dict[str, Any]:
+    credits = clone(get_credits(user_id))
+    if truthy_env("AI_UNLIMITED_CREDITS", "1"):
+        credits["unlimited"] = True
+        credits["balance"] = 999999
+        credits["totalCredits"] = 999999
+        credits["displayText"] = "无限"
+    else:
+        credits["unlimited"] = False
+        credits["displayText"] = str(credits.get("balance", credits.get("totalCredits", 0)))
+    return credits
+
+
 def add_credits(user_id: str, source: str, amount: int, biz_id: str) -> dict[str, Any]:
     credits = get_credits(user_id)
     credits["balance"] += amount
     credits["totalCredits"] += amount
     credits["updatedAt"] = now_iso()
     STATE.credit_logs.append({"id": gen_id("log"), "userId": user_id, "type": source, "amount": amount, "bizId": biz_id, "createdAt": now_iso()})
-    return clone(credits)
+    return credits_response(user_id)
 
 
 def consume_credit(user_id: str, biz_id: str) -> dict[str, Any]:
+    if truthy_env("AI_UNLIMITED_CREDITS", "1"):
+        return credits_response(user_id)
     credits = get_credits(user_id)
     if credits["balance"] <= 0:
         raise AppError(402, "CREDIT_NOT_ENOUGH", "生成次数不足")
@@ -326,7 +342,7 @@ def consume_credit(user_id: str, biz_id: str) -> dict[str, Any]:
     credits["usedCredits"] += 1
     credits["updatedAt"] = now_iso()
     STATE.credit_logs.append({"id": gen_id("log"), "userId": user_id, "type": "consume", "amount": -1, "bizId": biz_id, "createdAt": now_iso()})
-    return clone(credits)
+    return credits_response(user_id)
 
 
 def public_task(task: dict[str, Any]) -> dict[str, Any]:
@@ -580,7 +596,7 @@ def generated_asset(filename: str) -> Response:
 @app.post("/auth/wechat-login")
 def wechat_login(body: LoginReq) -> dict[str, Any]:
     user = get_or_create_user(body.code)
-    return {**issue_tokens(user["userId"]), "user": clone(user), "credits": clone(get_credits(user["userId"]))}
+    return {**issue_tokens(user["userId"]), "user": clone(user), "credits": credits_response(user["userId"])}
 
 
 @app.post("/auth/refresh")
@@ -624,7 +640,7 @@ def delete_user(user_id: str = Depends(current_user_id)) -> dict[str, Any]:
 
 @app.get("/credits")
 def credits(user_id: str = Depends(current_user_id)) -> dict[str, Any]:
-    return clone(get_credits(user_id))
+    return credits_response(user_id)
 
 
 @app.get("/credits/logs")
@@ -645,10 +661,10 @@ def consume(body: ConsumeReq, user_id: str = Depends(current_user_id)) -> dict[s
 @app.post("/credits/reward-ad")
 def reward_ad(body: RewardAdReq, user_id: str = Depends(current_user_id)) -> dict[str, Any]:
     if not body.completed:
-        return {"rewarded": False, "credits": clone(get_credits(user_id))}
+        return {"rewarded": False, "credits": credits_response(user_id)}
     event_id = body.adEventId or gen_id("ad")
     if event_id in STATE.ad_rewards:
-        return {"rewarded": False, "credits": clone(get_credits(user_id))}
+        return {"rewarded": False, "credits": credits_response(user_id)}
     credits = get_credits(user_id)
     if credits["todayAdCount"] >= credits["dailyAdLimit"]:
         raise AppError(429, "AD_DAILY_LIMIT", "今日广告奖励次数已达上限")
@@ -685,7 +701,7 @@ def validate_upload(body: ValidateReq, user_id: str = Depends(current_user_id)) 
 
 @app.post("/generation/create")
 def create_generation(body: GenerationCreateReq, user_id: str = Depends(current_user_id)) -> dict[str, Any]:
-    if get_credits(user_id)["balance"] <= 0:
+    if not truthy_env("AI_UNLIMITED_CREDITS", "1") and get_credits(user_id)["balance"] <= 0:
         raise AppError(402, "CREDIT_NOT_ENOUGH", "生成次数不足")
     upload = STATE.uploads.get(body.inputImageId)
     if not upload or upload["userId"] != user_id:

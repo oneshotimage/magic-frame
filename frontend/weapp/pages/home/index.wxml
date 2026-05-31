@@ -6,7 +6,7 @@
         <view class="hero-title">AI艺术写真<br />一键生成</view>
         <view class="subtitle">上传一张照片，遇见不同风格的自己</view>
       </view>
-      <view class="credit-badge">剩余次数：{{credits.totalCredits || 0}}</view>
+      <view class="credit-badge">剩余次数：{{creditText}}</view>
     </view>
   </view>
   <view class="section-head">

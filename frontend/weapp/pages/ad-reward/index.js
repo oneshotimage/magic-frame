@@ -1,14 +1,15 @@
-const { request, refreshCredits, showToast } = require('../../utils/api');
+const { request, refreshCredits, creditText, showToast } = require('../../utils/api');
 
 Page({
   data: {
     credits: 0,
+    creditText: '0',
     loading: false
   },
 
   onShow() {
     refreshCredits().then((credits) => {
-      this.setData({ credits: credits.balance });
+      this.setData({ credits: credits.balance, creditText: creditText(credits) });
     }).catch(() => {});
   },
 
@@ -25,7 +26,7 @@ Page({
     }).then((res) => {
       const credits = res.credits || res;
       getApp().globalData.credits = credits;
-      this.setData({ credits: credits.balance });
+      this.setData({ credits: credits.balance, creditText: creditText(credits) });
       showToast('奖励已到账');
       wx.switchTab({ url: '/pages/home/index' });
     }).catch((error) => {
