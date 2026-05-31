@@ -14,6 +14,18 @@ npm start
 http://localhost:4173
 ```
 
+## 目录结构
+
+```text
+backend/
+└── server.js              # 本地 API 服务、KL API 代理、MVP 业务接口
+
+frontend/
+└── public/                # 静态前端页面与样式脚本
+
+docs/                      # PRD、架构文档、Swagger、开发历史
+```
+
 也可以用环境变量启动，避免每次在页面输入 Token：
 
 ```bash
@@ -68,7 +80,7 @@ KL_API_TOKEN="你的 KL API Token" npm start
 }
 ```
 
-Nano Banana 已支持「提交任务 + 轮询任务」。如果其它 KL 模型也返回异步任务 ID，可以把该模型的适配器改成 `fal-queue` 或按响应结构扩展 `server.js`。
+Nano Banana 已支持「提交任务 + 轮询任务」。如果其它 KL 模型也返回异步任务 ID，可以把该模型的适配器改成 `fal-queue` 或按响应结构扩展 `backend/server.js`。
 
 ## 已实现能力
 

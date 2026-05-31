@@ -21,3 +21,23 @@
 - `node --check public/mvp.js` 通过。
 - `http://localhost:4174/mvp.html` 返回 200。
 - 登录、套餐查询、上传、创建生成任务、轮询成功路径 smoke test 通过。
+
+## 2026-05-31 - 拆分前后端代码目录
+
+任务：按要求将前端和后端代码放到不同目录下。
+
+改动项：
+
+- 新增 `backend/` 目录，并将后端入口从 `server.js` 移动为 `backend/server.js`。
+- 新增 `frontend/` 目录，并将原 `public/` 静态前端资源移动为 `frontend/public/`。
+- 更新 `backend/server.js` 的静态资源目录，从后端目录指向 `../frontend/public`。
+- 更新根目录 `package.json`，`npm start` 改为执行 `node backend/server.js`。
+- 更新 `README.md`，补充前后端目录结构说明，并修正后端扩展路径说明。
+
+验证：
+
+- `node --check backend/server.js` 通过。
+- `node --check frontend/public/mvp.js` 通过。
+- `PORT=4175 npm start` 可启动拆分后的服务。
+- `http://localhost:4175/mvp.html` 返回 200。
+- `http://localhost:4175/packages` 返回套餐列表。

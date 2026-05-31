@@ -1,0 +1,227 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AI影像写真馆 · 模型可行性测试台</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="sidebar">
+        <div class="brand">
+          <div class="brand-mark">影</div>
+          <div>
+            <strong>AI影像写真馆</strong>
+            <span>MVP 可行性实验台</span>
+          </div>
+        </div>
+        <nav class="nav">
+          <button class="nav-item active" type="button">测试台</button>
+          <a class="nav-item" href="/mvp.html">全栈MVP</a>
+          <a class="nav-item" href="/miniapp.html">小程序原型</a>
+          <a class="nav-item" href="/gpt-image2-styles.html">Image2四风格</a>
+          <button class="nav-item" type="button">样本库</button>
+          <button class="nav-item" type="button">结果分析</button>
+          <button class="nav-item" type="button">设置</button>
+        </nav>
+        <div class="side-note">
+          <span>目标</span>
+          <strong>验证 4 模型 × 4 风格</strong>
+          <p>成功率、15 秒完成率、人物一致性、成本与水印。</p>
+        </div>
+      </aside>
+
+      <main class="workspace">
+        <header class="topbar">
+          <div>
+            <h1>模型可行性测试台</h1>
+            <p>上传样本，配置 KL API，一键跑 Liblib / 即梦 / GPT Image 2 / Nano Banana 对比。</p>
+          </div>
+          <div class="top-actions">
+            <span class="status-dot" id="apiStatus">模拟模式</span>
+            <button class="ghost-btn" id="exportCsv" type="button">导出 CSV</button>
+            <button class="primary-btn" id="runTests" type="button">运行测试</button>
+          </div>
+        </header>
+
+        <section class="control-grid">
+          <article class="panel api-panel">
+            <div class="panel-head">
+              <h2>KL API 配置</h2>
+              <label class="switch">
+                <input id="realMode" type="checkbox" checked />
+                <span>真实请求</span>
+              </label>
+            </div>
+            <label class="field">
+              <span>Base URL</span>
+              <input id="baseUrl" value="https://api.kl-api.info" />
+            </label>
+            <div class="field-row">
+              <label class="field">
+                <span>Token / Key（Bearer）</span>
+                <input id="apiKey" type="password" placeholder="仅发送到本地代理" />
+              </label>
+              <label class="field">
+                <span>输出尺寸</span>
+                <select id="imageSize">
+                  <option value="1024x1024">1024x1024</option>
+                  <option value="1536x1024">1536x1024</option>
+                  <option value="1024x1536">1024x1536</option>
+                </select>
+              </label>
+            </div>
+            <label class="field">
+              <span>公开图片 URL（可选，Nano Banana / 部分接口需要公网 URL）</span>
+              <input id="imageUrl" value="https://7072-prod-d2gmuklu8f6fe61d3-1417316089.tcb.qcloud.la/IMG_3325.JPG?sign=c27bb343f01bb71598a2b8c0d812d375&t=1780160210" placeholder="https://example.com/portrait.jpg；留空则使用上传图片 base64/multipart" />
+            </label>
+            <label class="field">
+              <span>本地代理 URL（网络诊断 ECONNRESET 时填写）</span>
+              <input id="proxyUrl" value="http://127.0.0.1:51004" placeholder="例如 http://127.0.0.1:7890；不需要代理可留空" />
+            </label>
+            <div class="field-row">
+              <label class="field">
+                <span>火山 AccessKeyID</span>
+                <input id="volcAccessKeyId" type="password" placeholder="即梦官方 API 使用；不写入文件" />
+              </label>
+              <label class="field">
+                <span>火山 SecretAccessKey</span>
+                <input id="volcSecretAccessKey" type="password" placeholder="即梦官方 API 使用；不写入文件" />
+              </label>
+            </div>
+            <label class="field">
+              <span>自定义 JSON 模板（仅 template-json 适配器使用）</span>
+              <textarea id="payloadTemplate" spellcheck="false">{
+  "model": "{{model}}",
+  "image": "{{image}}",
+  "prompt": "{{prompt}}",
+  "size": "1024x1024",
+  "response_format": "url",
+  "n": 1
+}</textarea>
+            </label>
+          </article>
+
+          <article class="panel models-panel">
+            <div class="panel-head">
+              <h2>模型路由</h2>
+              <div class="inline-actions">
+                <button class="text-btn" id="selectAllModels" type="button">全选</button>
+                <button class="text-btn" id="presetKl" type="button">KL预设</button>
+              </div>
+            </div>
+            <div class="model-list" id="modelList"></div>
+          </article>
+
+          <article class="panel samples-panel">
+            <div class="panel-head">
+              <h2>样本库</h2>
+              <button class="text-btn" id="clearSamples" type="button">清空</button>
+            </div>
+            <label class="dropzone" for="sampleInput">
+              <input id="sampleInput" type="file" accept="image/*" multiple />
+              <strong>拖入或选择人像样本</strong>
+              <span>建议 5 张有效人像 + 3 张异常输入做首轮 smoke test</span>
+            </label>
+            <div class="sample-grid" id="sampleGrid"></div>
+          </article>
+
+          <article class="panel styles-panel">
+            <div class="panel-head">
+              <h2>四风格 Prompt</h2>
+              <button class="text-btn" id="resetPrompts" type="button">重置</button>
+            </div>
+            <div class="style-list" id="styleList"></div>
+          </article>
+        </section>
+
+        <section class="metrics-row">
+          <article class="metric">
+            <span>请求数</span>
+            <strong id="metricTotal">0</strong>
+          </article>
+          <article class="metric">
+            <span>成功率</span>
+            <strong id="metricSuccess">-</strong>
+          </article>
+          <article class="metric">
+            <span>15 秒完成率</span>
+            <strong id="metricWithin">-</strong>
+          </article>
+          <article class="metric">
+            <span>P95 延迟</span>
+            <strong id="metricP95">-</strong>
+          </article>
+          <article class="metric">
+            <span>预计成本</span>
+            <strong id="metricCost">¥0.00</strong>
+          </article>
+        </section>
+
+        <section class="progress-panel">
+          <div class="progress-copy">
+            <strong id="progressTitle">等待运行</strong>
+            <span id="progressDetail">选择样本、模型和风格后点击运行测试。</span>
+          </div>
+          <div class="progress-track" aria-label="测试进度">
+            <div class="progress-fill" id="progressFill"></div>
+          </div>
+          <div class="progress-stats">
+            <span id="progressCount">0 / 0</span>
+            <span id="progressPercent">0%</span>
+          </div>
+        </section>
+
+        <section class="results-grid">
+          <article class="panel queue-panel">
+            <div class="panel-head">
+              <h2>测试队列</h2>
+              <span class="muted" id="queueHint">等待运行</span>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>样本</th>
+                    <th>模型</th>
+                    <th>风格</th>
+                    <th>状态</th>
+                    <th>耗时</th>
+                    <th>成本</th>
+                    <th>评分</th>
+                  </tr>
+                </thead>
+                <tbody id="queueBody"></tbody>
+              </table>
+            </div>
+          </article>
+
+          <article class="panel gallery-panel">
+            <div class="panel-head">
+              <h2>输出对比</h2>
+              <span class="muted">按模型与风格观察人物一致性</span>
+            </div>
+            <div class="gallery" id="gallery"></div>
+          </article>
+        </section>
+
+        <section class="panel debug-panel">
+          <div class="panel-head">
+            <h2>调试信息</h2>
+            <div class="inline-actions">
+              <button class="text-btn" id="runDiagnostics" type="button">网络诊断</button>
+              <button class="text-btn" id="copyDebug" type="button">复制调试信息</button>
+              <button class="text-btn" id="clearDebug" type="button">清空</button>
+            </div>
+          </div>
+          <div class="debug-list" id="debugList">
+            <div class="debug-empty">真实请求后会显示每条响应的字段结构、图片提取状态和响应摘要。</div>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <script src="/app.js?v=20260530-debug2" type="module"></script>
+  </body>
+</html>

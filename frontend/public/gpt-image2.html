@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>GPT Image 2 图片编辑实验</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <main class="single-lab simple-image2">
+      <header class="single-hero">
+        <div>
+          <h1>GPT Image 2 图片编辑实验</h1>
+          <p>基于给定图片 URL 生成风格化结果。后端下载图片并按 KL 要求提交 multipart 编辑请求。</p>
+        </div>
+        <a class="ghost-link" href="/">返回</a>
+      </header>
+
+      <section class="single-grid">
+        <article class="panel">
+          <div class="panel-head">
+            <h2>输入</h2>
+            <span class="status-dot live">GPT Image 2</span>
+          </div>
+          <label class="field">
+            <span>KL Token</span>
+            <input id="gptToken" type="password" placeholder="Bearer Token；仅发送到本地代理" />
+          </label>
+          <label class="field">
+            <span>图片 URL</span>
+            <input id="gptImageUrl" value="https://7072-prod-d2gmuklu8f6fe61d3-1417316089.tcb.qcloud.la/IMG_3325.JPG?sign=c27bb343f01bb71598a2b8c0d812d375&t=1780160210" />
+          </label>
+          <label class="field">
+            <span>Prompt</span>
+            <textarea id="gptPrompt">保留上传照片中人物的身份特征、脸型、发型、表情和姿态，将人物重绘为高质量3D动画电影角色。风格为柔和立体、干净皮肤、明亮眼睛、精致布光、温暖色彩，适合微信头像和亲子写真。不要改变人物性别、年龄、发型主体和服装主体，不要增加多余人物，不要出现文字、水印、畸形五官。</textarea>
+          </label>
+          <div class="field-row">
+            <label class="field">
+              <span>尺寸</span>
+              <select id="gptSize">
+                <option value="1024x1024" selected>1024x1024</option>
+                <option value="1536x1024">1536x1024</option>
+                <option value="1024x1536">1024x1536</option>
+              </select>
+            </label>
+            <label class="field">
+              <span>本地代理</span>
+              <input id="gptProxy" value="http://127.0.0.1:51004" />
+            </label>
+          </div>
+          <div class="single-actions">
+            <button class="ghost-btn" id="gptDiagnose" type="button">网络诊断</button>
+            <button class="primary-btn" id="gptRun" type="button">生成</button>
+          </div>
+        </article>
+
+        <article class="panel">
+          <div class="panel-head">
+            <h2>原图预览</h2>
+            <span class="muted">URL 输入</span>
+          </div>
+          <div class="single-preview">
+            <img id="gptInputPreview" alt="输入图片预览" />
+          </div>
+        </article>
+      </section>
+
+      <section class="progress-panel">
+        <div class="progress-copy">
+          <strong id="gptProgressTitle">等待运行</strong>
+          <span id="gptProgressDetail">点击生成后开始请求 KL。</span>
+        </div>
+        <div class="progress-track">
+          <div class="progress-fill" id="gptProgressFill"></div>
+        </div>
+        <div class="progress-stats">
+          <span id="gptElapsed">0:00</span>
+          <span id="gptStatus">idle</span>
+        </div>
+      </section>
+
+      <section class="single-grid">
+        <article class="panel">
+          <div class="panel-head">
+            <h2>生成结果</h2>
+            <span class="muted" id="gptOutputHint">暂无输出</span>
+          </div>
+          <div class="single-preview output">
+            <div id="gptOutputEmpty">生成成功后会显示图片</div>
+            <img id="gptOutputImage" alt="GPT Image 2 输出" />
+          </div>
+        </article>
+
+        <article class="panel">
+          <div class="panel-head">
+            <h2>调试响应</h2>
+            <button class="text-btn" id="gptCopyDebug" type="button">复制</button>
+          </div>
+          <pre class="single-debug" id="gptDebug">{}</pre>
+        </article>
+      </section>
+    </main>
+
+    <script src="/gpt-image2.js?v=20260531-edit2" type="module"></script>
+  </body>
+</html>

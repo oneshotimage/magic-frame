@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>GPT Image 2 四风格测试</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <main class="single-lab simple-image2">
+      <header class="single-hero">
+        <div>
+          <h1>GPT Image 2 四风格测试</h1>
+          <p>选择照片和风格，用已跑通的 GPT Image 2 编辑链路生成结果。</p>
+        </div>
+        <a class="ghost-link" href="/gpt-image2.html">单页实验</a>
+      </header>
+
+      <section class="single-grid">
+        <article class="panel">
+          <div class="panel-head">
+            <h2>照片与配置</h2>
+            <span class="status-dot live">GPT Image 2</span>
+          </div>
+          <label class="field">
+            <span>KL Token</span>
+            <input id="styleToken" type="password" placeholder="Bearer Token；仅发送到本地代理" />
+          </label>
+          <label class="field">
+            <span>图片 URL</span>
+            <input id="styleImageUrl" value="https://7072-prod-d2gmuklu8f6fe61d3-1417316089.tcb.qcloud.la/IMG_3325.JPG?sign=c27bb343f01bb71598a2b8c0d812d375&t=1780160210" />
+          </label>
+          <label class="dropzone compact-drop" for="styleFile">
+            <input id="styleFile" type="file" accept="image/*" />
+            <strong>选择本地照片</strong>
+            <span>选择后会用于预览；建议上传到图床后填入 URL 生成</span>
+          </label>
+          <div class="field-row">
+            <label class="field">
+              <span>尺寸</span>
+              <select id="styleSize">
+                <option value="1024x1024" selected>1024x1024</option>
+                <option value="1536x1024">1536x1024</option>
+                <option value="1024x1536">1024x1536</option>
+              </select>
+            </label>
+            <label class="field">
+              <span>本地代理</span>
+              <input id="styleProxy" value="http://127.0.0.1:51004" />
+            </label>
+          </div>
+        </article>
+
+        <article class="panel">
+          <div class="panel-head">
+            <h2>原图预览</h2>
+            <span class="muted" id="styleInputHint">URL 输入</span>
+          </div>
+          <div class="single-preview">
+            <img id="styleInputPreview" alt="输入图片预览" />
+          </div>
+        </article>
+      </section>
+
+      <section class="panel style-run-panel">
+        <div class="panel-head">
+          <h2>风格 Prompt</h2>
+          <button class="primary-btn" id="styleRun" type="button">生成当前风格</button>
+        </div>
+        <div class="style-choice-grid" id="styleChoices"></div>
+        <label class="field">
+          <span>当前 Prompt</span>
+          <textarea id="stylePrompt"></textarea>
+        </label>
+      </section>
+
+      <section class="progress-panel">
+        <div class="progress-copy">
+          <strong id="styleProgressTitle">等待运行</strong>
+          <span id="styleProgressDetail">选择照片和风格后点击生成。</span>
+        </div>
+        <div class="progress-track">
+          <div class="progress-fill" id="styleProgressFill"></div>
+        </div>
+        <div class="progress-stats">
+          <span id="styleElapsed">0:00</span>
+          <span id="styleStatus">idle</span>
+        </div>
+      </section>
+
+      <section class="single-grid">
+        <article class="panel">
+          <div class="panel-head">
+            <h2>生成结果</h2>
+            <span class="muted" id="styleOutputHint">暂无输出</span>
+          </div>
+          <div class="single-preview output">
+            <div id="styleOutputEmpty">生成成功后会显示图片</div>
+            <img id="styleOutputImage" alt="GPT Image 2 输出" />
+          </div>
+        </article>
+
+        <article class="panel">
+          <div class="panel-head">
+            <h2>历史结果</h2>
+            <button class="text-btn" id="styleCopyDebug" type="button">复制调试</button>
+          </div>
+          <div class="style-history" id="styleHistory"></div>
+          <pre class="single-debug compact" id="styleDebug">{}</pre>
+        </article>
+      </section>
+    </main>
+
+    <script src="/gpt-image2-styles.js?v=20260531-1" type="module"></script>
+  </body>
+</html>

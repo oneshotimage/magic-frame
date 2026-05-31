@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AI影像写真馆 · 小程序原型</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body class="miniapp-body">
+    <main class="miniapp-shell">
+      <header class="miniapp-hero">
+        <div class="miniapp-statusbar">
+          <span>AI影像写真馆</span>
+          <a href="/gpt-image2-styles.html">API实验</a>
+        </div>
+        <div class="miniapp-hero-copy">
+          <h1>一张照片，解锁四种艺术风格写真</h1>
+          <p>上传清晰人像，使用 KL API 的 GPT Image 2 图片编辑能力生成头像和朋友圈写真。</p>
+        </div>
+        <div class="miniapp-quota">
+          <span>剩余次数</span>
+          <strong id="quotaCount">3</strong>
+          <button id="watchAd" type="button">看广告 +1</button>
+        </div>
+      </header>
+
+      <section class="miniapp-card miniapp-config">
+        <div class="miniapp-card-head">
+          <h2>制作配置</h2>
+          <span id="configState">待上传</span>
+        </div>
+        <div class="miniapp-config-grid">
+          <label class="miniapp-field">
+            <span>KL Token</span>
+            <input id="miniToken" type="password" placeholder="仅发送到本地服务，不持久保存" />
+          </label>
+          <label class="miniapp-field">
+            <span>本地代理</span>
+            <input id="miniProxy" value="http://127.0.0.1:51004" />
+          </label>
+          <label class="miniapp-field">
+            <span>输出尺寸</span>
+            <select id="miniSize">
+              <option value="1024x1024" selected>1024x1024</option>
+              <option value="1536x1024">1536x1024</option>
+              <option value="1024x1536">1024x1536</option>
+            </select>
+          </label>
+          <label class="miniapp-field">
+            <span>生成模式</span>
+            <select id="miniRunMode">
+              <option value="all" selected>一次生成四种风格</option>
+              <option value="selected">只生成当前选中风格</option>
+            </select>
+          </label>
+        </div>
+      </section>
+
+      <section class="miniapp-upload">
+        <label class="miniapp-uploader" for="portraitInput">
+          <input id="portraitInput" type="file" accept="image/*" />
+          <img id="portraitPreview" alt="原图预览" />
+          <div id="uploadEmpty">
+            <strong>选择照片</strong>
+            <span>建议正面单人照，系统会压缩到 2MB 内再提交</span>
+          </div>
+        </label>
+        <div class="miniapp-upload-actions">
+          <button class="ghost-btn" id="resetPhoto" type="button">重新选择</button>
+          <button class="primary-btn" id="startCreate" type="button">开始制作</button>
+        </div>
+      </section>
+
+      <section class="miniapp-card">
+        <div class="miniapp-card-head">
+          <h2>选择风格</h2>
+          <span id="selectedStyleName">3D皮克斯卡通</span>
+        </div>
+        <div class="miniapp-style-grid" id="miniStyleGrid"></div>
+      </section>
+
+      <section class="miniapp-progress" id="miniProgress">
+        <div>
+          <strong id="progressTitle">等待制作</strong>
+          <span id="progressDetail">上传照片后即可生成。</span>
+        </div>
+        <div class="miniapp-progress-track">
+          <div id="progressFill"></div>
+        </div>
+      </section>
+
+      <section class="miniapp-card">
+        <div class="miniapp-card-head">
+          <h2>生成结果</h2>
+          <span id="resultSummary">暂无作品</span>
+        </div>
+        <div class="miniapp-result-grid" id="resultGrid"></div>
+      </section>
+
+      <section class="miniapp-card miniapp-debug-card">
+        <div class="miniapp-card-head">
+          <h2>调试信息</h2>
+          <button class="text-btn" id="copyMiniDebug" type="button">复制</button>
+        </div>
+        <pre id="miniDebug">{}</pre>
+      </section>
+    </main>
+
+    <dialog id="previewDialog" class="miniapp-dialog">
+      <button id="closePreview" type="button">关闭</button>
+      <img id="dialogImage" alt="大图预览" />
+      <a id="dialogDownload" download="ai-photo.png">保存图片</a>
+    </dialog>
+
+    <script src="/miniapp.js?v=20260531-1" type="module"></script>
+  </body>
+</html>

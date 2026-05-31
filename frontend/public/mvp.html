@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AI影像写真馆 · MVP</title>
+    <link rel="stylesheet" href="/mvp.css" />
+  </head>
+  <body>
+    <main class="phone-shell">
+      <div class="ambient ambient-a"></div>
+      <div class="ambient ambient-b"></div>
+      <header class="app-bar">
+        <button id="backBtn" class="icon-btn" type="button" aria-label="返回">‹</button>
+        <strong id="pageTitle">AI影像写真馆</strong>
+        <button id="debugToggle" class="capsule" type="button">调试</button>
+      </header>
+      <section id="screen" class="screen"></section>
+      <nav id="tabbar" class="tabbar">
+        <button data-route="home" type="button">制作</button>
+        <button data-route="profile" type="button">我的</button>
+      </nav>
+    </main>
+    <aside id="debugPanel" class="debug-drawer">
+      <div>
+        <strong>调试信息</strong>
+        <button id="closeDebug" type="button">关闭</button>
+      </div>
+      <pre id="debugLog">{}</pre>
+    </aside>
+    <script src="/mvp.js?v=20260531-1" type="module"></script>
+  </body>
+</html>
