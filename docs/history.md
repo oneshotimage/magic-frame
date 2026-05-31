@@ -74,3 +74,33 @@
 - 使用本地 Node 方式部署后端：`PORT=4180 npm start`。
 - `http://localhost:4180/packages` 返回 200 和套餐列表。
 - `POST http://localhost:4180/auth/wechat-login` 返回 200 和登录 token。
+
+## 2026-05-31 - 完善小程序 17 页面功能并集成后端 API
+
+任务：基于 `figma-implement-design` 和 17 个 Figma 节点，继续完成小程序所有功能并集成后端 API。
+
+改动项：
+
+- 读取 Figma 首页节点 `3306:927`，将首页升级为图片 Hero、玻璃信息层、剩余次数卡、2 列风格图片卡和固定主操作按钮的 Warm Amber Minimalism 视觉。
+- 读取 Figma 个人中心节点 `3306:1287`，将我的页面升级为头像资料卡、渐变点数卡、列表式常用功能与关于入口。
+- 接入 Figma 图片资产：开屏插画、首页 Hero、四个风格卡图片、用户头像。
+- 新增作品集底部 Tab，并接入 `/generation/history` 展示历史作品。
+- 完善上传页，增加演示照片入口，便于无本地图片时跑通全流程。
+- 完善生成中页，增加取消任务能力，接入 `/generation/{taskId}/cancel`。
+- 完善结果页，针对失败、部分成功、超时任务增加重试入口，接入 `/generation/{taskId}/retry`。
+- 完善分享海报页，接入 `/share/create-poster` 和 `/share/reward`。
+- 完善购买页，改为先创建订单再由用户模拟支付、关闭订单或发起对账，分别接入 `/orders`、`/payment/wechat/notify`、`/orders/{orderId}/close`、`/payment/reconcile`。
+- 完善广告奖励页，支持完整播放发放次数和中断播放不发放次数，接入 `/credits/reward-ad`。
+- 完善个人中心资料编辑，接入 `PATCH /user/profile`。
+- 新增反馈页面，接入 `POST /feedback`。
+- 增加 toast、列表卡、渐变点数卡、Figma 风格图片卡、反馈输入框等前端样式。
+
+验证：
+
+- `node --check frontend/public/mvp.js` 通过。
+- `node --check backend/server.js` 通过。
+- `npm test` 通过，7 组后端 API 测试全部成功。
+- `PORT=4181 npm start` 可启动服务。
+- `http://localhost:4181/mvp.html` 返回 200。
+- `mvp.js` 中确认包含 `openWorks`、`payOrder`、`submitFeedback`、`useDemoPhoto` 等关键功能入口。
+- `mvp.css` 中确认包含 `home-hero`、`profile-card`、`credits-card`、`list-card`、`feedback-input` 等 Figma 视觉样式。
