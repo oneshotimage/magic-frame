@@ -150,3 +150,30 @@
 - `python3 -m uvicorn backend_fastapi.main:app --port 8000` 可启动服务。
 - `http://127.0.0.1:8000/health` 返回 `status: ok`，`/openapi.json` 返回 200。
 - `npm test` 通过，7 组现有 Node 后端测试全部成功。
+
+## 2026-05-31 - 完善 FastAPI 后端真实调用 image2 与调试信息
+
+任务：分析“目前没有真正调用 image2 生成图片”的原因，并继续完善生成链路和小程序调试能力。
+
+改动项：
+
+- 将 FastAPI 后端的生成行为改为默认真实调用 KL API：
+  - 未配置 `KL_API_TOKEN` 或 `KL_API_KEY` 时，任务明确失败并返回错误信息。
+  - 只有显式设置 `AI_MOCK_GENERATION=1` 时才使用本地 SVG mock 图片。
+- FastAPI 启动时自动读取仓库根目录 `.env`，并新增 `.env.example` 模板。
+- 完善 KL `gpt-image-2` 调用：
+  - 使用 multipart/form-data 调用 `/v1/images/edits`。
+  - 支持 `KL_API_BASE_URL`、`KL_API_TOKEN`、`KL_IMAGE_MODEL`、`KL_IMAGE_ENDPOINT`、`KL_TIMEOUT_SECONDS`。
+  - 支持 `KL_PROXY_URL=http://127.0.0.1:51004` 本地代理。
+  - 记录请求目标、模型、endpoint、HTTP 状态、耗时、响应 key 和响应摘要。
+- 新增 `GET /config/runtime`，用于检查当前生成模式、KL token、代理、模型和 endpoint 配置。
+- 小程序生成中页新增 provider 摘要展示，能看到 real/mock、模型、endpoint、token 和代理状态。
+- 小程序结果页新增调试信息面板，能看到每张图的状态、耗时、错误和 KL provider 信息。
+- 更新 `backend_fastapi/README.md` 和根 `README.md`，补充真实调用、代理、mock 开关和运行状态检查说明。
+
+验证：
+
+- `python3 -m pytest backend_fastapi/test_api.py` 覆盖本地 mock 流程和 KL multipart 真实请求构造，测试通过。
+- `python3 backend_fastapi/test_api.py` 冒烟测试通过。
+- `find frontend/weapp -name '*.js' -print0 | xargs -0 -n1 node --check` 通过。
+- `npm test` 通过，现有 Node 后端测试全部成功。

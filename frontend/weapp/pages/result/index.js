@@ -6,7 +6,8 @@ Page({
     task: null,
     images: [],
     credits: 0,
-    canRetry: false
+    canRetry: false,
+    debugText: ''
   },
 
   onShow() {
@@ -23,12 +24,33 @@ Page({
       task,
       images,
       credits: app.globalData.credits?.balance || 0,
-      canRetry: ['FAILED', 'PARTIAL_SUCCESS', 'TIMEOUT'].includes(task.status)
+      canRetry: ['FAILED', 'PARTIAL_SUCCESS', 'TIMEOUT'].includes(task.status),
+      debugText: this.buildDebugText(task)
     });
 
     refreshCredits().then((credits) => {
       this.setData({ credits: credits.balance });
     }).catch(() => {});
+  },
+
+  buildDebugText(task) {
+    if (!task?.taskId) return '';
+    const provider = task.provider || {};
+    const images = (task.images || []).map((image) => ({
+      style: image.style,
+      status: image.status,
+      elapsedMs: image.elapsedMs,
+      hasUrl: Boolean(image.url),
+      errorMessage: image.errorMessage || '',
+      provider: image.provider || {}
+    }));
+    return JSON.stringify({
+      taskId: task.taskId,
+      status: task.status,
+      progress: task.progress,
+      provider,
+      images
+    }, null, 2);
   },
 
   preview(event) {

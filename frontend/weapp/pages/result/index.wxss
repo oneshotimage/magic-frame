@@ -25,11 +25,49 @@
   background: #fff5e8;
 }
 
+.result-failed {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #ba1a1a;
+  font-size: 28rpx;
+  font-weight: 700;
+}
+
 .result-name {
   padding: 18rpx 20rpx 22rpx;
   font-size: 26rpx;
   font-weight: 700;
   color: #222222;
+}
+
+.result-error,
+.result-debug {
+  padding: 0 20rpx 22rpx;
+  color: #ba1a1a;
+  font-size: 22rpx;
+  line-height: 32rpx;
+  word-break: break-all;
+}
+
+.result-debug {
+  color: #666666;
+}
+
+.debug-panel {
+  padding: 28rpx;
+  border-radius: 32rpx;
+  background: #222222;
+  color: #ffffff;
+  font-size: 22rpx;
+  line-height: 34rpx;
+  word-break: break-all;
+}
+
+.debug-title {
+  margin-bottom: 16rpx;
+  font-size: 28rpx;
+  font-weight: 800;
 }
 
 .empty {

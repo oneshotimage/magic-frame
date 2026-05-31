@@ -91,6 +91,19 @@ python3 -m pytest backend_fastapi/test_api.py
 
 微信小程序切换到 FastAPI 后端时，将 `frontend/weapp/app.js` 的 `apiBaseUrl` 改为 `http://127.0.0.1:8000`。
 
+FastAPI 后端默认要求真实调用 KL API。可复制 `.env.example` 为 `.env` 并填入：
+
+```bash
+KL_API_BASE_URL=https://api.kl-api.info
+KL_API_TOKEN=你的 KL API Token
+KL_IMAGE_MODEL=gpt-image-2
+KL_IMAGE_ENDPOINT=/v1/images/edits
+KL_TIMEOUT_SECONDS=600
+KL_PROXY_URL=http://127.0.0.1:51004
+```
+
+如果只想本地跑通流程，显式设置 `AI_MOCK_GENERATION=1` 才会启用 mock 图片。运行状态可看 `GET /config/runtime`，小程序生成中和结果页也会展示 KL 调用模式、模型、接口、HTTP 状态和错误摘要。
+
 ## Docker Compose 部署
 
 后端支持 Docker Compose 部署，容器内仍由 `backend/server.js` 同时提供 API 与静态前端资源。

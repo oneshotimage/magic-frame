@@ -9,8 +9,11 @@
 
   <view wx:if="{{images.length}}" class="result-grid">
     <view wx:for="{{images}}" wx:key="url" class="result-card" bindtap="preview" data-url="{{item.url}}">
-      <image class="result-image" mode="aspectFill" src="{{item.url}}" />
+      <image wx:if="{{item.url}}" class="result-image" mode="aspectFill" src="{{item.url}}" />
+      <view wx:else class="result-image result-failed">生成失败</view>
       <view class="result-name">{{item.name}}</view>
+      <view wx:if="{{item.status !== 'SUCCESS'}}" class="result-error">{{item.errorMessage || item.status}}</view>
+      <view wx:elif="{{item.provider.httpStatus}}" class="result-debug">HTTP {{item.provider.httpStatus}} · {{item.elapsedMs}}ms</view>
     </view>
   </view>
 
@@ -22,4 +25,9 @@
   <button wx:if="{{canRetry}}" class="secondary-btn" bindtap="retryTask">重试失败项</button>
   <button wx:if="{{images.length}}" class="primary-btn" bindtap="sharePoster">生成分享海报</button>
   <button class="secondary-btn" bindtap="again">继续生成</button>
+
+  <view wx:if="{{debugText}}" class="debug-panel">
+    <view class="debug-title">调试信息</view>
+    <text selectable="true">{{debugText}}</text>
+  </view>
 </view>

@@ -56,13 +56,38 @@ apiBaseUrl: 'http://127.0.0.1:8000'
 
 ## KL API
 
-未配置 KL Token 时，生成接口会返回本地 SVG mock 图片，便于完整联调。配置以下环境变量后会尝试调用 KL `gpt-image-2` 图片编辑接口：
+默认是真实调用模式。必须配置 KL Token，否则生成任务会失败并在任务详情里返回明确错误，不再伪装成本地生成成功。
+
+配置以下环境变量后会调用 KL `gpt-image-2` 图片编辑接口：
 
 ```bash
 KL_API_BASE_URL=https://api.kl-api.info
 KL_API_TOKEN=你的 KL API Token
 KL_IMAGE_MODEL=gpt-image-2
+KL_IMAGE_ENDPOINT=/v1/images/edits
+KL_TIMEOUT_SECONDS=600
 python3 -m uvicorn backend_fastapi.main:app --reload --port 8000
+```
+
+如果本地网络需要代理：
+
+```bash
+KL_PROXY_URL=http://127.0.0.1:51004
+```
+
+也可以把这些配置写入仓库根目录 `.env`，FastAPI 后端启动时会自动读取。仓库提供了 `.env.example` 模板。
+
+只有显式设置以下变量时，生成接口才会返回本地 SVG mock 图片：
+
+```bash
+AI_MOCK_GENERATION=1
+```
+
+运行状态可通过以下接口检查：
+
+```text
+GET /config/runtime
+GET /health
 ```
 
 ## 测试

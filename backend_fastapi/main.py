@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from copy import deepcopy
 from datetime import datetime, timedelta, timezone
+from pathlib import Path
 from typing import Any
 from urllib import error, request
 import base64
@@ -20,6 +21,25 @@ from pydantic import BaseModel, ConfigDict
 
 
 TZ = timezone(timedelta(hours=8))
+ROOT_DIR = Path(__file__).resolve().parents[1]
+
+
+def load_dotenv() -> None:
+    env_path = ROOT_DIR / ".env"
+    if not env_path.exists():
+        return
+    for raw_line in env_path.read_text(encoding="utf-8").splitlines():
+        line = raw_line.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        key, value = line.split("=", 1)
+        key = key.strip()
+        if not key or key in os.environ:
+            continue
+        os.environ[key] = value.strip().strip('"').strip("'")
+
+
+load_dotenv()
 
 
 def now_dt() -> datetime:
@@ -55,6 +75,33 @@ def svg_data_url(title: str, subtitle: str, color: str = "#FFB800") -> str:
 </svg>"""
     encoded = base64.b64encode(svg.encode("utf-8")).decode("ascii")
     return f"data:image/svg+xml;base64,{encoded}"
+
+
+def truthy_env(name: str, default: str = "") -> bool:
+    value = os.getenv(name, default).strip().lower()
+    return value in {"1", "true", "yes", "on"}
+
+
+def safe_url(url: str) -> str:
+    if not url:
+        return ""
+    return re.sub(r"//([^/@]+)@", "//<auth>@", url)
+
+
+def runtime_config() -> dict[str, Any]:
+    token = os.getenv("KL_API_TOKEN") or os.getenv("KL_API_KEY") or ""
+    proxy = os.getenv("KL_PROXY_URL") or ""
+    return {
+        "generationMode": "mock" if truthy_env("AI_MOCK_GENERATION") else "real",
+        "mockEnabled": truthy_env("AI_MOCK_GENERATION"),
+        "klTokenConfigured": bool(token),
+        "klBaseUrl": os.getenv("KL_API_BASE_URL", "https://api.kl-api.info"),
+        "klImageEndpoint": os.getenv("KL_IMAGE_ENDPOINT", "/v1/images/edits"),
+        "klImageModel": os.getenv("KL_IMAGE_MODEL", "gpt-image-2"),
+        "klProxyConfigured": bool(proxy),
+        "klProxyUrl": safe_url(proxy),
+        "klTimeoutSeconds": int(os.getenv("KL_TIMEOUT_SECONDS", "600")),
+    }
 
 
 class AppError(Exception):
@@ -317,15 +364,17 @@ def extract_output_url(payload: Any) -> str:
     return ""
 
 
-def call_kl_image2(image_data_url: str, prompt: str, size: str) -> str:
+def call_kl_image2(image_data_url: str, prompt: str, size: str) -> dict[str, Any]:
     token = os.getenv("KL_API_TOKEN") or os.getenv("KL_API_KEY")
     if not token:
-        return ""
+        raise RuntimeError("KL_API_TOKEN 未配置，无法真实调用 gpt-image-2。调试 mock 请设置 AI_MOCK_GENERATION=1。")
 
     model = os.getenv("KL_IMAGE_MODEL", "gpt-image-2")
     base_url = os.getenv("KL_API_BASE_URL", "https://api.kl-api.info").rstrip("/")
     endpoint = os.getenv("KL_IMAGE_ENDPOINT", "/v1/images/edits")
     target = f"{base_url}{endpoint}"
+    proxy_url = os.getenv("KL_PROXY_URL") or ""
+    timeout_seconds = int(os.getenv("KL_TIMEOUT_SECONDS", "600"))
 
     match = re.match(r"^data:([^;]+);base64,(.*)$", image_data_url)
     if not match:
@@ -345,6 +394,7 @@ def call_kl_image2(image_data_url: str, prompt: str, size: str) -> str:
     add_field("model", model)
     add_field("prompt", prompt)
     add_field("size", size)
+    add_field("n", "1")
     add_field("response_format", "url")
     parts.append(f"--{boundary}\r\n".encode())
     parts.append(b'Content-Disposition: form-data; name="image"; filename="portrait.jpg"\r\n')
@@ -353,19 +403,39 @@ def call_kl_image2(image_data_url: str, prompt: str, size: str) -> str:
     parts.append(b"\r\n")
     parts.append(f"--{boundary}--\r\n".encode())
 
+    body = b"".join(parts)
     req = request.Request(
         target,
-        data=b"".join(parts),
+        data=body,
         method="POST",
         headers={
             "Authorization": f"Bearer {token}",
             "Content-Type": f"multipart/form-data; boundary={boundary}",
+            "Accept": "application/json",
         },
     )
+    opener = request.build_opener()
+    if proxy_url:
+        opener = request.build_opener(request.ProxyHandler({"http": proxy_url, "https": proxy_url}))
+    started = time.time()
     try:
-        with request.urlopen(req, timeout=600) as resp:
-            payload = json.loads(resp.read().decode("utf-8"))
-            return extract_output_url(payload)
+        with opener.open(req, timeout=timeout_seconds) as resp:
+            raw_text = resp.read().decode("utf-8", errors="replace")
+            payload = json.loads(raw_text)
+            output_url = extract_output_url(payload)
+            if not output_url:
+                raise RuntimeError(f"KL API 未返回图片字段: {raw_text[:1200]}")
+            return {
+                "url": output_url,
+                "httpStatus": resp.status,
+                "elapsedMs": int((time.time() - started) * 1000),
+                "target": target,
+                "model": model,
+                "endpoint": endpoint,
+                "requestBytes": len(body),
+                "responseKeys": list(payload.keys()) if isinstance(payload, dict) else [],
+                "rawSummary": raw_text[:1200],
+            }
     except error.HTTPError as exc:
         detail = exc.read().decode("utf-8", errors="replace")
         raise RuntimeError(f"KL API HTTP {exc.code}: {detail}") from exc
@@ -378,6 +448,8 @@ def process_generation(task_id: str) -> None:
 
     task["status"] = "RUNNING"
     task["progress"] = 18
+    task["provider"] = runtime_config()
+    task["provider"]["startedAt"] = now_iso()
     task["updatedAt"] = now_iso()
     success_count = 0
 
@@ -389,17 +461,43 @@ def process_generation(task_id: str) -> None:
         task["progress"] = min(92, 25 + index * 18)
         style = STYLE_PROMPTS.get(image["style"], STYLE_PROMPTS["pixar"])
         try:
-            output_url = call_kl_image2(task["inputImageDataUrl"], style["prompt"], task["size"])
-            if not output_url:
-                output_url = svg_data_url(style["name"], "FastAPI mock output", style["color"])
-            image["url"] = output_url
+            if truthy_env("AI_MOCK_GENERATION"):
+                output = {
+                    "url": svg_data_url(style["name"], "FastAPI mock output", style["color"]),
+                    "httpStatus": "mock",
+                    "elapsedMs": int((time.time() - started) * 1000),
+                    "target": "mock",
+                    "model": "mock",
+                    "endpoint": "mock",
+                    "responseKeys": ["mock"],
+                    "rawSummary": "AI_MOCK_GENERATION=1",
+                }
+            else:
+                output = call_kl_image2(task["inputImageDataUrl"], style["prompt"], task["size"])
+            image["url"] = output["url"]
             image["status"] = "SUCCESS"
-            image["elapsedMs"] = int((time.time() - started) * 1000)
+            image["elapsedMs"] = output["elapsedMs"]
+            image["provider"] = {
+                "mode": task["provider"]["generationMode"],
+                "httpStatus": output["httpStatus"],
+                "target": safe_url(output["target"]),
+                "model": output["model"],
+                "endpoint": output["endpoint"],
+                "responseKeys": output["responseKeys"],
+                "rawSummary": output["rawSummary"],
+            }
             success_count += 1
         except Exception as exc:  # noqa: BLE001 - keep provider error visible to mini-program.
             image["status"] = "FAILED"
             image["errorMessage"] = str(exc)
             image["elapsedMs"] = int((time.time() - started) * 1000)
+            image["provider"] = {
+                "mode": task["provider"]["generationMode"],
+                "target": safe_url(f"{task['provider']['klBaseUrl'].rstrip('/')}{task['provider']['klImageEndpoint']}"),
+                "model": task["provider"]["klImageModel"],
+                "endpoint": task["provider"]["klImageEndpoint"],
+                "error": str(exc),
+            }
 
     if success_count == len(task["images"]):
         task["status"] = "SUCCESS"
@@ -414,12 +512,20 @@ def process_generation(task_id: str) -> None:
     if success_count > 0 and not task.get("charged"):
         consume_credit(task["userId"], task["taskId"])
         task["charged"] = True
+    task["provider"]["completedAt"] = now_iso()
+    task["provider"]["successCount"] = success_count
+    task["provider"]["totalCount"] = len(task["images"])
     task["updatedAt"] = now_iso()
 
 
 @app.get("/health")
 def health() -> dict[str, Any]:
-    return {"status": "ok", "service": "ai-portrait-fastapi", "time": now_iso()}
+    return {"status": "ok", "service": "ai-portrait-fastapi", "time": now_iso(), "runtime": runtime_config()}
+
+
+@app.get("/config/runtime")
+def config_runtime() -> dict[str, Any]:
+    return runtime_config()
 
 
 @app.post("/auth/wechat-login")
@@ -546,8 +652,9 @@ def create_generation(body: GenerationCreateReq, user_id: str = Depends(current_
         "progress": 8,
         "size": body.size,
         "charged": False,
+        "provider": runtime_config(),
         "images": [
-            {"imageId": gen_id("out"), "style": style, "status": "PENDING", "url": "", "errorMessage": "", "elapsedMs": 0}
+            {"imageId": gen_id("out"), "style": style, "status": "PENDING", "url": "", "errorMessage": "", "elapsedMs": 0, "provider": {}}
             for style in styles
         ],
         "createdAt": now_iso(),

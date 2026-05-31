@@ -2,12 +2,17 @@
   <view class="card">
     <view class="title">AI 正在绘制</view>
     <view class="subtitle">{{task.status || 'QUEUED'}} · {{task.progress || 0}}%</view>
+    <view wx:if="{{providerSummary}}" class="muted provider-line">{{providerSummary}}</view>
     <view class="progress-track"><view style="width: {{task.progress || 0}}%;"></view></view>
   </view>
   <view class="step-list">
     <block wx:for="{{task.images}}" wx:key="imageId">
       <view class="step">
-        <text>{{styleNames[item.style] || item.style}}</text>
+        <view class="step-main">
+          <text>{{styleNames[item.style] || item.style}}</text>
+          <text wx:if="{{item.errorMessage}}" class="step-error">{{item.errorMessage}}</text>
+          <text wx:elif="{{item.provider.httpStatus}}" class="step-debug">HTTP {{item.provider.httpStatus}} · {{item.elapsedMs}}ms</text>
+        </view>
         <text class="status-pill">{{item.status}}</text>
       </view>
     </block>

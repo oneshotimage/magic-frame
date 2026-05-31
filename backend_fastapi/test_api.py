@@ -2,6 +2,8 @@
 from __future__ import annotations
 
 from pathlib import Path
+import json
+import os
 import sys
 import time
 
@@ -11,6 +13,9 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
+os.environ.setdefault("AI_MOCK_GENERATION", "1")
+
+from backend_fastapi import main
 from backend_fastapi.main import app, svg_data_url
 
 
@@ -101,6 +106,49 @@ def test_ad_reward() -> None:
     reward = client.post("/credits/reward-ad", headers=headers, json={"completed": True, "adEventId": "event-1"})
     assert reward.status_code == 200
     assert reward.json()["rewarded"] is True
+
+
+def test_call_kl_image2_builds_real_multipart_request(monkeypatch) -> None:
+    captured = {}
+
+    class FakeResponse:
+        status = 200
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *_args):
+            return False
+
+        def read(self) -> bytes:
+            return json.dumps({"data": [{"url": "https://example.com/out.png"}]}).encode("utf-8")
+
+    class FakeOpener:
+        def open(self, req, timeout):
+            captured["url"] = req.full_url
+            captured["headers"] = dict(req.headers)
+            captured["data"] = req.data
+            captured["timeout"] = timeout
+            return FakeResponse()
+
+    monkeypatch.delenv("AI_MOCK_GENERATION", raising=False)
+    monkeypatch.setenv("KL_API_TOKEN", "test-token")
+    monkeypatch.setenv("KL_API_BASE_URL", "https://api.kl-api.info")
+    monkeypatch.setenv("KL_IMAGE_ENDPOINT", "/v1/images/edits")
+    monkeypatch.setenv("KL_IMAGE_MODEL", "gpt-image-2")
+    monkeypatch.setenv("KL_TIMEOUT_SECONDS", "600")
+    monkeypatch.setattr(main.request, "build_opener", lambda *args: FakeOpener())
+
+    result = main.call_kl_image2(svg_data_url("Demo", "input"), "prompt", "1024x1024")
+
+    assert result["url"] == "https://example.com/out.png"
+    assert captured["url"] == "https://api.kl-api.info/v1/images/edits"
+    assert captured["timeout"] == 600
+    assert captured["headers"]["Authorization"] == "Bearer test-token"
+    assert "multipart/form-data" in captured["headers"]["Content-type"]
+    assert b'name="model"' in captured["data"]
+    assert b"gpt-image-2" in captured["data"]
+    assert b'name="image"; filename="portrait.jpg"' in captured["data"]
 
 
 if __name__ == "__main__":
