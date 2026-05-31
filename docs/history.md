@@ -273,6 +273,31 @@
 - `python3 -m pytest backend_fastapi/test_api.py` 覆盖登录保存昵称头像，测试通过。
 - `find frontend/weapp -name '*.js' -print0 | xargs -0 -n1 node --check` 通过。
 - `npm test` 通过。
+
+## 2026-05-31 - 按 Figma 方向升级小程序我的页面
+
+任务：参考 Figma 节点 `3306:1287` 实现小程序“我的”页面。
+
+说明：
+
+- Figma MCP 当前仍返回 `token_expired`，无法获取该节点设计上下文和截图。
+- 本次按项目已有 Figma Warm Minimalism 视觉体系实现页面结构和交互，待 Figma MCP 重新登录后可继续做 1:1 视觉对齐。
+
+改动项：
+
+- 将“我的”页从基础列表升级为顶部暖色资料 Hero。
+- 增加头像、昵称、用户 ID 简写和编辑资料入口。
+- 增加生成次数卡，展示“无限”展示额度和后台可管理的实际额度。
+- 增加四宫格快捷入口：我的作品、订单记录、购买次数、领取奖励。
+- 服务支持区改为分组列表：常见问题、意见反馈、隐私与协议。
+- 未登录态改为同一视觉体系下的登录引导卡。
+- 保留退出登录与删除账号操作区。
+
+验证：
+
+- `find frontend/weapp -name '*.js' -print0 | xargs -0 -n1 node --check` 通过。
+- `python3 -m pytest backend_fastapi/test_api.py` 通过。
+- `npm test` 通过。
 - `npm test` 通过。
 
 ## 2026-05-31 - 修复管理后台静态资源 404

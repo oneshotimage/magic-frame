@@ -7,6 +7,8 @@ Page({
     loggedIn: false,
     credits: 0,
     creditText: '0',
+    actualCreditText: '0',
+    userIdText: '',
     avatarImage
   },
 
@@ -18,7 +20,9 @@ Page({
         user: null,
         loggedIn: false,
         credits: 0,
-        creditText: '0'
+        creditText: '0',
+        actualCreditText: '0',
+        userIdText: ''
       });
       return;
     }
@@ -26,17 +30,33 @@ Page({
       loggedIn: true,
       user: app.globalData.user,
       credits: app.globalData.credits?.balance || 0,
-      creditText: creditText(app.globalData.credits)
+      creditText: creditText(app.globalData.credits),
+      actualCreditText: this.actualCreditText(app.globalData.credits),
+      userIdText: this.formatUserId(app.globalData.user?.userId)
     });
     Promise.all([
       request({ url: '/user/profile' }).then((user) => {
         app.globalData.user = user;
-        this.setData({ user });
+        this.setData({ user, userIdText: this.formatUserId(user.userId) });
       }).catch(() => {}),
       refreshCredits().then((credits) => {
-        this.setData({ credits: credits.balance, creditText: creditText(credits) });
+        this.setData({
+          credits: credits.balance,
+          creditText: creditText(credits),
+          actualCreditText: this.actualCreditText(credits)
+        });
       }).catch(() => {})
     ]);
+  },
+
+  formatUserId(userId = '') {
+    if (!userId) return '未绑定';
+    return userId.length > 12 ? `${userId.slice(0, 6)}...${userId.slice(-4)}` : userId;
+  },
+
+  actualCreditText(credits) {
+    if (!credits) return '0';
+    return String(credits.actualBalance ?? credits.balance ?? credits.totalCredits ?? 0);
   },
 
   goLogin() {
@@ -87,6 +107,10 @@ Page({
     wx.navigateTo({ url: '/pages/feedback/index' });
   },
 
+  goAd() {
+    wx.navigateTo({ url: '/pages/ad-reward/index' });
+  },
+
   deleteUser() {
     wx.showModal({
       title: '删除账号',
@@ -117,7 +141,9 @@ Page({
             user: null,
             loggedIn: false,
             credits: 0,
-            creditText: '0'
+            creditText: '0',
+            actualCreditText: '0',
+            userIdText: ''
           });
           wx.reLaunch({ url: '/pages/splash/index' });
         });

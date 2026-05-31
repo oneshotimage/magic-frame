@@ -1,31 +1,67 @@
-<view class="page safe-tab stack">
-  <view wx:if="{{!loggedIn}}" class="login-empty card stack">
-    <view class="title">登录后查看我的</view>
-    <view class="subtitle">同步作品、订单和生成额度，继续保存你的 AI 写真记录。</view>
-    <button class="primary-btn" bindtap="goLogin">微信登录</button>
+<view class="page profile-page safe-tab">
+  <view wx:if="{{!loggedIn}}" class="guest-hero">
+    <view class="guest-orbit one"></view>
+    <view class="guest-orbit two"></view>
+    <view class="avatar-shell guest-avatar">AI</view>
+    <view class="guest-title">登录后查看我的</view>
+    <view class="guest-copy">同步作品、订单和生成额度，继续保存你的 AI 写真记录。</view>
+    <button class="primary-btn login-cta" bindtap="goLogin">微信登录</button>
   </view>
 
   <block wx:else>
-  <view class="profile-card">
-    <image class="avatar" mode="aspectFill" src="{{avatarImage}}" />
-    <view class="profile-main">
-      <view class="title">{{user.nickname || '微信用户'}}</view>
-      <view class="subtitle">剩余 {{creditText}} 次生成额度</view>
+  <view class="profile-hero">
+    <view class="hero-top">
+      <view class="avatar-shell">
+        <image class="avatar" mode="aspectFill" src="{{user.avatarUrl || avatarImage}}" />
+      </view>
+      <view class="profile-main">
+        <view class="profile-name">{{user.nickname || '微信用户'}}</view>
+        <view class="profile-id">ID {{userIdText}}</view>
+      </view>
+      <button class="edit-chip" bindtap="editProfile">编辑</button>
+    </view>
+
+    <view class="credits-card">
+      <view>
+        <view class="credits-label">可用生成次数</view>
+        <view class="credits-value">{{creditText}}</view>
+      </view>
+      <view class="credits-side">
+        <view>实际额度 {{actualCreditText}}</view>
+        <view>测试期可无限生成</view>
+      </view>
     </view>
   </view>
 
-  <button class="primary-btn" bindtap="goPurchase">购买生成次数</button>
-
-  <view class="menu">
-    <view class="menu-item" bindtap="editProfile">编辑资料</view>
-    <view class="menu-item" bindtap="goWorks">我的作品</view>
-    <view class="menu-item" bindtap="goOrders">订单记录</view>
-    <view class="menu-item" bindtap="goFaq">常见问题</view>
-    <view class="menu-item" bindtap="goLegal">隐私与协议</view>
-    <view class="menu-item" bindtap="goFeedback">意见反馈</view>
+  <view class="quick-grid">
+    <view class="quick-item" bindtap="goWorks">
+      <view class="quick-icon">作</view>
+      <view>我的作品</view>
+    </view>
+    <view class="quick-item" bindtap="goOrders">
+      <view class="quick-icon">单</view>
+      <view>订单记录</view>
+    </view>
+    <view class="quick-item" bindtap="goPurchase">
+      <view class="quick-icon">次</view>
+      <view>购买次数</view>
+    </view>
+    <view class="quick-item" bindtap="goAd">
+      <view class="quick-icon">赠</view>
+      <view>领取奖励</view>
+    </view>
   </view>
 
-  <button class="secondary-btn" bindtap="logout">退出登录</button>
-  <button class="danger-btn" bindtap="deleteUser">删除账号</button>
+  <view class="menu-section">
+    <view class="section-title">服务与支持</view>
+    <view class="menu-item" bindtap="goFaq">常见问题</view>
+    <view class="menu-item" bindtap="goFeedback">意见反馈</view>
+    <view class="menu-item" bindtap="goLegal">隐私与协议</view>
+  </view>
+
+  <view class="account-section">
+    <button class="secondary-btn compact-btn" bindtap="logout">退出登录</button>
+    <button class="danger-btn compact-btn" bindtap="deleteUser">删除账号</button>
+  </view>
   </block>
 </view>
