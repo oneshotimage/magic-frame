@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AI影像写真馆管理后台</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <main class="shell">
+      <aside class="sidebar">
+        <div class="brand">
+          <span class="brand-mark">AI</span>
+          <div>
+            <h1>影像写真馆</h1>
+            <p>运营管理后台</p>
+          </div>
+        </div>
+        <nav class="nav">
+          <button class="nav-item active" data-view="dashboard">概览</button>
+          <button class="nav-item" data-view="users">用户</button>
+          <button class="nav-item" data-view="tasks">生成任务</button>
+          <button class="nav-item" data-view="orders">订单</button>
+          <button class="nav-item" data-view="feedback">反馈</button>
+          <button class="nav-item" data-view="assets">图片资产</button>
+          <button class="nav-item" data-view="runtime">运行配置</button>
+        </nav>
+        <button id="logoutBtn" class="logout">退出登录</button>
+      </aside>
+
+      <section class="workspace">
+        <header class="topbar">
+          <div>
+            <h2 id="viewTitle">概览</h2>
+            <p id="viewSubtitle">查看业务、生成和 KL API 运行状态</p>
+          </div>
+          <button id="refreshBtn" class="primary small">刷新</button>
+        </header>
+
+        <section id="loginPanel" class="login-card">
+          <h2>管理员登录</h2>
+          <p>默认账号来自后端环境变量 `ADMIN_USERNAME` / `ADMIN_PASSWORD`。</p>
+          <label>
+            账号
+            <input id="usernameInput" value="admin" autocomplete="username" />
+          </label>
+          <label>
+            密码
+            <input id="passwordInput" type="password" value="admin123" autocomplete="current-password" />
+          </label>
+          <button id="loginBtn" class="primary">登录</button>
+          <pre id="loginError" class="error"></pre>
+        </section>
+
+        <section id="appPanel" class="app-panel hidden">
+          <section id="dashboardView" class="view"></section>
+          <section id="usersView" class="view hidden"></section>
+          <section id="tasksView" class="view hidden"></section>
+          <section id="ordersView" class="view hidden"></section>
+          <section id="feedbackView" class="view hidden"></section>
+          <section id="assetsView" class="view hidden"></section>
+          <section id="runtimeView" class="view hidden"></section>
+        </section>
+      </section>
+    </main>
+
+    <dialog id="detailDialog">
+      <div class="dialog-head">
+        <h3 id="dialogTitle">详情</h3>
+        <button id="closeDialogBtn" class="ghost">关闭</button>
+      </div>
+      <pre id="dialogBody"></pre>
+    </dialog>
+
+    <script src="./app.js"></script>
+  </body>
+</html>

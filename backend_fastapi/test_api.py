@@ -156,9 +156,58 @@ def test_call_kl_image2_builds_real_multipart_request(monkeypatch) -> None:
     assert b'name="image"; filename="portrait.jpg"' in captured["data"]
 
 
+def test_admin_apis() -> None:
+    headers = auth_headers()
+    upload = client.post(
+        "/upload/image",
+        headers=headers,
+        json={"dataUrl": svg_data_url("Admin", "input"), "width": 1024, "height": 1024},
+    )
+    task = client.post("/generation/create", headers=headers, json={"inputImageId": upload.json()["imageId"], "styles": ["pixar"]})
+    task_id = task.json()["taskId"]
+    for _ in range(10):
+        time.sleep(0.1)
+        detail = client.get(f"/generation/{task_id}", headers=headers).json()
+        if detail["status"] in {"SUCCESS", "PARTIAL_SUCCESS", "FAILED"}:
+            break
+
+    login = client.post("/admin/api/login", json={"username": "admin", "password": "admin123"})
+    assert login.status_code == 200, login.text
+    admin_headers = {"Authorization": f"Bearer {login.json()['accessToken']}"}
+
+    stats = client.get("/admin/api/stats", headers=admin_headers)
+    assert stats.status_code == 200
+    assert stats.json()["tasks"] >= 1
+
+    users = client.get("/admin/api/users", headers=admin_headers)
+    assert users.status_code == 200
+    user_id = users.json()["items"][0]["userId"]
+
+    adjusted = client.post(f"/admin/api/users/{user_id}/credits", headers=admin_headers, json={"amount": 10, "reason": "test"})
+    assert adjusted.status_code == 200
+
+    tasks = client.get("/admin/api/tasks", headers=admin_headers)
+    assert tasks.status_code == 200
+    assert tasks.json()["total"] >= 1
+
+    task_detail = client.get(f"/admin/api/tasks/{task_id}", headers=admin_headers)
+    assert task_detail.status_code == 200
+
+    assets = client.get("/admin/api/assets", headers=admin_headers)
+    assert assets.status_code == 200
+
+    feedback = client.get("/admin/api/feedback", headers=admin_headers)
+    assert feedback.status_code == 200
+
+    admin_page = client.get("/admin")
+    assert admin_page.status_code == 200
+    assert "管理后台" in admin_page.text
+
+
 if __name__ == "__main__":
     test_health()
     test_user_credit_upload_generation_flow()
     test_orders_payment_share_feedback()
     test_ad_reward()
+    test_admin_apis()
     print("FastAPI smoke tests passed")

@@ -206,3 +206,45 @@
 - `python3 -m pytest backend_fastapi/test_api.py` 通过。
 - `find frontend/weapp -name '*.js' -print0 | xargs -0 -n1 node --check` 通过。
 - `npm test` 通过。
+
+## 2026-05-31 - 实现管理后台与 FastAPI 管理接口
+
+任务：新增 `frontend/admin/` 管理后台，并在 `backend_fastapi/` 实现管理后台接口。
+
+改动项：
+
+- 新增 `frontend/admin/` 静态管理后台，无需打包，由 FastAPI 直接通过 `/admin` 提供。
+- 新增管理登录，支持 `ADMIN_USERNAME`、`ADMIN_PASSWORD` 环境变量。
+- 新增 `/admin/api/*` 管理接口：
+  - `POST /admin/api/login`
+  - `POST /admin/api/logout`
+  - `GET /admin/api/me`
+  - `GET /admin/api/runtime`
+  - `GET /admin/api/stats`
+  - `GET /admin/api/users`
+  - `GET /admin/api/users/{userId}`
+  - `POST /admin/api/users/{userId}/credits`
+  - `GET /admin/api/tasks`
+  - `GET /admin/api/tasks/{taskId}`
+  - `POST /admin/api/tasks/{taskId}/retry`
+  - `POST /admin/api/tasks/{taskId}/cancel`
+  - `GET /admin/api/orders`
+  - `POST /admin/api/orders/{orderId}/close`
+  - `GET /admin/api/feedback`
+  - `GET /admin/api/assets`
+- 管理后台页面支持：
+  - 概览统计。
+  - 用户列表、用户详情、额度调整。
+  - 生成任务列表、输出预览、任务详情、重试、取消。
+  - 订单列表与关闭待支付订单。
+  - 反馈列表。
+  - 图片资产列表。
+  - KL 运行配置查看。
+- 更新 `.env.example`、`README.md`、`backend_fastapi/README.md`，补充管理后台访问地址和账号配置。
+
+验证：
+
+- `python3 -m pytest backend_fastapi/test_api.py` 覆盖管理登录、统计、用户、额度、任务、图片资产、反馈、后台页面访问，测试通过。
+- `python3 -m py_compile backend_fastapi/main.py backend_fastapi/test_api.py` 通过。
+- `node --check frontend/admin/app.js` 通过。
+- `npm test` 通过。

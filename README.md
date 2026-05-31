@@ -91,6 +91,21 @@ python3 -m pytest backend_fastapi/test_api.py
 
 微信小程序切换到 FastAPI 后端时，将 `frontend/weapp/app.js` 的 `apiBaseUrl` 改为 `http://127.0.0.1:8000`。
 
+管理后台由 FastAPI 直接提供：
+
+```text
+http://127.0.0.1:8000/admin
+```
+
+默认账号配置：
+
+```bash
+ADMIN_USERNAME=admin
+ADMIN_PASSWORD=admin123
+```
+
+后台代码位于 `frontend/admin/`，接口位于 `backend_fastapi/` 的 `/admin/api/*`。
+
 FastAPI 后端默认要求真实调用 KL API。可复制 `.env.example` 为 `.env` 并填入：
 
 ```bash
