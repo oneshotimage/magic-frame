@@ -1,0 +1,46 @@
+<view class="guide-page">
+  <nav-bar title="使用指南" leftText="跳过" showMore="{{false}}" bind:back="skip" />
+
+  <view class="hero">
+    <view class="hero-title">三步生成专属头像</view>
+    <view class="hero-subtitle">简单几步，让AI为你绘制惊艳的艺术写真</view>
+  </view>
+
+  <view class="steps">
+    <view class="step-card">
+      <view class="step-icon">☻</view>
+      <view class="step-body">
+        <view class="step-title">1. 上传清晰的人像照</view>
+        <view class="step-text">选择一张五官清晰、光线明亮的正面照片，以获得最佳生成效果。</view>
+      </view>
+    </view>
+
+    <view class="step-card">
+      <view class="step-icon">✾</view>
+      <view class="step-body">
+        <view class="step-title">2. 选择喜欢的风格</view>
+        <view class="step-text">从3D卡通、唯美插画、复古胶片等多种专属艺术风格中挑选你的最爱。</view>
+        <view class="style-preview">
+          <image class="style-tile" mode="aspectFill" src="/assets/guide-style-3d.jpg" />
+          <view class="style-selected">
+            <image class="style-tile" mode="aspectFill" src="/assets/guide-style-illustration.jpg" />
+            <view class="style-check">✓</view>
+          </view>
+          <image class="style-tile" mode="aspectFill" src="/assets/guide-style-film.jpg" />
+        </view>
+      </view>
+    </view>
+
+    <view class="step-card">
+      <view class="step-icon">✦</view>
+      <view class="step-body">
+        <view class="step-title">3. 等待AI施展魔法</view>
+        <view class="step-text">稍等片刻，AI将为你生成高质量的艺术肖像，随时保存并分享。</view>
+      </view>
+    </view>
+  </view>
+
+  <view class="bottom-action">
+    <app-button text="我知道了，开始制作" bind:press="start" />
+  </view>
+</view>

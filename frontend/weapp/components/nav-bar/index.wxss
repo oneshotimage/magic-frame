@@ -1,0 +1,81 @@
+.nav-shell {
+  left: 0;
+  right: 0;
+  z-index: 30;
+  box-sizing: border-box;
+  background: rgba(249, 249, 249, 0.8);
+  -webkit-backdrop-filter: blur(12rpx);
+  backdrop-filter: blur(12rpx);
+  font-family: "PingFang SC", "Helvetica Neue", sans-serif;
+}
+
+.nav-bar {
+  height: 92rpx;
+  padding: 0 40rpx;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  color: #1a1c1c;
+}
+
+.is-fixed {
+  position: fixed;
+  top: 0;
+}
+
+.is-static {
+  position: relative;
+}
+
+.nav-action {
+  width: 80rpx;
+  height: 80rpx;
+  display: flex;
+  align-items: center;
+  flex: none;
+}
+
+.nav-left {
+  justify-content: flex-start;
+}
+
+.nav-right {
+  justify-content: flex-end;
+}
+
+.nav-back-icon {
+  color: #7c5800;
+  font-size: 48rpx;
+  line-height: 48rpx;
+  font-weight: 500;
+}
+
+.nav-left-text {
+  color: #7c5800;
+  font-size: 28rpx;
+  line-height: 40rpx;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.nav-heading {
+  min-width: 0;
+  flex: 1;
+  color: #1a1c1c;
+  font-size: 40rpx;
+  line-height: 56rpx;
+  font-weight: 500;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.nav-more-icon {
+  color: #1a1c1c;
+  font-size: 30rpx;
+  line-height: 30rpx;
+  font-weight: 800;
+  letter-spacing: 3rpx;
+}

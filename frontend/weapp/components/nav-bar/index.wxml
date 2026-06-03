@@ -1,0 +1,11 @@
+<view class="nav-shell {{fixed ? 'is-fixed' : 'is-static'}}" style="padding-top: {{statusBarHeight}}px;">
+  <view class="nav-bar">
+    <view class="nav-action nav-left" bindtap="onBack">
+      <text wx:if="{{showBack}}" class="{{leftText.length > 1 ? 'nav-left-text' : 'nav-back-icon'}}">{{leftText}}</text>
+    </view>
+    <view class="nav-heading">{{title}}</view>
+    <view class="nav-action nav-right" bindtap="onMore">
+      <text wx:if="{{showMore}}" class="nav-more-icon">{{rightText}}</text>
+    </view>
+  </view>
+</view>

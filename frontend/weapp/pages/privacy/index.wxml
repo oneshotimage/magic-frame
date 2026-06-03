@@ -1,0 +1,18 @@
+<view class="privacy-page">
+  <nav-bar title="AI影像写真馆" fixed="{{false}}" bind:back="goBack" />
+
+  <scroll-view class="content" scroll-y>
+    <view class="header">
+      <view class="doc-title">隐私政策</view>
+      <view class="doc-date">最近更新日期：2023年10月24日</view>
+    </view>
+
+    <view wx:for="{{sections}}" wx:key="title" class="policy-card">
+      <view class="section-title">{{item.title}}</view>
+      <view wx:for="{{item.paragraphs}}" wx:for-item="paragraph" wx:key="*this" class="section-text">{{paragraph}}</view>
+    </view>
+
+    <view class="contact-text">如果您对本隐私政策有任何疑问、意见或建议，请通过客服与我们联系。</view>
+    <app-button text="我已阅读并同意" icon="" bind:press="agree" />
+  </scroll-view>
+</view>

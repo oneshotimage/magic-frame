@@ -1,0 +1,14 @@
+<view class="tabbar">
+  <view class="tab-item {{active === 'home' ? 'active' : ''}}" data-page="home" bindtap="onNavigate">
+    <text class="tab-icon home-icon">⌂</text>
+    <text class="tab-label">首页</text>
+  </view>
+  <view class="tab-item {{active === 'works' ? 'active' : ''}}" data-page="works" bindtap="onNavigate">
+    <text class="tab-icon works-icon">▧</text>
+    <text class="tab-label">作品集</text>
+  </view>
+  <view class="tab-item {{active === 'profile' ? 'active' : ''}}" data-page="profile" bindtap="onNavigate">
+    <text class="tab-icon profile-icon">♙</text>
+    <text class="tab-label">我的</text>
+  </view>
+</view>

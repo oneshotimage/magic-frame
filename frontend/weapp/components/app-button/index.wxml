@@ -1,0 +1,11 @@
+<button
+  class="app-button {{variant}}"
+  loading="{{loading}}"
+  disabled="{{disabled}}"
+  open-type="{{openType}}"
+  data-value="{{value}}"
+  bindtap="onTap"
+>
+  <text class="button-text">{{text}}</text>
+  <text wx:if="{{icon}}" class="button-icon">{{icon}}</text>
+</button>
