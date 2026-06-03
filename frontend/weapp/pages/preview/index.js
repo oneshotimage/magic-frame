@@ -1,4 +1,4 @@
-const { showToast } = require('../../utils/api');
+const { showToast, resolveAssetUrl } = require('../../utils/api');
 
 Page({
   data: {
@@ -6,7 +6,7 @@ Page({
   },
 
   onShow() {
-    this.setData({ image: getApp().globalData.previewImage || '' });
+    this.setData({ image: resolveAssetUrl(getApp().globalData.previewImage || '') });
   },
 
   saveImage() {

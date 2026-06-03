@@ -1,10 +1,47 @@
-<view class="page stack">
-  <view>
-    <view class="title">隐私与协议</view>
-    <view class="subtitle">MVP 调试版协议摘要</view>
-  </view>
-  <view wx:for="{{sections}}" wx:key="title" class="card">
-    <view class="section-title">{{item.title}}</view>
-    <view class="section-text">{{item.text}}</view>
-  </view>
+<view class="legal-page">
+  <nav-bar title="AI影像写真馆" fixed="{{false}}" bind:back="goBack" />
+
+  <scroll-view class="content" scroll-y>
+    <view class="document-card">
+      <view class="doc-title">用户协议</view>
+      <view class="doc-date">最后更新时间：2023年10月24日</view>
+
+      <view class="section">
+        <view class="section-header">
+          <view class="section-number">1</view>
+          <view class="section-title">服务内容</view>
+        </view>
+        <view class="section-text">欢迎使用AI影像写真馆（以下简称"本服务"）。本服务利用先进的人工智能技术，为用户提供个性化的照片生成和风格化处理功能。用户需提供合法、合规的照片素材，系统将根据所选的温暖、极简或高级写实等风格进行影像生成。我们致力于提供一种充满关怀且技术前沿的数字回忆整理体验。</view>
+      </view>
+
+      <view class="section">
+        <view class="section-header">
+          <view class="section-number">2</view>
+          <view class="section-title">用户行为准则</view>
+        </view>
+        <view class="rule-box">
+          <view wx:for="{{rules}}" wx:key="*this" class="rule-item">{{item}}</view>
+        </view>
+      </view>
+
+      <view class="section">
+        <view class="section-header">
+          <view class="section-number">3</view>
+          <view class="section-title">知识产权说明</view>
+        </view>
+        <view class="section-text">您上传的原始照片版权归您所有。通过本服务生成的最终影像作品，在非商业用途的前提下，您享有永久的使用权。未经明确书面授权，禁止将AI生成的影像用于转售、广告投放或其他直接盈利行为。本平台的算法、界面设计及相关品牌标识（含"AI影像写真馆"相关字样及Logo）的知识产权归平台方所有。</view>
+      </view>
+
+      <view class="section">
+        <view class="section-header">
+          <view class="section-number">4</view>
+          <view class="section-title">免责声明</view>
+        </view>
+        <view class="notice-box">本服务依赖于AI算法生成结果，无法保证100%的逼真度或符合个人主观审美预期。因网络波动、第三方服务故障等不可抗力导致的服务中断或数据丢失，平台不承担赔偿责任。在使用过程中，如发现疑似侵权内容，平台有权在未通知的情况下进行移除。</view>
+      </view>
+    </view>
+
+    <view class="bottom-copy">继续使用即表示您已阅读并同意上述条款</view>
+    <app-button text="我已阅读并同意" icon="" bind:press="agree" />
+  </scroll-view>
 </view>

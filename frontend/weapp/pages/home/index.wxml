@@ -1,9 +1,5 @@
 <view class="home-page">
-  <view class="top-bar">
-    <view class="top-word" bindtap="goBack">‹</view>
-    <view class="bar-title">AI影像写真馆</view>
-    <view class="top-word top-more">•••</view>
-  </view>
+  <nav-bar title="AI影像写真馆" bind:back="goBack" />
 
   <view class="main">
     <view class="home-hero">
@@ -58,24 +54,8 @@
   </view>
 
   <view class="cta-wrap">
-    <button class="make-button" bindtap="goUpload">
-      <text class="sparkle-icon">✦</text>
-      <text>立即制作</text>
-    </button>
+    <app-button text="立即制作" bind:press="goUpload" />
   </view>
 
-  <view class="bottom-nav">
-    <view class="tab-item active">
-      <view class="tab-icon home-tab">⌂</view>
-      <view class="tab-label active-label">首页</view>
-    </view>
-    <view class="tab-item" bindtap="goWorks">
-      <view class="tab-icon works-tab">▧</view>
-      <view class="tab-label">作品集</view>
-    </view>
-    <view class="tab-item" bindtap="goProfile">
-      <view class="tab-icon mine-tab">♙</view>
-      <view class="tab-label">我的</view>
-    </view>
-  </view>
+  <app-tabbar active="home" />
 </view>

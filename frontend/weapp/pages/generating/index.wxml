@@ -1,9 +1,5 @@
 <view class="design-page generating-page">
-  <view class="design-topbar">
-    <view class="nav-symbol" bindtap="goBack">‹</view>
-    <view class="nav-title">AI影像写真馆</view>
-    <view class="nav-symbol nav-more">•••</view>
-  </view>
+  <nav-bar title="AI影像写真馆" bind:back="goBack" />
 
   <view class="glow glow-main"></view>
   <view class="glow glow-side"></view>

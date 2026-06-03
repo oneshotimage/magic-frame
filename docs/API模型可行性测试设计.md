@@ -99,7 +99,6 @@ export KL_BASE_URL="以 kl-api.apifox.cn 文档中的接口地址为准"
   "image": "input image url or base64",
   "prompt": "style prompt",
   "size": "1024x1024",
-  "response_format": "url",
   "n": 1
 }
 ```
@@ -208,4 +207,3 @@ export KL_BASE_URL="以 kl-api.apifox.cn 文档中的接口地址为准"
 | 即梦 | 待测 | 待测 | 待测 | 待测 | 待测 | 待测 |
 | GPT Image 2 | 待测 | 待测 | 待测 | 待测 | 待测 | 待测 |
 | Nano Banana | 待测 | 待测 | 待测 | 待测 | 待测 | 待测 |
-

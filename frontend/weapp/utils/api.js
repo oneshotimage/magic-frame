@@ -2,16 +2,58 @@ function getAppSafe() {
   return getApp();
 }
 
+function baseUrl() {
+  const app = getAppSafe();
+  return app.globalData.apiBaseUrl || 'http://192.168.0.106:8000';
+}
+
+function normalizeNetworkError(error, fallback = '网络请求失败', requestUrl = '') {
+  if (!error) return { message: fallback };
+  const rawMessage = error.message || error.errMsg || fallback;
+  const code = error.errCode || error.errno || error.code;
+  const text = `${rawMessage} ${code || ''}`;
+  let message = rawMessage;
+  if (String(code) === '-109' || text.includes('-109')) {
+    message = '真机无法访问后端地址，请检查手机网络、电脑防火墙或改用 HTTPS 域名';
+  } else if (/timeout|timed out|超时/i.test(rawMessage)) {
+    message = '请求超时，请检查后端地址和网络';
+  }
+  return { ...error, message, requestUrl };
+}
+
+function resolveAssetUrl(url = '') {
+  if (!url || typeof url !== 'string') return '';
+  if (url.startsWith('data:image/')) return url;
+  if (url.startsWith('/assets/generated/') || url.startsWith('/assets/object/')) {
+    return `${baseUrl()}${url}`;
+  }
+  try {
+    const parsed = new URL(url);
+    const host = parsed.hostname;
+    const isLocalAsset = parsed.pathname.startsWith('/assets/generated/') || parsed.pathname.startsWith('/assets/object/');
+    const isLocalHost = host === 'localhost' || host === '0.0.0.0' || host.startsWith('127.');
+    const isPrivateLan = host.startsWith('192.168.') || host.startsWith('10.') || /^172\.(1[6-9]|2\d|3[0-1])\./.test(host);
+    if (isLocalAsset && (isLocalHost || isPrivateLan)) {
+      return `${baseUrl()}${parsed.pathname}${parsed.search}`;
+    }
+  } catch (error) {
+    return url;
+  }
+  return url;
+}
+
 function request(options) {
   const app = getAppSafe();
-  const baseUrl = app.globalData.apiBaseUrl || 'http://192.168.0.102:8787';
+  const apiBaseUrl = baseUrl();
   const token = app.globalData.token || wx.getStorageSync('accessToken') || '';
+  const requestUrl = `${apiBaseUrl}${options.url}`;
 
   return new Promise((resolve, reject) => {
     wx.request({
-      url: `${baseUrl}${options.url}`,
+      url: requestUrl,
       method: options.method || 'GET',
       data: options.data || {},
+      timeout: options.timeout || 15000,
       header: {
         'content-type': 'application/json',
         ...(token ? { authorization: `Bearer ${token}` } : {}),
@@ -24,22 +66,24 @@ function request(options) {
         }
         reject(res.data || { message: `HTTP ${res.statusCode}` });
       },
-      fail: reject
+      fail: (error) => reject(normalizeNetworkError(error, '网络请求失败', requestUrl))
     });
   });
 }
 
 function uploadFile(options) {
   const app = getAppSafe();
-  const baseUrl = app.globalData.apiBaseUrl || 'http://192.168.0.102:8787';
+  const apiBaseUrl = baseUrl();
   const token = app.globalData.token || wx.getStorageSync('accessToken') || '';
+  const requestUrl = `${apiBaseUrl}${options.url}`;
 
   return new Promise((resolve, reject) => {
     wx.uploadFile({
-      url: `${baseUrl}${options.url}`,
+      url: requestUrl,
       filePath: options.filePath,
       name: options.name || 'file',
       formData: options.formData || {},
+      timeout: options.timeout || 30000,
       header: {
         ...(token ? { authorization: `Bearer ${token}` } : {}),
         ...(options.header || {})
@@ -57,24 +101,28 @@ function uploadFile(options) {
         }
         reject(data || { message: `HTTP ${res.statusCode}` });
       },
-      fail: reject
+      fail: (error) => reject(normalizeNetworkError(error, '上传失败', requestUrl))
     });
   });
 }
 
 function login(userInfo = {}) {
   return new Promise((resolve) => {
+    const timer = setTimeout(() => resolve(`dev_${Date.now()}`), 5000);
     wx.login({
       success(res) {
+        clearTimeout(timer);
         resolve(res.code || `dev_${Date.now()}`);
       },
       fail() {
+        clearTimeout(timer);
         resolve(`dev_${Date.now()}`);
       }
     });
   }).then((code) => request({
     url: '/auth/wechat-login',
     method: 'POST',
+    timeout: 15000,
     data: {
       code,
       device: wx.getSystemInfoSync(),
@@ -185,6 +233,7 @@ module.exports = {
   logout,
   refreshCredits,
   creditText,
+  resolveAssetUrl,
   showToast,
   uploadLocalImage,
   demoImageDataUrl

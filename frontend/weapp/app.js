@@ -2,7 +2,7 @@ const { login } = require('./utils/api');
 
 App({
   globalData: {
-    apiBaseUrl: 'http://192.168.0.102:8787',
+    apiBaseUrl: 'http://192.168.0.106:8000',
     token: '',
     user: null,
     credits: null,

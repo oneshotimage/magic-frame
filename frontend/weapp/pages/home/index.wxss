@@ -1,6 +1,6 @@
 .home-page {
   min-height: 100vh;
-  padding: 154rpx 38rpx 306rpx;
+  padding: calc(env(safe-area-inset-top) + 154rpx) 38rpx 306rpx;
   box-sizing: border-box;
   background: #f9f9f9;
   color: #222222;

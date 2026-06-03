@@ -47,7 +47,7 @@
 }
 
 .result-main {
-  padding: 176rpx 40rpx 354rpx;
+  padding: calc(env(safe-area-inset-top) + 176rpx) 40rpx 354rpx;
   display: flex;
   flex-direction: column;
   gap: 64rpx;

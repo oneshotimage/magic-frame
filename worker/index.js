@@ -355,7 +355,6 @@ export class ApiState {
     form.append("prompt", prompt);
     form.append("size", size || "1024x1024");
     form.append("n", "1");
-    form.append("response_format", "url");
     form.append("image", dataUrlToFile(imageDataUrl));
 
     const started = Date.now();

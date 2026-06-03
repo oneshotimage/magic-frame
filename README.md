@@ -198,7 +198,6 @@ KL_PROXY_URL=http://127.0.0.1:51004
   "image": "{{image}}",
   "prompt": "{{prompt}}",
   "size": "1024x1024",
-  "response_format": "url",
   "n": 1
 }
 ```

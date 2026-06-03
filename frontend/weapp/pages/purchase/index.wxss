@@ -59,7 +59,7 @@
 .purchase-main {
   position: relative;
   z-index: 1;
-  padding: 160rpx 40rpx 260rpx;
+  padding: calc(env(safe-area-inset-top) + 160rpx) 40rpx 260rpx;
   display: flex;
   flex-direction: column;
   gap: 48rpx;
@@ -279,6 +279,11 @@
   margin-top: 24rpx;
   display: flex;
   gap: 20rpx;
+}
+
+.order-actions app-button {
+  flex: 1;
+  min-width: 0;
 }
 
 .pay-button,

@@ -1,35 +1,35 @@
-<view class="page login-page">
-  <view class="login-visual">
-    <view class="login-image css-login-visual">
-      <view class="login-face"></view>
-      <view class="login-body"></view>
+<view class="login-page">
+  <view class="warm-bg"></view>
+  <view class="glow glow-right"></view>
+  <view class="glow glow-left"></view>
+
+  <nav-bar title="" fixed="{{false}}" showMore="{{false}}" bind:back="goBack" />
+
+  <view class="brand-panel">
+    <view class="app-logo">
+      <view class="logo-spark main">✦</view>
+      <view class="logo-spark small-a">✦</view>
+      <view class="logo-spark small-b">✦</view>
     </view>
-    <view class="login-brand">AI影像写真馆</view>
-    <view class="login-copy">
-      <view class="headline">
-        <view>登录后</view>
-        <view>生成你的艺术写真</view>
-      </view>
-      <view class="subtitle">同步作品、保存记录，并继续使用真实 image2 生成能力。</view>
+    <view class="brand-title">AI影像写真馆</view>
+    <view class="brand-subtitle">
+      <view>登录后即可保存您的艺术写真，</view>
+      <view>多端同步作品集。</view>
     </view>
   </view>
 
-  <view class="login-panel">
-    <view class="profile-form">
-      <button class="avatar-picker" open-type="chooseAvatar" bindchooseavatar="chooseAvatar">
-        <image wx:if="{{userInfo.avatarUrl}}" class="avatar-img" src="{{userInfo.avatarUrl}}" mode="aspectFill" />
-        <text wx:else>头像</text>
-      </button>
-      <input class="nickname-input" type="nickname" placeholder="微信昵称（选填）" value="{{userInfo.nickname}}" bindinput="onNicknameInput" />
-    </view>
+  <view class="login-actions">
+    <app-button text="微信一键登录" icon="" loading="{{loading}}" disabled="{{loading}}" bind:press="login" />
+    <button class="phone-btn" loading="{{loading}}" disabled="{{loading}}" bindtap="skipProfile">手机号登录/注册</button>
 
     <view class="agreement-row" bindtap="toggleAgree">
       <view class="check {{agreed ? 'checked' : ''}}">{{agreed ? '✓' : ''}}</view>
-      <text>我已阅读并同意</text>
-      <text class="link" catchtap="openLegal">用户协议与隐私政策</text>
+      <view class="agreement-text">
+        <text>我已阅读并同意 </text>
+        <text class="link" catchtap="openAgreement">《用户协议》</text>
+        <text> 与 </text>
+        <text class="link" catchtap="openPrivacy">《隐私政策》</text>
+      </view>
     </view>
-
-    <button class="primary-btn" loading="{{loading}}" bindtap="login">微信登录</button>
-    <button class="secondary-btn" loading="{{loading}}" bindtap="skipProfile">暂不填写资料</button>
   </view>
 </view>

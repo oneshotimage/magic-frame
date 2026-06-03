@@ -1,9 +1,5 @@
 <view class="design-page upload-page">
-  <view class="design-topbar">
-    <view class="nav-symbol" bindtap="goBack">‹</view>
-    <view class="nav-title">AI影像写真馆</view>
-    <view class="nav-symbol nav-more">•••</view>
-  </view>
+  <nav-bar title="AI影像写真馆" bind:back="goBack" />
 
   <view class="upload-main">
     <view class="page-intent">
@@ -58,15 +54,12 @@
   </view>
 
   <view class="upload-actions">
-    <button class="action-primary" bindtap="chooseAlbum">
-      <text class="button-icon">▧</text>
-      <text>从相册选择</text>
-    </button>
+    <app-button text="从相册选择" icon="▧" variant="compact" bind:press="chooseAlbum" />
     <button class="action-secondary" bindtap="chooseCamera">
       <text class="button-icon">▣</text>
       <text>拍摄照片</text>
     </button>
-    <button wx:if="{{preview}}" class="continue-button" bindtap="next">继续生成</button>
+    <app-button wx:if="{{preview}}" text="继续生成" icon="" variant="dark compact" bind:press="next" />
   </view>
 
   <canvas

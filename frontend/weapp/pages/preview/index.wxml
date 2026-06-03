@@ -4,6 +4,6 @@
 
   <view class="preview-actions">
     <button class="secondary-btn" bindtap="sharePoster">分享</button>
-    <button class="primary-btn" bindtap="saveImage">保存到相册</button>
+    <app-button text="保存到相册" icon="" bind:press="saveImage" />
   </view>
 </view>

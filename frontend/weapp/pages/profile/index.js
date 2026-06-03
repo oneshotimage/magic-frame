@@ -109,6 +109,14 @@ Page({
     wx.switchTab({ url: '/pages/works/index' });
   },
 
+  goGuide() {
+    wx.navigateTo({ url: '/pages/guide/index' });
+  },
+
+  goCreate() {
+    wx.switchTab({ url: '/pages/home/index' });
+  },
+
   goOrders() {
     wx.navigateTo({ url: '/pages/orders/index' });
   },
@@ -123,6 +131,10 @@ Page({
 
   goLegal() {
     wx.navigateTo({ url: '/pages/legal/index' });
+  },
+
+  goPrivacy() {
+    wx.navigateTo({ url: '/pages/privacy/index' });
   },
 
   goFeedback() {

@@ -1,10 +1,6 @@
 <view class="design-page purchase-page">
   <view class="warm-bg"></view>
-  <view class="design-topbar">
-    <view class="nav-symbol" bindtap="goBack">‹</view>
-    <view class="nav-title">AI影像写真馆</view>
-    <view class="nav-symbol nav-more">•••</view>
-  </view>
+  <nav-bar title="AI影像写真馆" bind:back="goBack" />
 
   <view class="purchase-main">
     <view class="balance-card">
@@ -56,16 +52,13 @@
       <view class="order-id">订单号：{{order.orderId}}</view>
       <view class="order-price">¥ {{orderPriceText}}</view>
       <view class="order-actions">
-        <button class="pay-button" bindtap="payOrder">模拟微信支付成功</button>
+        <app-button text="模拟微信支付成功" icon="" variant="compact" bind:press="payOrder" />
         <button class="close-button" bindtap="closeOrder">关闭订单</button>
       </view>
     </view>
   </view>
 
   <view class="purchase-bottom">
-    <button class="buy-button" bindtap="buySelected">
-      <text>立即购买</text>
-      <text class="buy-price">¥ {{selectedPriceText}}</text>
-    </button>
+    <app-button text="立即购买  ¥ {{selectedPriceText}}" icon="" bind:press="buySelected" />
   </view>
 </view>

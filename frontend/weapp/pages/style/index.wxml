@@ -16,5 +16,5 @@
       </view>
     </block>
   </view>
-  <button class="primary-btn" bindtap="next">下一步</button>
+  <app-button text="下一步" bind:press="next" />
 </view>

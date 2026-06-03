@@ -1,6 +1,6 @@
 .profile-page {
   min-height: 100vh;
-  padding: 92rpx 38rpx 184rpx;
+  padding: calc(env(safe-area-inset-top) + 160rpx) 38rpx 184rpx;
   box-sizing: border-box;
   background: #f9f9f9;
   color: #222222;
@@ -190,6 +190,13 @@
 .recharge-button {
   position: relative;
   z-index: 1;
+}
+
+.credits-card app-button,
+.guest-balance-card app-button {
+  position: relative;
+  z-index: 1;
+  flex: none;
 }
 
 .credits-label {
@@ -430,53 +437,158 @@
   color: #7c5800;
 }
 
-.guest-hero {
-  min-height: 720rpx;
-  margin-top: 120rpx;
-  padding: 52rpx 38rpx;
-  border-radius: 46rpx;
-  box-sizing: border-box;
+.guest-main {
   display: flex;
   flex-direction: column;
+  gap: 48rpx;
+  padding-top: 32rpx;
+}
+
+.guest-profile-row {
+  display: flex;
   align-items: center;
-  justify-content: center;
-  text-align: center;
-  background: #ffffff;
-  box-shadow: 0 8rpx 38rpx rgba(255, 184, 0, 0.1);
+  gap: 31rpx;
 }
 
 .guest-avatar-image {
-  width: 154rpx;
-  height: 154rpx;
-  border-radius: 50%;
-}
-
-.guest-title {
-  margin-top: 34rpx;
-  font-size: 46rpx;
-  line-height: 60rpx;
-  font-weight: 600;
-  color: #222222;
-}
-
-.guest-copy {
-  max-width: 520rpx;
-  margin-top: 18rpx;
-  color: #666666;
-  font-size: 27rpx;
-  line-height: 42rpx;
-}
-
-.login-cta {
-  width: 260rpx;
-  height: 76rpx;
-  margin-top: 46rpx;
-  border-radius: 999rpx;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #ffb800;
+  width: 144rpx;
+  height: 144rpx;
+  border: 8rpx solid #ffffff;
+  border-radius: 50%;
+  box-sizing: border-box;
+  background: #e2e2e2;
+  box-shadow: 0 8rpx 48rpx rgba(255, 184, 0, 0.1);
+}
+
+.guest-avatar-icon {
+  color: #666666;
+  font-size: 48rpx;
+  line-height: 48rpx;
+}
+
+.guest-copy-wrap {
+  flex: 1;
+  min-width: 0;
+}
+
+.guest-title {
+  color: #222222;
+  font-size: 46rpx;
+  line-height: 64rpx;
+  font-weight: 500;
+}
+
+.guest-copy {
+  margin-top: 4rpx;
+  color: #666666;
+  font-size: 27rpx;
+  line-height: 38rpx;
+}
+
+.guest-chevron {
+  color: #666666;
+  font-size: 56rpx;
+  line-height: 56rpx;
+}
+
+.guest-balance-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 164rpx;
+  padding: 42rpx;
+  border: 2rpx solid #e2e2e2;
+  border-radius: 24rpx;
+  box-sizing: border-box;
+  background: #ffffff;
+  box-shadow: 0 8rpx 48rpx rgba(255, 184, 0, 0.1);
+}
+
+.guest-balance-left {
+  display: flex;
+  align-items: center;
+  gap: 24rpx;
+}
+
+.guest-balance-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 80rpx;
+  height: 80rpx;
+  border-radius: 50%;
+  background: #f3f3f3;
+  color: #888888;
+  font-size: 34rpx;
+}
+
+.guest-balance-title {
   color: #222222;
   font-size: 27rpx;
+  line-height: 38rpx;
   font-weight: 500;
+}
+
+.guest-balance-desc {
+  color: #666666;
+  font-size: 27rpx;
+  line-height: 38rpx;
+}
+
+.guest-recharge {
+  min-width: 124rpx;
+  height: 72rpx;
+  margin: 0;
+  padding: 0 32rpx;
+  border-radius: 999rpx;
+  background: #f3f3f3;
+  color: #666666;
+  font-size: 27rpx;
+  line-height: 38rpx;
+}
+
+.guest-recharge::after {
+  border: 0;
+}
+
+.guest-menu-card {
+  overflow: hidden;
+  border: 2rpx solid #e2e2e2;
+  border-radius: 24rpx;
+  background: #ffffff;
+  box-shadow: 0 8rpx 48rpx rgba(255, 184, 0, 0.1);
+}
+
+.guest-menu-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 114rpx;
+  padding: 32rpx 40rpx;
+  border-bottom: 2rpx solid #f3f3f3;
+  box-sizing: border-box;
+}
+
+.guest-menu-row.last {
+  border-bottom: 0;
+}
+
+.guest-menu-left {
+  display: flex;
+  align-items: center;
+  gap: 24rpx;
+  color: #222222;
+  font-size: 31rpx;
+  line-height: 46rpx;
+}
+
+.guest-menu-icon {
+  width: 36rpx;
+  color: #666666;
+  text-align: center;
+  font-size: 34rpx;
+  font-weight: 700;
 }

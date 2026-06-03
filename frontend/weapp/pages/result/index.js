@@ -1,5 +1,5 @@
 const { styles } = require('../../utils/constants');
-const { request, refreshCredits, creditText, showToast } = require('../../utils/api');
+const { request, refreshCredits, creditText, showToast, resolveAssetUrl } = require('../../utils/api');
 
 Page({
   data: {
@@ -18,11 +18,13 @@ Page({
     const styleMap = styles.reduce((map, item) => ({ ...map, [item.id]: item }), {});
     const images = (task.images || []).map((item, index) => {
       const styleId = item.style || item.styleId;
-      const isSvg = typeof item.url === 'string' && (item.url.includes('.svg') || item.url.startsWith('data:image/svg'));
+      const url = resolveAssetUrl(item.url);
+      const isSvg = typeof url === 'string' && (url.includes('.svg') || url.startsWith('data:image/svg'));
       return {
         ...item,
+        url,
         isSvg,
-        displayImage: item.url && !isSvg,
+        displayImage: url && !isSvg,
         theme: styleMap[styleId]?.theme || ['realistic', 'pixar', 'handdrawn', 'comic'][index % 4],
         name: styleMap[styleId]?.name || selected[index]?.name || `作品 ${index + 1}`
       };
@@ -50,7 +52,8 @@ Page({
       style: image.style,
       status: image.status,
       elapsedMs: image.elapsedMs,
-      hasUrl: Boolean(image.url),
+      url: resolveAssetUrl(image.url),
+      hasUrl: Boolean(resolveAssetUrl(image.url)),
       errorMessage: image.errorMessage || '',
       provider: image.provider || {}
     }));
@@ -68,6 +71,12 @@ Page({
     if (!url) return;
     getApp().globalData.previewImage = url;
     wx.navigateTo({ url: '/pages/preview/index' });
+  },
+
+  onResultImageError(event) {
+    const url = event.currentTarget.dataset.url || '';
+    console.warn('[result] image load failed', url);
+    showToast('图片加载失败，请检查后端图片地址');
   },
 
   retryTask() {

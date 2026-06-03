@@ -1,5 +1,5 @@
 const { styles, heroImage } = require('../../utils/constants');
-const { refreshCredits, creditText } = require('../../utils/api');
+const { refreshCredits, creditText, showToast } = require('../../utils/api');
 
 Page({
   data: {
@@ -23,7 +23,11 @@ Page({
         });
       })
       .catch(() => {
-        wx.navigateTo({ url: '/pages/login/index' });
+        this.setData({
+          credits: {},
+          creditText: '登录后查看',
+          selectedMap: this.buildSelectedMap(app.globalData.selectedStyles)
+        });
       });
   },
 
@@ -63,6 +67,10 @@ Page({
   },
 
   goUpload() {
+    if (!getApp().globalData.token && !wx.getStorageSync('accessToken')) {
+      showToast('请先登录后再制作');
+      return;
+    }
     wx.navigateTo({ url: '/pages/upload/index' });
   },
 

@@ -46,7 +46,7 @@
 }
 
 .upload-main {
-  padding: 136rpx 40rpx 320rpx;
+  padding: calc(env(safe-area-inset-top) + 176rpx) 40rpx 320rpx;
   display: flex;
   flex-direction: column;
   gap: 48rpx;

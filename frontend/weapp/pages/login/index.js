@@ -1,12 +1,19 @@
-const { splashImage } = require('../../utils/constants');
 const { showToast } = require('../../utils/api');
 
 Page({
   data: {
-    splashImage,
     loading: false,
     agreed: true,
     userInfo: null
+  },
+
+  goBack() {
+    const pages = getCurrentPages();
+    if (pages.length > 1) {
+      wx.navigateBack();
+      return;
+    }
+    wx.reLaunch({ url: '/pages/splash/index' });
   },
 
   toggleAgree() {
@@ -33,6 +40,7 @@ Page({
   },
 
   login() {
+    if (this.data.loading) return;
     if (!this.data.agreed) {
       showToast('请先同意用户协议与隐私政策');
       return;
@@ -46,7 +54,9 @@ Page({
         wx.switchTab({ url: '/pages/home/index' });
       })
       .catch((error) => {
-        showToast(error.message || '登录失败');
+        const message = error.message || '登录失败';
+        console.warn('[login] failed', message, error);
+        showToast(message.includes('timeout') || message.includes('超时') ? '登录超时，请检查网络或后端地址' : message);
       })
       .finally(() => {
         this.setData({ loading: false });
@@ -54,11 +64,22 @@ Page({
   },
 
   skipProfile() {
+    if (this.data.loading) return;
     this.setData({ userInfo: null });
     this.login();
   },
 
-  openLegal() {
+  openAgreement(event) {
+    if (event && typeof event.stopPropagation === 'function') {
+      event.stopPropagation();
+    }
     wx.navigateTo({ url: '/pages/legal/index' });
+  },
+
+  openPrivacy(event) {
+    if (event && typeof event.stopPropagation === 'function') {
+      event.stopPropagation();
+    }
+    wx.navigateTo({ url: '/pages/privacy/index' });
   }
 });

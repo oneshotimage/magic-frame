@@ -83,7 +83,7 @@ def test_user_credit_upload_generation_flow() -> None:
             break
     assert last["status"] in {"SUCCESS", "PARTIAL_SUCCESS"}
     output_url = last["images"][0]["url"]
-    assert output_url.startswith("http://127.0.0.1:8000/assets/generated/")
+    assert output_url.startswith("/assets/generated/")
     asset_path = output_url.replace("http://127.0.0.1:8000", "")
     asset = client.get(asset_path)
     assert asset.status_code == 200
@@ -122,7 +122,7 @@ def test_orders_payment_share_feedback() -> None:
 
 def test_ad_reward() -> None:
     headers = auth_headers()
-    reward = client.post("/credits/reward-ad", headers=headers, json={"completed": True, "adEventId": "event-1"})
+    reward = client.post("/credits/reward-ad", headers=headers, json={"completed": True, "adEventId": f"event-{time.time_ns()}"})
     assert reward.status_code == 200
     assert reward.json()["rewarded"] is True
 
@@ -167,6 +167,7 @@ def test_call_kl_image2_builds_real_multipart_request(monkeypatch) -> None:
     assert "multipart/form-data" in captured["headers"]["Content-type"]
     assert b'name="model"' in captured["data"]
     assert b"gpt-image-2" in captured["data"]
+    assert b'name="response_format"' not in captured["data"]
     assert b'name="image"; filename="portrait.jpg"' in captured["data"]
 
 
@@ -217,6 +218,16 @@ def test_admin_apis() -> None:
 
     feedback = client.get("/admin/api/feedback", headers=admin_headers)
     assert feedback.status_code == 200
+
+    debug_logs = client.get("/admin/api/debug/logs", headers=admin_headers)
+    assert debug_logs.status_code == 200
+    debug_data = debug_logs.json()
+    assert debug_data["total"] >= 1
+    assert any(item["path"] == "/generation/create" for item in debug_data["items"])
+
+    filtered_debug_logs = client.get("/admin/api/debug/logs?path=generation&limit=5", headers=admin_headers)
+    assert filtered_debug_logs.status_code == 200
+    assert filtered_debug_logs.json()["limit"] == 5
 
     admin_redirect = client.get("/admin", follow_redirects=False)
     assert admin_redirect.status_code == 307

@@ -1,9 +1,27 @@
 Page({
   data: {
-    sections: [
-      { title: '用户协议', text: '用户上传照片需确保拥有合法使用权，不得上传违法、侵权或涉及敏感身份的信息。' },
-      { title: '隐私说明', text: '照片用于完成 AI 影像生成与结果展示。生产环境需要提供删除、过期清理、数据加密和访问审计。' },
-      { title: '内容安全', text: '小程序应在正式上线前接入微信内容安全能力，并对生成结果做合规审核。' }
+    rules: [
+      '您必须年满18周岁或在法定监护人的同意下使用本服务。',
+      '禁止上传包含淫秽、暴力、侵权或任何违反国家法律法规的图像内容。',
+      '不得利用本服务生成的影像从事诽谤、诈骗或其他侵犯他人合法权益的活动。',
+      '您应对使用账号所进行的一切行为负责，请妥善保管账号及密码。'
     ]
+  },
+
+  goBack() {
+    const pages = getCurrentPages();
+    if (pages.length > 1) {
+      wx.navigateBack();
+      return;
+    }
+    wx.switchTab({ url: '/pages/profile/index' });
+  },
+
+  agree() {
+    wx.navigateBack({
+      fail() {
+        wx.switchTab({ url: '/pages/profile/index' });
+      }
+    });
   }
 });

@@ -1,22 +1,33 @@
-<view class="page safe-tab stack">
-  <view class="result-head">
-    <view>
-      <view class="title">作品集</view>
-      <view class="subtitle">{{images.length}} 张已生成作品</view>
+<view class="works-page">
+  <nav-bar title="AI影像写真馆" bind:back="goBack" />
+
+  <view class="main">
+    <view class="page-title">我的作品</view>
+    <view class="page-subtitle">记录你的每一次奇妙变身，共生成了 {{totalCount}} 张精美写真。</view>
+
+    <scroll-view class="filter-scroll" scroll-x enhanced show-scrollbar="{{false}}">
+      <view class="filter-row">
+        <view wx:for="{{filters}}" wx:key="id" class="filter-chip {{activeFilter === item.id ? 'active' : ''}}" bindtap="selectFilter" data-id="{{item.id}}">{{item.name}}</view>
+      </view>
+    </scroll-view>
+
+    <view wx:if="{{displayImages.length}}" class="work-grid">
+      <view wx:for="{{displayImages}}" wx:key="key" class="work-card" bindtap="preview" data-url="{{item.url}}">
+        <image wx:if="{{item.url}}" class="work-image" mode="aspectFill" src="{{item.url}}" />
+        <view wx:else class="work-image sample-portrait {{item.theme}}">
+          <view class="sample-face"></view>
+        </view>
+      </view>
     </view>
-    <view wx:if="{{loading}}" class="status-pill">加载中</view>
+
+    <view wx:else class="empty-card">
+      <view class="empty-title">还没有作品</view>
+      <view class="empty-desc">选择照片和风格后即可生成第一组 AI 写真。</view>
+      <view class="create-action">
+        <app-button text="去生成" icon="" variant="compact" bind:press="create" />
+      </view>
+    </view>
   </view>
 
-  <view wx:if="{{images.length}}" class="result-grid">
-    <view wx:for="{{images}}" wx:key="url" class="result-card" bindtap="preview" data-url="{{item.url}}">
-      <image class="result-image" mode="aspectFill" src="{{item.url}}" />
-      <view class="result-name">{{item.style || item.styleId || '写真作品'}}</view>
-    </view>
-  </view>
-
-  <view wx:else class="card empty">
-    <view class="title">还没有作品</view>
-    <view class="subtitle">选择照片和风格后即可生成第一组 AI 写真。</view>
-    <button class="primary-btn" bindtap="create">去生成</button>
-  </view>
+  <app-tabbar active="works" />
 </view>

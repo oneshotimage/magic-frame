@@ -6,5 +6,5 @@
 
   <textarea class="textarea" maxlength="800" value="{{content}}" bindinput="onContentInput" placeholder="请输入反馈内容" />
   <input class="input" value="{{contact}}" bindinput="onContactInput" placeholder="联系方式（选填）" />
-  <button class="primary-btn" loading="{{submitting}}" bindtap="submit">提交反馈</button>
+  <app-button text="提交反馈" loading="{{submitting}}" bind:press="submit" />
 </view>

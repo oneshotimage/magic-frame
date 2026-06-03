@@ -2,6 +2,7 @@
   "pages": [
     "pages/home/index",
     "pages/splash/index",
+    "pages/guide/index",
     "pages/login/index",
     "pages/style/index",
     "pages/upload/index",
@@ -19,6 +20,7 @@
     "pages/orders/index",
     "pages/faq/index",
     "pages/legal/index",
+    "pages/privacy/index",
     "pages/feedback/index"
   ],
   "window": {
@@ -31,6 +33,11 @@
   "style": "v2",
   "sitemapLocation": "sitemap.json",
   "lazyCodeLoading": "requiredComponents",
+  "usingComponents": {
+    "nav-bar": "/components/nav-bar/index",
+    "app-button": "/components/app-button/index",
+    "app-tabbar": "/components/app-tabbar/index"
+  },
   "tabBar": {
     "color": "#666666",
     "selectedColor": "#7C5800",

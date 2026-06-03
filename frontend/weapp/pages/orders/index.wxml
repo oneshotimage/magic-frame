@@ -19,6 +19,6 @@
   <view wx:else class="card stack">
     <view class="title">暂无订单</view>
     <view class="subtitle">购买生成次数后会出现在这里。</view>
-    <button class="primary-btn" bindtap="purchase">去购买</button>
+    <app-button text="去购买" bind:press="purchase" />
   </view>
 </view>

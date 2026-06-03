@@ -8,5 +8,5 @@
     <view>AI 生成可能存在轻微五官偏差。生成失败、超时或内容拦截不会扣减生成次数。</view>
     <view>用户可在“我的”页面提交反馈、查看协议或注销账号。</view>
   </view>
-  <button class="primary-btn" bindtap="createTask">同意并开始生成</button>
+  <app-button text="同意并开始生成" bind:press="createTask" />
 </view>

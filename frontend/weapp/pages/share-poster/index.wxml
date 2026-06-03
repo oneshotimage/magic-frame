@@ -6,6 +6,6 @@
     <view class="poster-caption">AI 影像写真馆</view>
   </view>
   <view wx:if="{{creating}}" class="muted">正在生成海报...</view>
-  <button open-type="share" class="primary-btn">分享给好友</button>
+  <app-button text="分享给好友" openType="share" />
   <button class="secondary-btn" bindtap="reward">已分享，领取奖励</button>
 </view>

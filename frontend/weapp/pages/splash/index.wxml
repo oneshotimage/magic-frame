@@ -17,6 +17,6 @@
   </view>
   <view class="bottom-copy">
     <view class="subtitle">一张照片 解锁你的艺术写真</view>
-    <button class="primary-btn" bindtap="start">{{loggedIn ? '进入写真馆' : '登录后开始制作'}} →</button>
+    <app-button text="{{loggedIn ? '进入写真馆' : '登录后开始制作'}}" bind:press="start" />
   </view>
 </view>

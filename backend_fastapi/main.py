@@ -15,9 +15,12 @@ import threading
 import time
 import uuid
 
-from fastapi import Depends, FastAPI, Header, Request
+from fastapi import Depends, FastAPI, File, Form, Header, Request, UploadFile
+from fastapi.exceptions import RequestValidationError
 from fastapi.responses import FileResponse, JSONResponse, RedirectResponse, Response
 from pydantic import BaseModel, ConfigDict
+
+from .cloud_runtime import ObjectStorage, SnapshotStore, parse_data_url
 
 
 TZ = timezone(timedelta(hours=8))
@@ -103,6 +106,8 @@ def runtime_config() -> dict[str, Any]:
         "klTimeoutSeconds": int(os.getenv("KL_TIMEOUT_SECONDS", "600")),
         "publicBaseUrl": os.getenv("PUBLIC_BASE_URL", "http://127.0.0.1:8000").rstrip("/"),
         "unlimitedCredits": truthy_env("AI_UNLIMITED_CREDITS", "1"),
+        "database": STORE.status(),
+        "objectStorage": OBJECT_STORAGE.status(),
     }
 
 
@@ -128,9 +133,128 @@ class State:
         self.ad_rewards: set[str] = set()
         self.generated_assets: dict[str, dict[str, Any]] = {}
         self.admin_tokens: set[str] = set()
+        self.debug_logs: list[dict[str, Any]] = []
 
 
 STATE = State()
+STORE = SnapshotStore()
+OBJECT_STORAGE = ObjectStorage()
+
+DEBUG_LOG_LIMIT = 300
+DEBUG_BODY_LIMIT = 4000
+
+
+def state_snapshot() -> dict[str, Any]:
+    return {
+        "users": clone(STATE.users),
+        "tokens": clone(STATE.tokens),
+        "refresh_tokens": clone(STATE.refresh_tokens),
+        "credits": clone(STATE.credits),
+        "credit_logs": clone(STATE.credit_logs),
+        "uploads": clone(STATE.uploads),
+        "tasks": clone(STATE.tasks),
+        "orders": clone(STATE.orders),
+        "feedback": clone(STATE.feedback),
+        "ad_rewards": list(STATE.ad_rewards),
+        "generated_assets": clone(STATE.generated_assets),
+        "admin_tokens": list(STATE.admin_tokens),
+        "debug_logs": clone(STATE.debug_logs),
+    }
+
+
+def restore_state(snapshot: dict[str, Any] | None) -> None:
+    if not snapshot:
+        return
+    STATE.users = snapshot.get("users", {})
+    STATE.tokens = snapshot.get("tokens", {})
+    STATE.refresh_tokens = snapshot.get("refresh_tokens", {})
+    STATE.credits = snapshot.get("credits", {})
+    STATE.credit_logs = snapshot.get("credit_logs", [])
+    STATE.uploads = snapshot.get("uploads", {})
+    STATE.tasks = snapshot.get("tasks", {})
+    STATE.orders = snapshot.get("orders", {})
+    STATE.feedback = snapshot.get("feedback", [])
+    STATE.ad_rewards = set(snapshot.get("ad_rewards", []))
+    STATE.generated_assets = snapshot.get("generated_assets", {})
+    STATE.admin_tokens = set(snapshot.get("admin_tokens", []))
+    STATE.debug_logs = snapshot.get("debug_logs", [])
+
+
+def persist_state() -> None:
+    STORE.save(state_snapshot())
+
+
+restore_state(STORE.load())
+
+
+def scrub_debug_value(value: Any) -> Any:
+    if isinstance(value, str):
+        if value.startswith("data:image/"):
+            return f"{value[:32]}...<data-url:{len(value)} chars>"
+        if re.fullmatch(r"(atk|rtk|adm|sk)-[A-Za-z0-9_\-]+", value) or value.startswith(("atk_", "rtk_", "adm_", "Bearer ")):
+            return "<redacted-token>"
+        if len(value) > 240 and re.fullmatch(r"[A-Za-z0-9+/=\s]+", value):
+            return f"{value[:40]}...<base64:{len(value)} chars>"
+        if len(value) > 800:
+            return f"{value[:800]}...<truncated:{len(value)} chars>"
+        return value
+    if isinstance(value, list):
+        return [scrub_debug_value(item) for item in value[:20]]
+    if isinstance(value, dict):
+        result: dict[str, Any] = {}
+        for key, item in value.items():
+            lowered = key.lower()
+            if lowered in {"authorization", "token", "accesstoken", "refreshtoken", "kl_api_token", "kl_api_key"}:
+                result[key] = "<redacted>"
+            else:
+                result[key] = scrub_debug_value(item)
+        return result
+    return value
+
+
+def compact_headers(headers: Any) -> dict[str, Any]:
+    keep = {"content-type", "content-length", "authorization", "user-agent", "referer"}
+    return scrub_debug_value({key: value for key, value in dict(headers).items() if key.lower() in keep})
+
+
+async def request_debug_body(req: Request) -> dict[str, Any]:
+    content_type = req.headers.get("content-type", "")
+    content_length = int(req.headers.get("content-length") or 0)
+    if "application/json" not in content_type:
+        return {"contentType": content_type, "contentLength": content_length, "skipped": "non-json body"}
+    raw = await req.body()
+    if len(raw) > DEBUG_BODY_LIMIT:
+        return {"contentType": content_type, "contentLength": len(raw), "skipped": "json body too large"}
+    if not raw:
+        return {"contentType": content_type, "contentLength": 0, "json": None}
+    try:
+        return {"contentType": content_type, "contentLength": len(raw), "json": scrub_debug_value(json.loads(raw))}
+    except json.JSONDecodeError:
+        return {"contentType": content_type, "contentLength": len(raw), "raw": raw.decode("utf-8", errors="replace")[:DEBUG_BODY_LIMIT]}
+
+
+def response_debug_body(raw: bytes, content_type: str) -> dict[str, Any]:
+    if "application/json" not in content_type:
+        return {"contentType": content_type, "contentLength": len(raw), "skipped": "non-json response"}
+    if len(raw) > DEBUG_BODY_LIMIT:
+        return {"contentType": content_type, "contentLength": len(raw), "skipped": "json response too large"}
+    try:
+        return {"contentType": content_type, "contentLength": len(raw), "json": scrub_debug_value(json.loads(raw or b"{}"))}
+    except json.JSONDecodeError:
+        return {"contentType": content_type, "contentLength": len(raw), "raw": raw.decode("utf-8", errors="replace")[:DEBUG_BODY_LIMIT]}
+
+
+def append_debug_log(entry: dict[str, Any]) -> None:
+    STATE.debug_logs.append(entry)
+    if len(STATE.debug_logs) > DEBUG_LOG_LIMIT:
+        del STATE.debug_logs[:-DEBUG_LOG_LIMIT]
+
+
+def add_debug_check(req: Request, code: str, message: str, *, level: str = "info", details: dict[str, Any] | None = None) -> None:
+    checks = getattr(req.state, "debugChecks", None)
+    if checks is None:
+        return
+    checks.append({"level": level, "code": code, "message": message, "details": scrub_debug_value(details or {})})
 
 
 STYLE_PROMPTS = {
@@ -171,18 +295,75 @@ app = FastAPI(
 
 
 @app.exception_handler(AppError)
-async def handle_app_error(_: Request, exc: AppError) -> JSONResponse:
+async def handle_app_error(req: Request, exc: AppError) -> JSONResponse:
+    add_debug_check(req, exc.code, exc.message, level="error", details={"statusCode": exc.status_code})
     return JSONResponse(status_code=exc.status_code, content={"code": exc.code, "message": exc.message})
 
 
+@app.exception_handler(RequestValidationError)
+async def handle_validation_error(req: Request, exc: RequestValidationError) -> JSONResponse:
+    add_debug_check(req, "REQUEST_VALIDATION_ERROR", "请求参数校验失败", level="error", details={"errors": exc.errors()})
+    return JSONResponse(status_code=422, content={"code": "REQUEST_VALIDATION_ERROR", "message": "请求参数校验失败", "details": exc.errors()})
+
+
 @app.middleware("http")
-async def cors_middleware(req: Request, call_next):
+async def debug_and_cors_middleware(req: Request, call_next):
     if req.method == "OPTIONS":
         return JSONResponse({}, headers=cors_headers())
-    resp = await call_next(req)
+    request_id = gen_id("dbg")
+    started = time.time()
+    req.state.debugRequestId = request_id
+    req.state.debugChecks = []
+    request_info = {
+        "id": request_id,
+        "startedAt": now_iso(),
+        "method": req.method,
+        "path": req.url.path,
+        "query": dict(req.query_params),
+        "client": req.client.host if req.client else "",
+        "headers": compact_headers(req.headers),
+        "body": await request_debug_body(req),
+    }
+    try:
+        resp = await call_next(req)
+    except Exception as exc:  # noqa: BLE001 - keep local debug trail visible.
+        append_debug_log({
+            **request_info,
+            "durationMs": int((time.time() - started) * 1000),
+            "statusCode": 500,
+            "checks": getattr(req.state, "debugChecks", []),
+            "exception": {"type": type(exc).__name__, "message": str(exc)},
+        })
+        raise
+
     for key, value in cors_headers().items():
         resp.headers[key] = value
-    return resp
+    resp.headers["x-debug-request-id"] = request_id
+
+    content_type = resp.headers.get("content-type", "")
+    if "application/json" not in content_type:
+        append_debug_log({
+            **request_info,
+            "durationMs": int((time.time() - started) * 1000),
+            "statusCode": resp.status_code,
+            "checks": getattr(req.state, "debugChecks", []),
+            "response": {"contentType": content_type, "skipped": "non-json response"},
+        })
+        return resp
+
+    raw = b""
+    async for chunk in resp.body_iterator:
+        raw += chunk
+    append_debug_log({
+        **request_info,
+        "durationMs": int((time.time() - started) * 1000),
+        "statusCode": resp.status_code,
+        "checks": getattr(req.state, "debugChecks", []),
+        "response": response_debug_body(raw, content_type),
+    })
+    headers = dict(resp.headers)
+    headers["content-length"] = str(len(raw))
+    return Response(content=raw, status_code=resp.status_code, headers=headers, media_type=resp.media_type)
 
 
 def cors_headers() -> dict[str, str]:
@@ -270,6 +451,38 @@ class AdminCreditAdjustReq(BaseModel):
     reason: str | None = None
 
 
+def create_upload_record(
+    *,
+    user_id: str,
+    image_bytes: bytes,
+    mime_type: str,
+    width: int,
+    height: int,
+    size_bytes: int | None = None,
+    data_url: str | None = None,
+) -> dict[str, Any]:
+    image_id = gen_id("img")
+    ext = {"image/png": "png", "image/jpeg": "jpg", "image/jpg": "jpg", "image/webp": "webp"}.get(mime_type, "jpg")
+    stored = OBJECT_STORAGE.put_bytes(image_bytes, mime_type=mime_type, folder="uploads", name=f"{image_id}.{ext}")
+    upload = {
+        "imageId": image_id,
+        "userId": user_id,
+        "url": data_url or f"data:{mime_type};base64,{base64.b64encode(image_bytes).decode('ascii')}",
+        "objectUrl": stored["url"],
+        "objectKey": stored["key"],
+        "storage": stored["storage"],
+        "width": width,
+        "height": height,
+        "sizeBytes": size_bytes or len(image_bytes),
+        "mimeType": mime_type,
+        "expiresAt": (now_dt() + timedelta(days=7)).isoformat(),
+        "createdAt": now_iso(),
+    }
+    STATE.uploads[image_id] = upload
+    persist_state()
+    return upload
+
+
 def current_user_id(authorization: str | None = Header(default=None)) -> str:
     if not authorization:
         raise AppError(401, "UNAUTHORIZED", "缺少登录 token")
@@ -314,6 +527,7 @@ def get_or_create_user(code: str | None = None) -> dict[str, Any]:
         "updatedAt": now_iso(),
     }
     STATE.credit_logs.append({"id": gen_id("log"), "userId": user_id, "type": "grant", "amount": 6, "bizId": "new_user", "createdAt": now_iso()})
+    persist_state()
     return user
 
 
@@ -322,6 +536,7 @@ def issue_tokens(user_id: str) -> dict[str, str]:
     refresh_token = random_token("rtk")
     STATE.tokens[access_token] = user_id
     STATE.refresh_tokens[refresh_token] = user_id
+    persist_state()
     return {"accessToken": access_token, "refreshToken": refresh_token, "expiresIn": 7200}
 
 
@@ -355,6 +570,7 @@ def add_credits(user_id: str, source: str, amount: int, biz_id: str) -> dict[str
     credits["totalCredits"] += amount
     credits["updatedAt"] = now_iso()
     STATE.credit_logs.append({"id": gen_id("log"), "userId": user_id, "type": source, "amount": amount, "bizId": biz_id, "createdAt": now_iso()})
+    persist_state()
     return credits_response(user_id)
 
 
@@ -379,6 +595,7 @@ def admin_adjust_credits(user_id: str, *, amount: int | None = None, balance: in
         "bizId": reason or "admin",
         "createdAt": now_iso(),
     })
+    persist_state()
     return credits_response(user_id)
 
 
@@ -392,6 +609,7 @@ def consume_credit(user_id: str, biz_id: str) -> dict[str, Any]:
     credits["usedCredits"] += 1
     credits["updatedAt"] = now_iso()
     STATE.credit_logs.append({"id": gen_id("log"), "userId": user_id, "type": "consume", "amount": -1, "bizId": biz_id, "createdAt": now_iso()})
+    persist_state()
     return credits_response(user_id)
 
 
@@ -399,6 +617,27 @@ def public_task(task: dict[str, Any]) -> dict[str, Any]:
     data = clone(task)
     data.pop("inputImageDataUrl", None)
     data.pop("userId", None)
+    return normalize_generated_image_urls(data)
+
+
+def admin_asset_url(asset: dict[str, Any]) -> str:
+    if asset.get("storage") in {"local", "memory"}:
+        return f"/assets/generated/{asset['assetId']}.{asset['ext']}"
+    if asset.get("url"):
+        return asset["url"]
+    public_base = os.getenv("PUBLIC_BASE_URL", "http://127.0.0.1:8000").rstrip("/")
+    return f"{public_base}/assets/generated/{asset['assetId']}.{asset['ext']}"
+
+
+def normalize_generated_image_urls(data: dict[str, Any]) -> dict[str, Any]:
+    for image in data.get("images", []):
+        url = image.get("url") or ""
+        match = re.search(r"/assets/generated/([^/.]+)\.([a-z0-9]+)", url, re.I)
+        if not match:
+            continue
+        asset = STATE.generated_assets.get(match.group(1))
+        if asset:
+            image["url"] = admin_asset_url(asset)
     return data
 
 
@@ -406,6 +645,7 @@ def admin_task(task: dict[str, Any]) -> dict[str, Any]:
     data = public_task(task)
     data["userId"] = task.get("userId")
     return data
+
 
 
 def admin_user(user_id: str) -> dict[str, Any]:
@@ -466,22 +706,25 @@ def summarize_payload(payload: Any) -> str:
 
 
 def store_generated_asset(data_url: str, *, style: str) -> str:
-    match = re.match(r"^data:([^;]+);base64,(.*)$", data_url)
-    if not match:
+    if not data_url.startswith("data:image/"):
         return data_url
-    mime_type, encoded = match.groups()
+    mime_type, image_bytes = parse_data_url(data_url)
     ext = {"image/png": "png", "image/jpeg": "jpg", "image/jpg": "jpg", "image/webp": "webp"}.get(mime_type, "png")
     asset_id = gen_id("gen")
+    stored = OBJECT_STORAGE.put_bytes(image_bytes, mime_type=mime_type, folder="generated", name=f"{asset_id}.{ext}")
     STATE.generated_assets[asset_id] = {
         "assetId": asset_id,
         "style": style,
         "mimeType": mime_type,
         "ext": ext,
-        "bytes": base64.b64decode(encoded),
+        "url": stored["url"],
+        "key": stored["key"],
+        "storage": stored["storage"],
+        "sizeBytes": stored["sizeBytes"],
         "createdAt": now_iso(),
     }
-    public_base = os.getenv("PUBLIC_BASE_URL", "http://127.0.0.1:8000").rstrip("/")
-    return f"{public_base}/assets/generated/{asset_id}.{ext}"
+    persist_state()
+    return stored["url"]
 
 
 def call_kl_image2(image_data_url: str, prompt: str, size: str) -> dict[str, Any]:
@@ -515,7 +758,6 @@ def call_kl_image2(image_data_url: str, prompt: str, size: str) -> dict[str, Any
     add_field("prompt", prompt)
     add_field("size", size)
     add_field("n", "1")
-    add_field("response_format", "url")
     parts.append(f"--{boundary}\r\n".encode())
     parts.append(b'Content-Disposition: form-data; name="image"; filename="portrait.jpg"\r\n')
     parts.append(f"Content-Type: {mime_type}\r\n\r\n".encode())
@@ -571,6 +813,7 @@ def process_generation(task_id: str) -> None:
     task["provider"] = runtime_config()
     task["provider"]["startedAt"] = now_iso()
     task["updatedAt"] = now_iso()
+    persist_state()
     success_count = 0
 
     for index, image in enumerate(task["images"]):
@@ -581,6 +824,17 @@ def process_generation(task_id: str) -> None:
         task["progress"] = min(92, 25 + index * 18)
         style = STYLE_PROMPTS.get(image["style"], STYLE_PROMPTS["pixar"])
         try:
+            append_debug_log({
+                "id": gen_id("dbg"),
+                "startedAt": now_iso(),
+                "method": "INTERNAL",
+                "path": "internal:process_generation",
+                "query": {},
+                "client": "thread",
+                "headers": {},
+                "body": {"taskId": task_id, "imageId": image["imageId"], "style": image["style"], "size": task["size"], "provider": runtime_config()},
+                "checks": [{"level": "info", "code": "KL_IMAGE_START", "message": "开始处理单张生成", "details": {"taskId": task_id, "style": image["style"]}}],
+            })
             if truthy_env("AI_MOCK_GENERATION"):
                 output = {
                     "url": svg_data_url(style["name"], "FastAPI mock output", style["color"]),
@@ -606,6 +860,21 @@ def process_generation(task_id: str) -> None:
                 "responseKeys": output["responseKeys"],
                 "rawSummary": output["rawSummary"],
             }
+            persist_state()
+            append_debug_log({
+                "id": gen_id("dbg"),
+                "startedAt": now_iso(),
+                "method": "INTERNAL",
+                "path": "internal:kl_image2",
+                "query": {},
+                "client": "thread",
+                "headers": {},
+                "durationMs": output["elapsedMs"],
+                "statusCode": output["httpStatus"] if isinstance(output["httpStatus"], int) else 200,
+                "body": {"taskId": task_id, "imageId": image["imageId"], "style": image["style"], "requestBytes": output.get("requestBytes")},
+                "response": {"json": scrub_debug_value({"url": image["url"], "responseKeys": output.get("responseKeys"), "rawSummary": output.get("rawSummary")})},
+                "checks": [{"level": "info", "code": "KL_IMAGE_SUCCESS", "message": "KL image2 调用成功", "details": image["provider"]}],
+            })
             success_count += 1
         except Exception as exc:  # noqa: BLE001 - keep provider error visible to mini-program.
             image["status"] = "FAILED"
@@ -618,6 +887,21 @@ def process_generation(task_id: str) -> None:
                 "endpoint": task["provider"]["klImageEndpoint"],
                 "error": str(exc),
             }
+            persist_state()
+            append_debug_log({
+                "id": gen_id("dbg"),
+                "startedAt": now_iso(),
+                "method": "INTERNAL",
+                "path": "internal:kl_image2",
+                "query": {},
+                "client": "thread",
+                "headers": {},
+                "durationMs": image["elapsedMs"],
+                "statusCode": 500,
+                "body": {"taskId": task_id, "imageId": image["imageId"], "style": image["style"], "size": task["size"]},
+                "response": {"json": scrub_debug_value({"error": str(exc)})},
+                "checks": [{"level": "error", "code": "KL_IMAGE_FAILED", "message": "KL image2 调用失败", "details": image["provider"]}],
+            })
 
     if success_count == len(task["images"]):
         task["status"] = "SUCCESS"
@@ -636,6 +920,7 @@ def process_generation(task_id: str) -> None:
     task["provider"]["successCount"] = success_count
     task["provider"]["totalCount"] = len(task["images"])
     task["updatedAt"] = now_iso()
+    persist_state()
 
 
 @app.get("/health")
@@ -654,7 +939,23 @@ def generated_asset(filename: str) -> Response:
     asset = STATE.generated_assets.get(asset_id)
     if not asset:
         raise AppError(404, "ASSET_NOT_FOUND", "图片不存在或已过期")
-    return Response(content=asset["bytes"], media_type=asset["mimeType"])
+    if asset.get("bytes"):
+        return Response(content=asset["bytes"], media_type=asset["mimeType"])
+    if asset.get("storage") == "local":
+        found = OBJECT_STORAGE.get_local("generated", filename)
+        if found:
+            content, mime_type = found
+            return Response(content=content, media_type=mime_type)
+    raise AppError(404, "ASSET_NOT_FOUND", "图片不存在或已过期")
+
+
+@app.get("/assets/object/{folder}/{filename}")
+def object_asset(folder: str, filename: str) -> Response:
+    found = OBJECT_STORAGE.get_local(folder, filename)
+    if not found:
+        raise AppError(404, "ASSET_NOT_FOUND", "图片不存在或已过期")
+    content, mime_type = found
+    return Response(content=content, media_type=mime_type)
 
 
 @app.post("/admin/api/login")
@@ -665,6 +966,7 @@ def admin_login(body: AdminLoginReq) -> dict[str, Any]:
         raise AppError(401, "ADMIN_LOGIN_FAILED", "管理员账号或密码错误")
     token = random_token("adm")
     STATE.admin_tokens.add(token)
+    persist_state()
     return {
         "accessToken": token,
         "admin": {"username": body.username},
@@ -675,6 +977,7 @@ def admin_login(body: AdminLoginReq) -> dict[str, Any]:
 @app.post("/admin/api/logout")
 def admin_logout(admin_token: str = Depends(current_admin)) -> dict[str, bool]:
     STATE.admin_tokens.discard(admin_token)
+    persist_state()
     return {"ok": True}
 
 
@@ -774,6 +1077,7 @@ def admin_retry_task(task_id: str, _: str = Depends(current_admin)) -> dict[str,
             image["status"] = "PENDING"
             image["errorMessage"] = ""
             image["provider"] = {}
+    persist_state()
     threading.Thread(target=process_generation, args=(task_id,), daemon=True).start()
     return admin_task(task)
 
@@ -785,6 +1089,7 @@ def admin_cancel_task(task_id: str, _: str = Depends(current_admin)) -> dict[str
         raise AppError(404, "TASK_NOT_FOUND", "任务不存在")
     task["status"] = "CANCELLED"
     task["updatedAt"] = now_iso()
+    persist_state()
     return admin_task(task)
 
 
@@ -803,6 +1108,7 @@ def admin_close_order(order_id: str, _: str = Depends(current_admin)) -> dict[st
     if not order:
         raise AppError(404, "ORDER_NOT_FOUND", "订单不存在")
     order["status"] = "CLOSED"
+    persist_state()
     return {"ok": True}
 
 
@@ -815,19 +1121,46 @@ def admin_feedback(_: str = Depends(current_admin)) -> dict[str, Any]:
 
 @app.get("/admin/api/assets")
 def admin_assets(_: str = Depends(current_admin)) -> dict[str, Any]:
-    public_base = os.getenv("PUBLIC_BASE_URL", "http://127.0.0.1:8000").rstrip("/")
     items = []
     for asset in STATE.generated_assets.values():
         items.append({
             "assetId": asset["assetId"],
             "style": asset["style"],
             "mimeType": asset["mimeType"],
-            "sizeBytes": len(asset["bytes"]),
+            "sizeBytes": asset.get("sizeBytes") or len(asset.get("bytes", b"")),
             "createdAt": asset["createdAt"],
-            "url": f"{public_base}/assets/generated/{asset['assetId']}.{asset['ext']}",
+            "url": admin_asset_url(asset),
+            "storage": asset.get("storage", "memory"),
+            "key": asset.get("key", ""),
         })
     items.sort(key=lambda item: item.get("createdAt", ""), reverse=True)
     return {"items": items, "total": len(items)}
+
+
+@app.get("/admin/api/debug/logs")
+def admin_debug_logs(
+    path: str | None = None,
+    status: int | None = None,
+    level: str | None = None,
+    limit: int = 80,
+    _: str = Depends(current_admin),
+) -> dict[str, Any]:
+    items = list(reversed(STATE.debug_logs))
+    if path:
+        items = [item for item in items if path in item.get("path", "")]
+    if status is not None:
+        items = [item for item in items if int(item.get("statusCode", 0)) == status]
+    if level:
+        items = [item for item in items if any(check.get("level") == level for check in item.get("checks", []))]
+    limit = max(1, min(int(limit or 80), 300))
+    return {"items": items[:limit], "total": len(items), "limit": limit}
+
+
+@app.delete("/admin/api/debug/logs")
+def admin_clear_debug_logs(_: str = Depends(current_admin)) -> dict[str, bool]:
+    STATE.debug_logs.clear()
+    persist_state()
+    return {"ok": True}
 
 
 @app.post("/auth/wechat-login")
@@ -841,6 +1174,7 @@ def wechat_login(body: LoginReq) -> dict[str, Any]:
         if avatar_url:
             user["avatarUrl"] = avatar_url
         user["updatedAt"] = now_iso()
+        persist_state()
     return {**issue_tokens(user["userId"]), "user": clone(user), "credits": credits_response(user["userId"])}
 
 
@@ -857,6 +1191,7 @@ def logout(user_id: str = Depends(current_user_id)) -> dict[str, Any]:
     for token, owner in list(STATE.tokens.items()):
         if owner == user_id:
             STATE.tokens.pop(token, None)
+    persist_state()
     return {"ok": True}
 
 
@@ -873,6 +1208,7 @@ def patch_profile(body: ProfilePatchReq, user_id: str = Depends(current_user_id)
     if body.avatarUrl is not None:
         user["avatarUrl"] = body.avatarUrl
     user["updatedAt"] = now_iso()
+    persist_state()
     return clone(user)
 
 
@@ -880,6 +1216,7 @@ def patch_profile(body: ProfilePatchReq, user_id: str = Depends(current_user_id)
 def delete_user(user_id: str = Depends(current_user_id)) -> dict[str, Any]:
     STATE.users.pop(user_id, None)
     STATE.credits.pop(user_id, None)
+    persist_state()
     return {"ok": True}
 
 
@@ -908,50 +1245,127 @@ def reward_ad(body: RewardAdReq, user_id: str = Depends(current_user_id)) -> dic
     if not body.completed:
         return {"rewarded": False, "credits": credits_response(user_id)}
     event_id = body.adEventId or gen_id("ad")
-    if event_id in STATE.ad_rewards:
+    reward_key = f"{user_id}:{event_id}"
+    if reward_key in STATE.ad_rewards:
         return {"rewarded": False, "credits": credits_response(user_id)}
     credits = get_credits(user_id)
     if credits["todayAdCount"] >= credits["dailyAdLimit"]:
         raise AppError(429, "AD_DAILY_LIMIT", "今日广告奖励次数已达上限")
-    STATE.ad_rewards.add(event_id)
+    STATE.ad_rewards.add(reward_key)
     credits["todayAdCount"] += 1
+    persist_state()
     return {"rewarded": True, "credits": add_credits(user_id, "ad", 1, "reward_ad")}
 
 
 @app.post("/upload/image")
-def upload_image(body: UploadReq, user_id: str = Depends(current_user_id)) -> dict[str, Any]:
-    if not body.dataUrl.startswith("data:image/"):
-        raise AppError(400, "UPLOAD_INVALID_IMAGE", "请上传图片 dataUrl")
-    image_id = gen_id("img")
-    upload = {
-        "imageId": image_id,
+def upload_image(body: UploadReq, req: Request, user_id: str = Depends(current_user_id)) -> dict[str, Any]:
+    add_debug_check(req, "UPLOAD_RECEIVED", "收到上传图片请求", details={
         "userId": user_id,
-        "url": body.dataUrl,
         "width": body.width,
         "height": body.height,
-        "sizeBytes": body.sizeBytes or int(len(body.dataUrl) * 0.75),
-        "expiresAt": (now_dt() + timedelta(days=1)).isoformat(),
-        "createdAt": now_iso(),
-    }
-    STATE.uploads[image_id] = upload
+        "sizeBytes": body.sizeBytes,
+        "dataUrlChars": len(body.dataUrl or ""),
+    })
+    if not body.dataUrl.startswith("data:image/"):
+        add_debug_check(req, "UPLOAD_DATA_URL_INVALID", "dataUrl 不是 image data URL", level="error")
+        raise AppError(400, "UPLOAD_INVALID_IMAGE", "请上传图片 dataUrl")
+    try:
+        mime_type, image_bytes = parse_data_url(body.dataUrl)
+    except ValueError:
+        add_debug_check(req, "UPLOAD_BASE64_INVALID", "dataUrl 缺少 base64 图片内容", level="error")
+        raise AppError(400, "UPLOAD_INVALID_IMAGE", "请上传 base64 图片 dataUrl")
+    estimated_bytes = len(image_bytes)
+    if body.width <= 0 or body.height <= 0:
+        add_debug_check(req, "UPLOAD_DIMENSION_INVALID", "图片宽高异常", level="warning", details={"width": body.width, "height": body.height})
+    if estimated_bytes > 4 * 1024 * 1024:
+        add_debug_check(req, "UPLOAD_SIZE_LARGE", "上传图片较大，真实生成可能较慢", level="warning", details={"estimatedBytes": estimated_bytes})
+    upload = create_upload_record(
+        user_id=user_id,
+        image_bytes=image_bytes,
+        mime_type=mime_type,
+        width=body.width,
+        height=body.height,
+        size_bytes=body.sizeBytes or estimated_bytes,
+        data_url=body.dataUrl,
+    )
+    add_debug_check(req, "UPLOAD_STORED", "上传图片已保存", details={"imageId": upload["imageId"], "estimatedBytes": estimated_bytes, "mimeType": mime_type, "storage": upload.get("storage")})
+    return clone(upload)
+
+
+@app.post("/upload/file")
+async def upload_file(
+    req: Request,
+    file: UploadFile = File(...),
+    width: int = Form(0),
+    height: int = Form(0),
+    user_id: str = Depends(current_user_id),
+) -> dict[str, Any]:
+    content = await file.read()
+    mime_type = file.content_type or "image/jpeg"
+    if not mime_type.startswith("image/"):
+        add_debug_check(req, "UPLOAD_FILE_TYPE_INVALID", "上传文件不是图片", level="error", details={"contentType": mime_type})
+        raise AppError(400, "UPLOAD_INVALID_IMAGE", "请上传图片文件")
+    if not content:
+        add_debug_check(req, "UPLOAD_FILE_EMPTY", "上传文件为空", level="error")
+        raise AppError(400, "UPLOAD_INVALID_IMAGE", "图片文件为空")
+    upload = create_upload_record(
+        user_id=user_id,
+        image_bytes=content,
+        mime_type=mime_type,
+        width=width,
+        height=height,
+        size_bytes=len(content),
+    )
+    add_debug_check(req, "UPLOAD_FILE_STORED", "上传文件已保存", details={"imageId": upload["imageId"], "sizeBytes": len(content), "storage": upload.get("storage")})
     return clone(upload)
 
 
 @app.post("/upload/validate")
-def validate_upload(body: ValidateReq, user_id: str = Depends(current_user_id)) -> dict[str, Any]:
+def validate_upload(body: ValidateReq, req: Request, user_id: str = Depends(current_user_id)) -> dict[str, Any]:
     upload = STATE.uploads.get(body.imageId)
     valid = bool(upload and upload["userId"] == user_id)
+    add_debug_check(req, "UPLOAD_VALIDATE", "校验上传图片归属", details={
+        "imageId": body.imageId,
+        "exists": bool(upload),
+        "requestUserId": user_id,
+        "uploadUserId": upload.get("userId") if upload else "",
+        "valid": valid,
+    }, level="info" if valid else "warning")
     return {"valid": valid, "reason": "" if valid else "图片不存在或已过期"}
 
 
 @app.post("/generation/create")
-def create_generation(body: GenerationCreateReq, user_id: str = Depends(current_user_id)) -> dict[str, Any]:
+def create_generation(body: GenerationCreateReq, req: Request, user_id: str = Depends(current_user_id)) -> dict[str, Any]:
+    config = runtime_config()
+    add_debug_check(req, "GENERATION_CREATE_RECEIVED", "收到生成任务请求", details={
+        "userId": user_id,
+        "inputImageId": body.inputImageId,
+        "styles": body.styles,
+        "size": body.size,
+        "runtime": config,
+    })
     if not truthy_env("AI_UNLIMITED_CREDITS", "1") and get_credits(user_id)["balance"] <= 0:
+        add_debug_check(req, "CREDIT_NOT_ENOUGH", "生成次数不足", level="error", details={"credits": get_credits(user_id)})
         raise AppError(402, "CREDIT_NOT_ENOUGH", "生成次数不足")
     upload = STATE.uploads.get(body.inputImageId)
     if not upload or upload["userId"] != user_id:
+        add_debug_check(req, "GENERATION_UPLOAD_INVALID", "生成任务引用的上传图无效", level="error", details={
+            "inputImageId": body.inputImageId,
+            "uploadExists": bool(upload),
+            "uploadUserId": upload.get("userId") if upload else "",
+            "requestUserId": user_id,
+        })
         raise AppError(400, "UPLOAD_INVALID_IMAGE", "请先上传照片")
-    styles = [style for style in (body.styles or ["pixar", "realistic", "handdrawn", "comic"]) if style in STYLE_PROMPTS]
+    requested_styles = body.styles or ["pixar", "realistic", "handdrawn", "comic"]
+    styles = [style for style in requested_styles if style in STYLE_PROMPTS]
+    invalid_styles = [style for style in requested_styles if style not in STYLE_PROMPTS]
+    if invalid_styles:
+        add_debug_check(req, "GENERATION_STYLE_FILTERED", "部分风格参数不存在，已过滤", level="warning", details={"invalidStyles": invalid_styles, "allowedStyles": list(STYLE_PROMPTS)})
+    if not styles:
+        add_debug_check(req, "GENERATION_STYLE_EMPTY", "没有可用生成风格", level="error", details={"requestedStyles": requested_styles})
+        raise AppError(400, "STYLE_INVALID", "请选择有效写真风格")
+    if not re.fullmatch(r"\d+x\d+", body.size):
+        add_debug_check(req, "GENERATION_SIZE_SUSPICIOUS", "size 参数格式异常", level="warning", details={"size": body.size})
     task_id = gen_id("task")
     task = {
         "taskId": task_id,
@@ -962,7 +1376,7 @@ def create_generation(body: GenerationCreateReq, user_id: str = Depends(current_
         "progress": 8,
         "size": body.size,
         "charged": False,
-        "provider": runtime_config(),
+        "provider": config,
         "images": [
             {"imageId": gen_id("out"), "style": style, "status": "PENDING", "url": "", "errorMessage": "", "elapsedMs": 0, "provider": {}}
             for style in styles
@@ -971,6 +1385,8 @@ def create_generation(body: GenerationCreateReq, user_id: str = Depends(current_
         "updatedAt": now_iso(),
     }
     STATE.tasks[task_id] = task
+    persist_state()
+    add_debug_check(req, "GENERATION_TASK_CREATED", "生成任务已创建", details={"taskId": task_id, "styleCount": len(styles), "uploadSizeBytes": upload.get("sizeBytes")})
     threading.Thread(target=process_generation, args=(task_id,), daemon=True).start()
     return public_task(task)
 
@@ -1001,6 +1417,7 @@ def retry_generation(task_id: str, user_id: str = Depends(current_user_id)) -> d
         if image["status"] != "SUCCESS":
             image["status"] = "PENDING"
             image["errorMessage"] = ""
+    persist_state()
     threading.Thread(target=process_generation, args=(task_id,), daemon=True).start()
     return public_task(task)
 
@@ -1012,6 +1429,7 @@ def cancel_generation(task_id: str, user_id: str = Depends(current_user_id)) -> 
         raise AppError(404, "TASK_NOT_FOUND", "任务不存在")
     task["status"] = "CANCELLED"
     task["updatedAt"] = now_iso()
+    persist_state()
     return public_task(task)
 
 
@@ -1043,6 +1461,7 @@ def create_order(body: OrderCreateReq, user_id: str = Depends(current_user_id)) 
     }
     order["paymentParams"] = payment_params
     STATE.orders[order["orderId"]] = order
+    persist_state()
     return {"order": clone(order), "paymentParams": payment_params}
 
 
@@ -1067,6 +1486,7 @@ def close_order(order_id: str, user_id: str = Depends(current_user_id)) -> dict[
     if not order or order["userId"] != user_id:
         raise AppError(404, "ORDER_NOT_FOUND", "订单不存在")
     order["status"] = "CLOSED"
+    persist_state()
     return {"ok": True}
 
 
@@ -1080,6 +1500,7 @@ def payment_notify(body: PaymentNotifyReq) -> dict[str, str]:
         order["transactionId"] = body.transactionId
         order["paidAt"] = now_iso()
         add_credits(order["userId"], "paid", order["credits"], order["orderId"])
+    persist_state()
     return {"code": "SUCCESS", "message": "OK"}
 
 
@@ -1101,6 +1522,7 @@ def share_reward(user_id: str = Depends(current_user_id)) -> dict[str, bool]:
 @app.post("/feedback")
 def create_feedback(body: FeedbackReq, user_id: str = Depends(current_user_id)) -> dict[str, bool]:
     STATE.feedback.append({"id": gen_id("fb"), "userId": user_id, **body.model_dump(), "createdAt": now_iso()})
+    persist_state()
     return {"ok": True}
 
 

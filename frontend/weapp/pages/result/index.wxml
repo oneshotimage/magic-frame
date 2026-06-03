@@ -1,9 +1,5 @@
 <view class="design-page result-page">
-  <view class="design-topbar">
-    <view class="nav-symbol" bindtap="goBack">‹</view>
-    <view class="nav-title">AI影像写真馆</view>
-    <view class="nav-symbol nav-more">•••</view>
-  </view>
+  <nav-bar title="AI影像写真馆" bind:back="goBack" />
 
   <view class="result-main">
     <view class="result-hero">
@@ -14,7 +10,7 @@
 
     <view wx:if="{{images.length}}" class="result-grid">
       <view wx:for="{{images}}" wx:key="url" class="result-card" bindtap="preview" data-url="{{item.url}}">
-        <image wx:if="{{item.displayImage}}" class="result-image" mode="aspectFill" src="{{item.url}}" />
+        <image wx:if="{{item.displayImage}}" class="result-image" mode="aspectFill" src="{{item.url}}" binderror="onResultImageError" data-url="{{item.url}}" />
         <view wx:elif="{{item.isSvg}}" class="result-image css-result {{item.theme}}">
           <view class="css-face"></view>
           <view class="css-body"></view>
@@ -40,14 +36,11 @@
   </view>
 
   <view class="result-actions">
-    <button wx:if="{{images.length}}" class="save-all" bindtap="saveAll">
-      <text class="button-icon">✓</text>
-      <text>全部保存到相册</text>
-    </button>
+    <app-button wx:if="{{images.length}}" text="全部保存到相册" icon="✓" bind:press="saveAll" />
     <view class="action-row">
       <button class="share-button" bindtap="sharePoster">⇧ 分享给好友</button>
       <button class="again-button" bindtap="again">✧ 再次制作</button>
     </view>
-    <button wx:if="{{canRetry}}" class="retry-button" bindtap="retryTask">重试失败项</button>
+    <app-button wx:if="{{canRetry}}" text="重试失败项" icon="" variant="secondary" bind:press="retryTask" />
   </view>
 </view>

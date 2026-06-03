@@ -1,4 +1,5 @@
 const { styles } = require('../../utils/constants');
+const { showToast } = require('../../utils/api');
 
 Page({
   data: {
@@ -30,6 +31,10 @@ Page({
   },
 
   next() {
+    if (!getApp().globalData.token && !wx.getStorageSync('accessToken')) {
+      showToast('请先登录后再制作');
+      return;
+    }
     wx.navigateTo({ url: '/pages/upload/index' });
   }
 });

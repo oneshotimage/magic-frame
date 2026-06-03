@@ -1,19 +1,47 @@
 <view class="profile-page">
-  <view class="top-bar">
-    <button class="bar-button" bindtap="goBack">
-      <text class="back-icon">‹</text>
-    </button>
-    <view class="bar-title">AI影像写真馆</view>
-    <button class="bar-button more-button">
-      <text class="more-icon">•••</text>
-    </button>
-  </view>
+  <nav-bar title="AI影像写真馆" bind:back="goBack" />
 
-  <view wx:if="{{!loggedIn}}" class="guest-hero">
-    <view class="guest-avatar-image avatar-fallback">AI</view>
-    <view class="guest-title">登录后查看我的</view>
-    <view class="guest-copy">同步作品、订单和生成额度，继续保存你的 AI 写真记录。</view>
-    <button class="login-cta" bindtap="goLogin">微信登录</button>
+  <view wx:if="{{!loggedIn}}" class="guest-main">
+    <view class="guest-profile-row" bindtap="goLogin">
+      <view class="guest-avatar-image">
+        <text class="guest-avatar-icon">♟</text>
+      </view>
+      <view class="guest-copy-wrap">
+        <view class="guest-title">点击登录/注册</view>
+        <view class="guest-copy">登录后体验更多AI写真功能</view>
+      </view>
+      <text class="guest-chevron">›</text>
+    </view>
+
+    <view class="guest-balance-card">
+      <view class="guest-balance-left">
+        <view class="guest-balance-icon">✦</view>
+        <view>
+          <view class="guest-balance-title">剩余生成次数</view>
+          <view class="guest-balance-desc">登录查看剩余次数</view>
+        </view>
+      </view>
+      <app-button text="去充值" icon="" variant="mini" bind:press="goPurchase" />
+    </view>
+
+    <view class="guest-menu-card">
+      <view class="guest-menu-row" bindtap="goOrders">
+        <view class="guest-menu-left"><text class="guest-menu-icon">▤</text><text>购买记录</text></view>
+        <text class="chevron">›</text>
+      </view>
+      <view class="guest-menu-row" bindtap="goWorks">
+        <view class="guest-menu-left"><text class="guest-menu-icon">↺</text><text>作品历史</text></view>
+        <text class="chevron">›</text>
+      </view>
+      <view class="guest-menu-row" bindtap="goGuide">
+        <view class="guest-menu-left"><text class="guest-menu-icon">▰</text><text>使用指南</text></view>
+        <text class="chevron">›</text>
+      </view>
+      <view class="guest-menu-row last" bindtap="goFaq">
+        <view class="guest-menu-left"><text class="guest-menu-icon">?</text><text>常见问题</text></view>
+        <text class="chevron">›</text>
+      </view>
+    </view>
   </view>
 
   <block wx:else>
@@ -42,7 +70,7 @@
             <text class="credit-icon">✦</text>
           </view>
         </view>
-        <button class="recharge-button" bindtap="goPurchase">去充值</button>
+        <app-button text="去充值" icon="" variant="mini" bind:press="goPurchase" />
       </view>
 
       <view class="section">
@@ -81,7 +109,7 @@
             </view>
             <text class="chevron">›</text>
           </view>
-          <view class="menu-row bordered" bindtap="goLegal">
+          <view class="menu-row bordered" bindtap="goPrivacy">
             <view class="menu-left">
               <view class="about-icon-shell">
                 <text class="privacy-icon">i</text>
@@ -104,18 +132,5 @@
     </view>
   </block>
 
-  <view class="bottom-nav">
-    <view class="tab-item" bindtap="goHome">
-      <text class="tab-icon home-tab">⌂</text>
-      <view class="tab-label">首页</view>
-    </view>
-    <view class="tab-item" bindtap="goWorks">
-      <text class="tab-icon works-tab">▧</text>
-      <view class="tab-label">作品集</view>
-    </view>
-    <view class="tab-item active">
-      <text class="tab-icon mine-tab">♙</text>
-      <view class="tab-label active-label">我的</view>
-    </view>
-  </view>
+  <app-tabbar active="profile" />
 </view>

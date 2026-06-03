@@ -4,6 +4,6 @@
     <view class="subtitle">请确认人像清晰、无遮挡。系统会继续做内容安全校验。</view>
   </view>
   <image class="confirm-img" src="{{preview}}" mode="aspectFill" />
-  <button class="primary-btn" bindtap="validate">确认使用这张照片</button>
+  <app-button text="确认使用这张照片" bind:press="validate" />
   <button class="secondary-btn" bindtap="reselect">重新选择</button>
 </view>

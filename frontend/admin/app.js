@@ -17,6 +17,39 @@ const $ = (selector) => document.querySelector(selector);
 const fmt = (value) => value == null || value === '' ? '-' : String(value);
 const money = (fen) => `¥${((fen || 0) / 100).toFixed(2)}`;
 
+function escapeHtml(value = '') {
+  return String(value).replace(/[&<>"']/g, (char) => ({
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#39;'
+  }[char]));
+}
+
+function resolveAssetUrl(url = '') {
+  if (!url || typeof url !== 'string') return '';
+  if (url.startsWith('/assets/generated/') || url.startsWith('/assets/object/')) return url;
+  try {
+    const parsed = new URL(url);
+    const host = parsed.hostname;
+    const isAsset = parsed.pathname.startsWith('/assets/generated/') || parsed.pathname.startsWith('/assets/object/');
+    const isLocal = host === 'localhost' || host === '0.0.0.0' || host.startsWith('127.');
+    const isPrivateLan = host.startsWith('192.168.') || host.startsWith('10.') || /^172\.(1[6-9]|2\d|3[0-1])\./.test(host);
+    if (isAsset && (isLocal || isPrivateLan)) return `${parsed.pathname}${parsed.search}`;
+  } catch (error) {
+    return url;
+  }
+  return url;
+}
+
+function thumb(url) {
+  const resolved = resolveAssetUrl(url);
+  if (!resolved) return '-';
+  const safeUrl = escapeHtml(resolved);
+  return `<a class="thumb-link" href="${safeUrl}" target="_blank"><img class="thumb" src="${safeUrl}" alt="生成图" loading="lazy" /></a>`;
+}
+
 async function api(path, options = {}) {
   const res = await fetch(path, {
     ...options,
@@ -115,7 +148,7 @@ async function loadTasks() {
       `<code>${item.userId}</code>`,
       status(item.status),
       `${item.progress || 0}%`,
-      first.url ? `<img class="thumb" src="${first.url}" />` : '-',
+      thumb(first.url),
       `${elapsed}ms`,
       `<div class="actions"><button class="secondary" data-action="taskDetail" data-id="${item.taskId}">详情</button><button class="secondary" data-action="taskRetry" data-id="${item.taskId}">重试</button><button class="danger" data-action="taskCancel" data-id="${item.taskId}">取消</button></div>`
     ]);
@@ -149,12 +182,12 @@ async function loadFeedback() {
 async function loadAssets() {
   const data = await api('/admin/api/assets');
   $('#assetsView').innerHTML = table(['图片', '风格', '类型', '大小', '时间', '链接'], data.items.map((item) => row([
-    `<img class="thumb" src="${item.url}" />`,
+    thumb(item.url),
     fmt(item.style),
     fmt(item.mimeType),
     `${Math.round((item.sizeBytes || 0) / 1024)} KB`,
     fmt(item.createdAt),
-    `<a href="${item.url}" target="_blank">打开</a>`
+    `<a href="${escapeHtml(resolveAssetUrl(item.url))}" target="_blank">打开</a>`
   ])));
 }
 

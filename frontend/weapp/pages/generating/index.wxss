@@ -76,7 +76,7 @@
   position: relative;
   z-index: 2;
   min-height: 100vh;
-  padding: 604rpx 40rpx 420rpx;
+  padding: calc(env(safe-area-inset-top) + 604rpx) 40rpx 420rpx;
   box-sizing: border-box;
   display: flex;
   flex-direction: column;

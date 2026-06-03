@@ -4,5 +4,5 @@
     <view class="subtitle">开发调试模式下点击完成即可模拟广告完整观看，并获得 1 次生成额度。</view>
     <view class="credit-badge">当前 {{creditText}} 次</view>
   </view>
-  <button class="primary-btn" loading="{{loading}}" bindtap="completeAd">模拟观看完成</button>
+  <app-button text="模拟观看完成" loading="{{loading}}" bind:press="completeAd" />
 </view>
