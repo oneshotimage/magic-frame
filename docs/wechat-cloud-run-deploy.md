@@ -101,6 +101,47 @@ tcb cloudrun deploy
 
 如果使用新版 CloudBase CLI，也可以按 CLI 提示选择云托管服务、环境、构建目录和 Dockerfile。
 
+## 同步 `.env` 到云托管
+
+云托管不会自动读取本地 `.env`，环境变量需要通过控制台或 CLI 单独配置。仓库提供了同步辅助脚本：
+
+```bash
+python3 scripts/sync_cloudrun_env.py --env-file .env
+```
+
+默认只做 dry-run，会脱敏显示即将同步的变量，并提示有风险的云上配置。确认无误后执行：
+
+```bash
+python3 scripts/sync_cloudrun_env.py \
+  --env-id 你的云开发环境ID \
+  --service-name 你的云托管服务名 \
+  --apply
+```
+
+脚本底层使用当前 CLI 支持的：
+
+```bash
+tcb run service:config --envParams
+```
+
+注意：
+
+- 不要把 `KL_PROXY_URL=http://127.0.0.1:7890` 同步到云托管，容器访问不到你本机代理。
+- 正式环境建议 `AI_UNLIMITED_CREDITS=0`。
+- `ADMIN_PASSWORD` 必须改成强密码。
+- 脚本不会把 Secret 写入仓库文件；只有加 `--print-envparams` 才会输出明文参数，慎用。
+
+## Docker 内置 `.env` 临时方案
+
+当前 Dockerfile 会把仓库根目录 `.env` 复制到镜像 `/app/.env`，FastAPI 启动时会自动读取。这样即使云托管控制台环境变量没有生效，容器内也能拿到配置。
+
+注意：
+
+- 这是临时排障方案，Secret 会进入镜像层；生产长期方案仍建议使用云托管环境变量或密钥管理。
+- 修改 `.env` 后必须重新构建并重新部署镜像，运行中的容器不会自动更新。
+- 不要把 `.env` 提交到 Git 仓库。
+- 云托管里如果同时配置了同名环境变量，系统环境变量优先，`.env` 不会覆盖。
+
 ## 小程序配置
 
 部署成功后，把 `frontend/weapp/app.js` 中的：

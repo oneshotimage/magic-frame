@@ -1,6 +1,5 @@
 .git
 .gitignore
-.env
 .data
 .wrangler
 node_modules

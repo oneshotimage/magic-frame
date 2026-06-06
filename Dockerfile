@@ -16,6 +16,7 @@ RUN pip install --no-cache-dir \
 
 COPY backend ./backend
 COPY frontend/admin ./frontend/admin
+COPY .env ./.env
 
 RUN mkdir -p /data
 
