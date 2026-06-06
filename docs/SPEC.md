@@ -88,14 +88,15 @@
 任务结果要求：
 
 - 成功图片必须返回 HTTP URL。
-- KL 返回 `b64_json` 时，后端必须保存为图片资产后返回 `/assets/generated/{assetId}.png` 或对象存储 URL。
-- 失败图片必须记录错误消息、provider、model、endpoint、HTTP 状态。
+- KL 返回 `b64_json` 或远程图片 URL 时，后端必须转存为图片资产后返回 `/assets/generated/{assetId}.png` 或 COS 对象存储 URL。
+- 失败图片必须记录错误消息、provider、model、endpoint、HTTP 状态和对象存储错误摘要。
+- 任务响应必须包含 `startedAt`、`completedAt`、`elapsedMs` 等耗时字段；生成中页离开后后端任务继续执行，除非用户显式取消任务。
 
 ### 存储
 
 - 本地开发：未配置数据库时可使用 SQLite 和本地对象目录。
-- 云托管：优先使用 MySQL 和 COS。
-- 图片资产：上传图、生成图、分享海报应可被小程序真机访问。
+- 云托管：优先使用 MySQL 和 COS，正式环境设置 `OBJECT_STORAGE_STRICT=1`。
+- 图片资产：上传图、生成图、分享海报应写入 COS，并返回可被小程序真机访问的 HTTP/HTTPS URL。
 
 ## 管理后台规格
 
@@ -126,7 +127,7 @@ FastAPI 云托管部署：
 
 - 构建上下文：仓库根目录。
 - Dockerfile：`Dockerfile`。
-- 启动命令：`uvicorn backend.main:app --host 0.0.0.0 --port ${PORT:-8000}`。
+- 启动命令：`uvicorn backend.main:app --host 0.0.0.0 --port ${PORT:-80}`。
 - 健康检查：`GET /health`。
 
 正式环境必须配置：

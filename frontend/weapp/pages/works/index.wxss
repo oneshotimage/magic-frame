@@ -132,6 +132,29 @@
   height: 100%;
 }
 
+.image-error {
+  padding: 20rpx;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12rpx;
+  background: #fff4ef;
+  color: #9d261a;
+  text-align: center;
+  font-size: 24rpx;
+  line-height: 34rpx;
+}
+
+.image-error text {
+  max-width: 100%;
+  color: #6e675d;
+  font-size: 18rpx;
+  line-height: 26rpx;
+  word-break: break-all;
+}
+
 .sample-portrait {
   position: relative;
   display: flex;

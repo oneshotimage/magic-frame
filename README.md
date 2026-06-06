@@ -171,7 +171,7 @@ Dockerfile
 服务启动会读取云托管注入的 `PORT`：
 
 ```bash
-uvicorn backend.main:app --host 0.0.0.0 --port ${PORT:-8000}
+uvicorn backend.main:app --host 0.0.0.0 --port ${PORT:-80}
 ```
 
 健康检查路径：

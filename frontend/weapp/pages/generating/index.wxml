@@ -25,6 +25,10 @@
       <text class="percent-mark">%</text>
     </view>
     <view class="generating-title">AI正在为您创作艺术写真</view>
+    <view class="elapsed-row">
+      <text class="elapsed-label">已等待</text>
+      <text class="elapsed-value">{{elapsedText}}</text>
+    </view>
     <view class="generating-subtitle">预计还需 5~15 秒，请耐心等待</view>
   </view>
 

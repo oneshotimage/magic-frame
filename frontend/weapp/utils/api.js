@@ -34,7 +34,7 @@ function resolveAssetUrl(url = '') {
     const isLocalHost = host === 'localhost' || host === '0.0.0.0' || host.startsWith('127.');
     const isPrivateLan = host.startsWith('192.168.') || host.startsWith('10.') || /^172\.(1[6-9]|2\d|3[0-1])\./.test(host);
     if (isLocalAsset && (isLocalHost || isPrivateLan)) {
-      return `${baseUrl()}${parsed.pathname}${parsed.search}`;
+      return url;
     }
   } catch (error) {
     return url;
@@ -42,7 +42,25 @@ function resolveAssetUrl(url = '') {
   return url;
 }
 
-function request(options) {
+function saveSession(data) {
+  const app = getAppSafe();
+  if (data.accessToken) {
+    app.globalData.token = data.accessToken;
+    wx.setStorageSync('accessToken', data.accessToken);
+  }
+  if (data.refreshToken) {
+    wx.setStorageSync('refreshToken', data.refreshToken);
+  }
+  if (data.user) {
+    app.globalData.user = data.user;
+  }
+  if (data.credits) {
+    app.globalData.credits = data.credits;
+  }
+  return data;
+}
+
+function rawRequest(options) {
   const app = getAppSafe();
   const apiBaseUrl = baseUrl();
   const token = app.globalData.token || wx.getStorageSync('accessToken') || '';
@@ -64,10 +82,38 @@ function request(options) {
           resolve(res.data);
           return;
         }
-        reject(res.data || { message: `HTTP ${res.statusCode}` });
+        reject({ ...(res.data || { message: `HTTP ${res.statusCode}` }), statusCode: res.statusCode });
       },
       fail: (error) => reject(normalizeNetworkError(error, '网络请求失败', requestUrl))
     });
+  });
+}
+
+function refreshSession() {
+  const refreshToken = wx.getStorageSync('refreshToken') || '';
+  if (!refreshToken) {
+    return Promise.reject({ code: 'UNAUTHORIZED', message: '登录已过期，请重新登录' });
+  }
+  return rawRequest({
+    url: '/auth/refresh',
+    method: 'POST',
+    data: { refreshToken },
+    skipAuthRefresh: true
+  }).then(saveSession).catch((error) => {
+    getAppSafe().clearSession();
+    return Promise.reject(error);
+  });
+}
+
+function request(options) {
+  return rawRequest(options).catch((error) => {
+    if (options.skipAuthRefresh || options.url === '/auth/refresh' || options.url === '/auth/wechat-login') {
+      return Promise.reject(error);
+    }
+    if (error.statusCode !== 401 && error.code !== 'UNAUTHORIZED') {
+      return Promise.reject(error);
+    }
+    return refreshSession().then(() => rawRequest({ ...options, skipAuthRefresh: true }));
   });
 }
 
@@ -99,10 +145,15 @@ function uploadFile(options) {
           resolve(data);
           return;
         }
-        reject(data || { message: `HTTP ${res.statusCode}` });
+        reject({ ...(data || { message: `HTTP ${res.statusCode}` }), statusCode: res.statusCode });
       },
       fail: (error) => reject(normalizeNetworkError(error, '上传失败', requestUrl))
     });
+  }).catch((error) => {
+    if (options.skipAuthRefresh || error.statusCode !== 401) {
+      return Promise.reject(error);
+    }
+    return refreshSession().then(() => uploadFile({ ...options, skipAuthRefresh: true }));
   });
 }
 
@@ -132,7 +183,7 @@ function login(userInfo = {}) {
       device: wx.getSystemInfoSync(),
       userInfo
     }
-  }));
+  })).then(saveSession);
 }
 
 function logout() {

@@ -14,8 +14,24 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 os.environ.setdefault("AI_MOCK_GENERATION", "1")
+os.environ["DATABASE_URL"] = "sqlite:///.data/test_api.db"
+for key in (
+    "COS_SECRET_ID",
+    "COS_SECRET_KEY",
+    "TENCENTCLOUD_SECRET_ID",
+    "TENCENTCLOUD_SECRET_KEY",
+    "COS_BUCKET",
+    "TENCENT_COS_BUCKET",
+    "COS_REGION",
+    "TENCENT_COS_REGION",
+    "COS_PUBLIC_BASE_URL",
+    "OBJECT_STORAGE_PUBLIC_BASE_URL",
+):
+    os.environ[key] = ""
+os.environ["OBJECT_STORAGE_STRICT"] = "0"
 
 from backend import main
+from backend import generation
 from backend.main import app, svg_data_url
 
 
@@ -43,6 +59,15 @@ def test_auth_login_accepts_user_info() -> None:
     assert data["user"]["avatarUrl"] == "https://example.com/avatar.png"
 
 
+def test_auth_refresh_issues_new_access_token() -> None:
+    login = client.post("/auth/wechat-login", json={"code": f"refresh-code-{time.time_ns()}"})
+    assert login.status_code == 200, login.text
+    refreshed = client.post("/auth/refresh", json={"refreshToken": login.json()["refreshToken"]})
+    assert refreshed.status_code == 200, refreshed.text
+    assert refreshed.json()["accessToken"] != login.json()["accessToken"]
+    assert refreshed.json()["expiresIn"] == 7200
+
+
 def test_health() -> None:
     res = client.get("/health")
     assert res.status_code == 200
@@ -56,6 +81,22 @@ def test_debug_log_levels_are_normalized() -> None:
     assert main.normalize_log_level("warn") == "warn"
     assert main.normalize_log_level("error") == "error"
     assert main.normalize_log_level("unknown") == "info"
+
+
+def test_startup_environment_report_redacts_secrets(monkeypatch) -> None:
+    monkeypatch.setenv("KL_API_TOKEN", "secret-kl-token")
+    monkeypatch.setenv("COS_SECRET_KEY", "secret-cos-key")
+    monkeypatch.setenv("ADMIN_PASSWORD", "secret-admin-password")
+
+    report = main.startup_environment_report()
+    text = json.dumps(report, ensure_ascii=False)
+
+    assert "secret-kl-token" not in text
+    assert "secret-cos-key" not in text
+    assert "secret-admin-password" not in text
+    assert "KL_API_TOKEN" in text
+    assert "MYSQL_USER" in report["env"]
+    assert "<redacted:" in text
 
 
 def test_user_credit_upload_generation_flow() -> None:
@@ -74,6 +115,8 @@ def test_user_credit_upload_generation_flow() -> None:
     )
     assert upload.status_code == 200, upload.text
     image_id = upload.json()["imageId"]
+    assert upload.json()["url"].startswith("http://127.0.0.1:8000/assets/object/uploads/")
+    assert "inputImageDataUrl" not in upload.json()
 
     validate = client.post("/upload/validate", headers=headers, json={"imageId": image_id})
     assert validate.json()["valid"] is True
@@ -91,8 +134,12 @@ def test_user_credit_upload_generation_flow() -> None:
         if last["status"] in {"SUCCESS", "PARTIAL_SUCCESS", "FAILED"}:
             break
     assert last["status"] in {"SUCCESS", "PARTIAL_SUCCESS"}
+    assert isinstance(last.get("elapsedMs"), int)
+    assert last["elapsedMs"] >= 0
+    assert last.get("startedAt")
+    assert last.get("completedAt")
     output_url = last["images"][0]["url"]
-    assert output_url.startswith("/assets/generated/")
+    assert output_url.startswith(("http://127.0.0.1:8000/assets/generated/", "/assets/generated/"))
     asset_path = output_url.replace("http://127.0.0.1:8000", "")
     asset = client.get(asset_path)
     assert asset.status_code == 200
@@ -169,7 +216,7 @@ def test_call_kl_image2_builds_real_multipart_request(monkeypatch) -> None:
     monkeypatch.setenv("KL_IMAGE_ENDPOINT", "/v1/images/edits")
     monkeypatch.setenv("KL_IMAGE_MODEL", "gpt-image-2")
     monkeypatch.setenv("KL_TIMEOUT_SECONDS", "600")
-    monkeypatch.setattr(main.request, "build_opener", lambda *args: FakeOpener())
+    monkeypatch.setattr(generation.request, "build_opener", lambda *args: FakeOpener())
 
     result = main.call_kl_image2(svg_data_url("Demo", "input"), "prompt", "1024x1024")
 
@@ -182,6 +229,36 @@ def test_call_kl_image2_builds_real_multipart_request(monkeypatch) -> None:
     assert b"gpt-image-2" in captured["data"]
     assert b'name="response_format"' not in captured["data"]
     assert b'name="image"; filename="portrait.jpg"' in captured["data"]
+
+
+def test_remote_generation_url_is_restored_to_object_storage(monkeypatch) -> None:
+    class FakeHeaders:
+        def get(self, key, default=None):
+            return {
+                "content-type": "image/png",
+                "content-length": "8",
+            }.get(key.lower(), default)
+
+    class FakeResponse:
+        status = 200
+        headers = FakeHeaders()
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *_args):
+            return False
+
+        def read(self, _size=-1) -> bytes:
+            return b"\x89PNG\r\n\x1a\n"
+
+    monkeypatch.setattr(generation.request, "urlopen", lambda *_args, **_kwargs: FakeResponse())
+
+    stored = generation.store_generated_asset("https://provider.example/out.png", style="pixar")
+
+    assert stored["url"].startswith("http://127.0.0.1:8000/assets/generated/")
+    assert stored["source"]["kind"] == "remote-url"
+    assert stored["source"]["sourceUrl"] == "https://provider.example/out.png"
 
 
 def test_admin_apis() -> None:

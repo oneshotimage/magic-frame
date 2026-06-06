@@ -129,6 +129,10 @@
           </view>
         </view>
       </view>
+
+      <view class="logout-section">
+        <button class="logout-button" bindtap="logout">退出登录</button>
+      </view>
     </view>
   </block>
 

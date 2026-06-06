@@ -4,6 +4,7 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import quote, urlparse
 import base64
+import importlib.util
 import json
 import mimetypes
 import os
@@ -160,6 +161,7 @@ class ObjectStorage:
         self.public_base = (os.getenv("COS_PUBLIC_BASE_URL") or os.getenv("OBJECT_STORAGE_PUBLIC_BASE_URL") or "").rstrip("/")
         self.enabled = bool(self.bucket and self.region and self.secret_id and self.secret_key)
         self.mode = "cos" if self.enabled else "local"
+        self.sdk_available = importlib.util.find_spec("qcloud_cos") is not None
         self.local_root = data_dir() / "objects"
         self.local_root.mkdir(parents=True, exist_ok=True)
         self.error = ""
@@ -172,6 +174,8 @@ class ObjectStorage:
             "region": self.region,
             "prefix": self.prefix,
             "publicBaseConfigured": bool(self.public_base),
+            "strict": truthy(os.getenv("OBJECT_STORAGE_STRICT")),
+            "sdkAvailable": self.sdk_available,
             "error": self.error,
         }
 
@@ -197,8 +201,14 @@ class ObjectStorage:
             except Exception as exc:  # noqa: BLE001
                 self.error = str(exc)
                 if not truthy(os.getenv("OBJECT_STORAGE_STRICT")):
-                    return self._put_local(data, mime_type=mime_type, folder=folder, object_id=object_id)
-                raise
+                    stored = self._put_local(data, mime_type=mime_type, folder=folder, object_id=object_id)
+                    stored["fallbackFrom"] = "cos"
+                    stored["fallbackError"] = self.error
+                    return stored
+                raise RuntimeError(
+                    f"COS_UPLOAD_FAILED bucket={self.bucket or '<empty>'} region={self.region or '<empty>'} "
+                    f"key={key} error={self.error}"
+                ) from exc
         return self._put_local(data, mime_type=mime_type, folder=folder, object_id=object_id)
 
     def _put_local(self, data: bytes, *, mime_type: str, folder: str, object_id: str) -> dict[str, Any]:

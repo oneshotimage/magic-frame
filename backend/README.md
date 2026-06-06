@@ -33,6 +33,25 @@
 - `POST /share/reward`
 - `POST /feedback`
 
+## 代码结构
+
+后端按功能拆分为以下模块，详细职责和依赖方向见 `docs/BACKEND_MODULES.md`：
+
+```text
+backend/
+├── main.py              # FastAPI 应用装配、异常处理、中间件、router 注册
+├── core.py              # 环境配置、全局状态、运行配置、调试日志
+├── catalog.py           # 写真风格和套餐常量
+├── schemas.py           # Pydantic 请求模型
+├── services.py          # 用户、额度、上传记录、任务展示等业务服务
+├── generation.py        # KL image2 调用、生成任务线程、图片资产和海报生成
+├── cloud_runtime.py     # SQLite/MySQL 快照存储与 COS/本地对象存储
+└── routes/
+    ├── public.py        # 小程序公开 API
+    ├── admin.py         # 管理后台 API
+    └── system.py        # 健康检查、运行配置、图片资产、后台静态页
+```
+
 ## 管理后台
 
 FastAPI 会直接提供静态管理后台页面：
@@ -96,7 +115,7 @@ Dockerfile
 容器会读取云托管注入的 `PORT` 环境变量，并通过以下命令启动：
 
 ```bash
-uvicorn backend.main:app --host 0.0.0.0 --port ${PORT:-8000}
+uvicorn backend.main:app --host 0.0.0.0 --port ${PORT:-80}
 ```
 
 健康检查建议使用：
@@ -142,15 +161,18 @@ COS_BUCKET=your-bucket-1250000000
 COS_REGION=ap-guangzhou
 COS_PREFIX=ai-image
 COS_PUBLIC_BASE_URL=https://你的 COS 自定义域名或 CDN 域名
+OBJECT_STORAGE_STRICT=1
 ```
 
-如果没有配置 COS，后端会降级到本地文件存储：
+开启 COS 后，用户上传图、生成图和分享海报都会写入 COS，并向小程序返回 COS 的 HTTP/HTTPS 图片 URL。生成接口即使收到 KL 返回的远程图片 URL，也会先下载图片再转存 COS，避免小程序直接依赖第三方图片域名。
+
+如果没有配置 COS，或 `OBJECT_STORAGE_STRICT` 未开启且 COS 上传失败，后端会降级到本地文件存储：
 
 ```text
 DATA_DIR/objects
 ```
 
-本地文件模式用于开发调试；云托管正式环境建议配置 COS，否则服务实例重建后本地文件可能丢失。
+本地文件模式只用于开发调试；云托管正式环境建议设置 `OBJECT_STORAGE_STRICT=1`，这样 COS 写入失败会直接返回 `UPLOAD_OBJECT_STORAGE_FAILED` 或让生成任务单图失败，后台「调试日志」会记录 bucket、region、object key 和底层错误。
 
 ### 云托管推荐环境变量
 
@@ -220,6 +242,8 @@ AI_UNLIMITED_CREDITS=1
 GET /config/runtime
 GET /health
 ```
+
+服务启动时会在控制台打印 `APP_ENVIRONMENT_CHECK_START`、`APP_ENVIRONMENT_VAR`、`APP_ENVIRONMENT_CHECK_ITEM` 等环境检查日志，KL、MySQL、COS、PUBLIC_BASE_URL、端口和调试开关会逐个环境变量单独输出一行。Token、SecretKey、数据库密码和管理员密码只显示是否已配置和脱敏长度，不会输出明文。云托管排障时优先搜索 `APP_ENVIRONMENT_VAR`、`DATABASE_UNAVAILABLE`、`COS_STRICT_NOT_READY` 和后台「调试日志」。
 
 KL `gpt-image-2` 经常返回 `b64_json`。后端会把 base64 图片转成内存图片资产，并在任务结果中返回可给小程序 `<image>` 直接使用的 HTTP 地址：
 

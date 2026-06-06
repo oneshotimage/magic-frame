@@ -39,7 +39,8 @@
 .bar-button::after,
 .edit-button::after,
 .recharge-button::after,
-.login-cta::after {
+.login-cta::after,
+.logout-button::after {
   border: 0;
 }
 
@@ -255,6 +256,28 @@
 
 .about-section {
   margin-top: -15rpx;
+}
+
+.logout-section {
+  padding: 8rpx 0 18rpx;
+}
+
+.logout-button {
+  width: 100%;
+  height: 96rpx;
+  margin: 0;
+  padding: 0;
+  border-radius: 24rpx;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #ffffff;
+  color: #ba1a1a;
+  font-size: 31rpx;
+  line-height: 46rpx;
+  font-weight: 500;
+  box-shadow: 0 8rpx 38rpx rgba(255, 184, 0, 0.08);
 }
 
 .section-title {

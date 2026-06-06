@@ -14,6 +14,7 @@ Page({
     displayImages: SAMPLE_IMAGES,
     totalCount: 12,
     loading: false,
+    imageErrors: {},
     activeFilter: 'all',
     filters: [
       { id: 'all', name: '全部风格' },
@@ -45,11 +46,13 @@ Page({
       const images = [];
       tasks.forEach((task) => {
         (task.images || []).forEach((image, index) => {
-          const url = resolveAssetUrl(image.url);
+          const rawUrl = image.url || '';
+          const url = resolveAssetUrl(rawUrl);
           images.push({
             ...image,
             key: image.imageId || `${task.taskId}_${index}`,
             url,
+            rawUrl,
             filter: this.styleToFilter(image.style || image.styleId),
             taskId: task.taskId,
             createdAt: task.createdAt
@@ -93,6 +96,14 @@ Page({
     if (!url) return;
     getApp().globalData.previewImage = url;
     wx.navigateTo({ url: '/pages/preview/index' });
+  },
+
+  onWorkImageError(event) {
+    const { key, url, rawUrl } = event.currentTarget.dataset;
+    console.warn('[works] image load failed', { key, url, rawUrl });
+    this.setData({
+      [`imageErrors.${key}`]: true
+    });
   },
 
   create() {

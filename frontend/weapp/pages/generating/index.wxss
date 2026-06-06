@@ -218,6 +218,34 @@
   text-align: center;
 }
 
+.elapsed-row {
+  margin-top: 18rpx;
+  min-width: 216rpx;
+  height: 64rpx;
+  padding: 0 28rpx;
+  border-radius: 999rpx;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14rpx;
+  background: #ffffff;
+  box-shadow: 0 8rpx 28rpx rgba(255, 184, 0, 0.12);
+}
+
+.elapsed-label {
+  color: #666666;
+  font-size: 24rpx;
+  line-height: 34rpx;
+}
+
+.elapsed-value {
+  color: #7c5800;
+  font-size: 30rpx;
+  line-height: 40rpx;
+  font-weight: 700;
+}
+
 .generating-subtitle {
   margin-top: 16rpx;
   color: #666666;

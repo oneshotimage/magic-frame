@@ -6,10 +6,10 @@
 
 - 构建上下文：仓库根目录
 - Dockerfile：`Dockerfile`
-- 启动服务：`uvicorn backend.main:app --host 0.0.0.0 --port ${PORT:-8000}`
+- 启动服务：`uvicorn backend.main:app --host 0.0.0.0 --port ${PORT:-80}`
 - 健康检查：`GET /health`
 
-云托管会注入 `PORT`，不要在控制台固定写死端口。
+镜像默认监听 80，云托管如果注入 `PORT` 则优先使用注入值。服务配置里的容器端口、探针端口和应用监听端口必须一致；如果探针访问 80，就不要让应用只监听 8000。
 
 ## 必填环境变量
 
@@ -69,7 +69,11 @@ COS_REGION=ap-shanghai
 COS_PREFIX=ai-image
 COS_PUBLIC_BASE_URL=https://你的 COS 公网域名
 OBJECT_STORAGE_STRICT=1
+OBJECT_STORAGE_REMOTE_TIMEOUT_SECONDS=60
+OBJECT_STORAGE_REMOTE_MAX_BYTES=12582912
 ```
+
+`OBJECT_STORAGE_STRICT=1` 表示云上不允许降级到容器本地文件。用户上传图片、KL 返回的 base64 图片、KL 返回的远程图片 URL 和分享海报都会写入 COS；如果 COS 写入失败，接口或生成任务会保留明确错误，后台「调试日志」可查看 bucket、region、object key、HTTP 状态和异常摘要。
 
 ## 控制台部署
 
@@ -77,7 +81,7 @@ OBJECT_STORAGE_STRICT=1
 2. 选择代码部署或上传代码包。
 3. 构建上下文选择仓库根目录。
 4. Dockerfile 路径填写 `Dockerfile`。
-5. 健康检查路径填写 `/health`。
+5. 容器端口填写 `80`，健康检查路径填写 `/health`。
 6. 配置上面的环境变量。
 7. 部署完成后访问：
 
@@ -121,7 +125,7 @@ apiBaseUrl: 'https://你的服务域名'
 ```bash
 python3 -m pytest backend/test_api.py
 docker build -t ai-photo-backend:cloud .
-docker run --rm -p 8000:8000 --env-file .env ai-photo-backend:cloud
+docker run --rm -p 8000:80 --env-file .env ai-photo-backend:cloud
 curl http://127.0.0.1:8000/health
 ```
 
@@ -131,4 +135,5 @@ curl http://127.0.0.1:8000/health
 - `/config/runtime` 中 `generationMode=real`
 - `/config/runtime` 中数据库为 MySQL 且可用
 - `/config/runtime` 中对象存储为 COS 且可用
+- `/config/runtime` 中 `objectStorage.strict=true`
 - `/admin` 可登录并查看调试日志
