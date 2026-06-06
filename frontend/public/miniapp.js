@@ -70,7 +70,7 @@ function saveSettings() {
 }
 
 function loadSettings() {
-  els.proxy.value = localStorage.getItem("miniapp.proxy") || "http://127.0.0.1:51004";
+  els.proxy.value = localStorage.getItem("miniapp.proxy") || "http://127.0.0.1:7890";
   els.size.value = localStorage.getItem("miniapp.size") || "1024x1024";
   els.quota.textContent = String(quota);
 }

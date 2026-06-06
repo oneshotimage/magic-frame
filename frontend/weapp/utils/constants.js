@@ -5,7 +5,8 @@ const styles = [
     short: '3D动画',
     desc: '皮克斯质感',
     icon: '3D',
-    theme: 'pixar'
+    theme: 'pixar',
+    image: '/assets/home-style-3d-figma.jpg'
   },
   {
     id: 'realistic',
@@ -14,7 +15,8 @@ const styles = [
     desc: '细节拉满',
     icon: '光',
     badge: 'HOT',
-    theme: 'realistic'
+    theme: 'realistic',
+    image: '/assets/home-style-realistic-figma.jpg'
   },
   {
     id: 'handdrawn',
@@ -22,7 +24,8 @@ const styles = [
     short: '文艺手绘',
     desc: '温柔水彩风',
     icon: '绘',
-    theme: 'handdrawn'
+    theme: 'handdrawn',
+    image: '/assets/home-style-handdrawn-figma.jpg'
   },
   {
     id: 'comic',
@@ -30,11 +33,12 @@ const styles = [
     short: '涂鸦漫画',
     desc: '潮酷波普',
     icon: '漫',
-    theme: 'comic'
+    theme: 'comic',
+    image: '/assets/home-style-comic-figma.jpg'
   }
 ];
 
-const heroImage = '';
+const heroImage = '/assets/home-hero-figma.png';
 const splashImage = '';
 const avatarImage = '';
 

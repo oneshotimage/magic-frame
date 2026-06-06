@@ -164,7 +164,7 @@
 - 完善 KL `gpt-image-2` 调用：
   - 使用 multipart/form-data 调用 `/v1/images/edits`。
   - 支持 `KL_API_BASE_URL`、`KL_API_TOKEN`、`KL_IMAGE_MODEL`、`KL_IMAGE_ENDPOINT`、`KL_TIMEOUT_SECONDS`。
-  - 支持 `KL_PROXY_URL=http://127.0.0.1:51004` 本地代理。
+  - 支持 `KL_PROXY_URL=http://127.0.0.1:7890` 本地代理。
   - 记录请求目标、模型、endpoint、HTTP 状态、耗时、响应 key 和响应摘要。
 - 新增 `GET /config/runtime`，用于检查当前生成模式、KL token、代理、模型和 endpoint 配置。
 - 小程序生成中页新增 provider 摘要展示，能看到 real/mock、模型、endpoint、token 和代理状态。

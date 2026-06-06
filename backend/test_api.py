@@ -15,15 +15,15 @@ if str(ROOT) not in sys.path:
 
 os.environ.setdefault("AI_MOCK_GENERATION", "1")
 
-from backend_fastapi import main
-from backend_fastapi.main import app, svg_data_url
+from backend import main
+from backend.main import app, svg_data_url
 
 
 client = TestClient(app)
 
 
 def auth_headers() -> dict[str, str]:
-    res = client.post("/auth/wechat-login", json={"code": "test-code"})
+    res = client.post("/auth/wechat-login", json={"code": f"test-code-{time.time_ns()}"})
     assert res.status_code == 200, res.text
     token = res.json()["accessToken"]
     return {"Authorization": f"Bearer {token}"}
@@ -47,6 +47,15 @@ def test_health() -> None:
     res = client.get("/health")
     assert res.status_code == 200
     assert res.json()["status"] == "ok"
+
+
+def test_debug_log_levels_are_normalized() -> None:
+    assert main.normalize_log_level("debug") == "debug"
+    assert main.normalize_log_level("info") == "info"
+    assert main.normalize_log_level("warning") == "warn"
+    assert main.normalize_log_level("warn") == "warn"
+    assert main.normalize_log_level("error") == "error"
+    assert main.normalize_log_level("unknown") == "info"
 
 
 def test_user_credit_upload_generation_flow() -> None:
@@ -114,7 +123,11 @@ def test_orders_payment_share_feedback() -> None:
     assert orders.json()["total"] >= 1
 
     poster = client.post("/share/create-poster", headers=headers, json={"imageUrl": "https://example.com/a.png"})
-    assert poster.json()["posterUrl"].startswith("data:image/")
+    poster_url = poster.json()["posterUrl"]
+    assert poster_url.startswith(("http://127.0.0.1:8000/assets/generated/", "/assets/generated/"))
+    poster_asset = client.get(poster_url.replace("http://127.0.0.1:8000", ""))
+    assert poster_asset.status_code == 200
+    assert poster_asset.headers["content-type"].startswith("image/png")
 
     feedback = client.post("/feedback", headers=headers, json={"content": "很好用", "source": "test"})
     assert feedback.json()["ok"] is True
@@ -229,14 +242,22 @@ def test_admin_apis() -> None:
     assert filtered_debug_logs.status_code == 200
     assert filtered_debug_logs.json()["limit"] == 5
 
+    warn_logs = client.get("/admin/api/debug/logs?level=warn", headers=admin_headers)
+    assert warn_logs.status_code == 200
+    for item in warn_logs.json()["items"]:
+        assert any(check["level"] == "warn" for check in item.get("checks", []))
+
     admin_redirect = client.get("/admin", follow_redirects=False)
     assert admin_redirect.status_code == 307
     assert admin_redirect.headers["location"] == "/admin/"
     admin_page = client.get("/admin/")
     assert admin_page.status_code == 200
     assert "管理后台" in admin_page.text
+    assert "调试日志" in admin_page.text
     assert client.get("/admin/styles.css").status_code == 200
-    assert client.get("/admin/app.js").status_code == 200
+    admin_js = client.get("/admin/app.js")
+    assert admin_js.status_code == 200
+    assert "debugLevelFilter" in admin_js.text
 
 
 if __name__ == "__main__":

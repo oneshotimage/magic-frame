@@ -107,16 +107,20 @@ function uploadFile(options) {
 }
 
 function login(userInfo = {}) {
-  return new Promise((resolve) => {
-    const timer = setTimeout(() => resolve(`dev_${Date.now()}`), 5000);
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => reject({ message: '微信登录超时，请检查网络后重试' }), 5000);
     wx.login({
       success(res) {
         clearTimeout(timer);
-        resolve(res.code || `dev_${Date.now()}`);
+        if (res.code) {
+          resolve(res.code);
+          return;
+        }
+        reject({ message: '微信登录失败，未获取到登录 code' });
       },
-      fail() {
+      fail(error) {
         clearTimeout(timer);
-        resolve(`dev_${Date.now()}`);
+        reject(normalizeNetworkError(error, '微信登录失败'));
       }
     });
   }).then((code) => request({

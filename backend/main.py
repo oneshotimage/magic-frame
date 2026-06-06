@@ -7,13 +7,16 @@ from typing import Any
 from urllib import error, request
 import base64
 import json
+import logging
 import os
 import random
 import re
 import string
+import struct
 import threading
 import time
 import uuid
+import zlib
 
 from fastapi import Depends, FastAPI, File, Form, Header, Request, UploadFile
 from fastapi.exceptions import RequestValidationError
@@ -106,6 +109,7 @@ def runtime_config() -> dict[str, Any]:
         "klTimeoutSeconds": int(os.getenv("KL_TIMEOUT_SECONDS", "600")),
         "publicBaseUrl": os.getenv("PUBLIC_BASE_URL", "http://127.0.0.1:8000").rstrip("/"),
         "unlimitedCredits": truthy_env("AI_UNLIMITED_CREDITS", "1"),
+        "logLevel": configured_log_level(),
         "database": STORE.status(),
         "objectStorage": OBJECT_STORAGE.status(),
     }
@@ -142,6 +146,45 @@ OBJECT_STORAGE = ObjectStorage()
 
 DEBUG_LOG_LIMIT = 300
 DEBUG_BODY_LIMIT = 4000
+LOG_LEVELS = {"debug": 10, "info": 20, "warn": 30, "error": 40}
+
+
+def normalize_log_level(level: str | None) -> str:
+    normalized = (level or "info").strip().lower()
+    if normalized == "warning":
+        return "warn"
+    return normalized if normalized in LOG_LEVELS else "info"
+
+
+def configured_log_level() -> str:
+    return normalize_log_level(os.getenv("LOG_LEVEL", "info"))
+
+
+def highest_log_level(checks: list[dict[str, Any]]) -> str:
+    level = "info"
+    for check in checks:
+        candidate = normalize_log_level(str(check.get("level") or "info"))
+        if LOG_LEVELS[candidate] > LOG_LEVELS[level]:
+            level = candidate
+    return level
+
+
+LOGGER = logging.getLogger("ai_portrait")
+LOGGER.setLevel(logging.DEBUG)
+if not LOGGER.handlers:
+    handler = logging.StreamHandler()
+    handler.setFormatter(logging.Formatter("%(asctime)s %(levelname)s [%(name)s] %(message)s"))
+    LOGGER.addHandler(handler)
+LOGGER.propagate = False
+
+
+def console_log(level: str, code: str, message: str, details: dict[str, Any] | None = None) -> None:
+    normalized = normalize_log_level(level)
+    if LOG_LEVELS[normalized] < LOG_LEVELS[configured_log_level()]:
+        return
+    logger_method = LOGGER.warning if normalized == "warn" else getattr(LOGGER, normalized)
+    safe_details = scrub_debug_value(details or {})
+    logger_method("%s %s %s", code, message, json.dumps(safe_details, ensure_ascii=False, default=str))
 
 
 def state_snapshot() -> dict[str, Any]:
@@ -245,16 +288,34 @@ def response_debug_body(raw: bytes, content_type: str) -> dict[str, Any]:
 
 
 def append_debug_log(entry: dict[str, Any]) -> None:
+    checks = entry.get("checks") if isinstance(entry.get("checks"), list) else []
+    normalized_checks = []
+    for check in checks:
+        normalized_check = dict(check)
+        normalized_check["level"] = normalize_log_level(str(normalized_check.get("level") or "info"))
+        normalized_checks.append(normalized_check)
+    entry["checks"] = normalized_checks
+    entry["level"] = normalize_log_level(str(entry.get("level") or highest_log_level(normalized_checks)))
     STATE.debug_logs.append(entry)
     if len(STATE.debug_logs) > DEBUG_LOG_LIMIT:
         del STATE.debug_logs[:-DEBUG_LOG_LIMIT]
+    console_log(entry["level"], str(entry.get("path") or "LOG"), "debug log appended", {
+        "id": entry.get("id"),
+        "method": entry.get("method"),
+        "statusCode": entry.get("statusCode"),
+        "durationMs": entry.get("durationMs"),
+        "checks": normalized_checks,
+    })
 
 
 def add_debug_check(req: Request, code: str, message: str, *, level: str = "info", details: dict[str, Any] | None = None) -> None:
+    normalized_level = normalize_log_level(level)
     checks = getattr(req.state, "debugChecks", None)
     if checks is None:
         return
-    checks.append({"level": level, "code": code, "message": message, "details": scrub_debug_value(details or {})})
+    safe_details = scrub_debug_value(details or {})
+    checks.append({"level": normalized_level, "code": code, "message": message, "details": safe_details})
+    console_log(normalized_level, code, message, safe_details)
 
 
 STYLE_PROMPTS = {
@@ -324,6 +385,13 @@ async def debug_and_cors_middleware(req: Request, call_next):
         "headers": compact_headers(req.headers),
         "body": await request_debug_body(req),
     }
+    console_log("debug", "REQUEST_RECEIVED", "收到 HTTP 请求", {
+        "id": request_id,
+        "method": req.method,
+        "path": req.url.path,
+        "query": dict(req.query_params),
+        "client": req.client.host if req.client else "",
+    })
     try:
         resp = await call_next(req)
     except Exception as exc:  # noqa: BLE001 - keep local debug trail visible.
@@ -333,6 +401,14 @@ async def debug_and_cors_middleware(req: Request, call_next):
             "statusCode": 500,
             "checks": getattr(req.state, "debugChecks", []),
             "exception": {"type": type(exc).__name__, "message": str(exc)},
+        })
+        console_log("error", "REQUEST_EXCEPTION", "HTTP 请求处理异常", {
+            "id": request_id,
+            "method": req.method,
+            "path": req.url.path,
+            "durationMs": int((time.time() - started) * 1000),
+            "exceptionType": type(exc).__name__,
+            "message": str(exc),
         })
         raise
 
@@ -431,6 +507,7 @@ class PaymentNotifyReq(BaseModel):
 class PosterReq(BaseModel):
     imageUrl: str | None = None
     templateId: str | None = None
+    taskId: str | None = None
 
 
 class FeedbackReq(BaseModel):
@@ -727,6 +804,48 @@ def store_generated_asset(data_url: str, *, style: str) -> str:
     return stored["url"]
 
 
+def png_chunk(chunk_type: bytes, data: bytes) -> bytes:
+    return struct.pack(">I", len(data)) + chunk_type + data + struct.pack(">I", zlib.crc32(chunk_type + data) & 0xFFFFFFFF)
+
+
+def simple_poster_png() -> bytes:
+    width, height = 600, 800
+    rows: list[bytes] = []
+    for y in range(height):
+        row = bytearray()
+        for x in range(width):
+            top_mix = y / max(1, height - 1)
+            r = int(255 - 22 * top_mix)
+            g = int(245 - 46 * top_mix)
+            b = int(224 - 76 * top_mix)
+            cx, cy = width // 2, 275
+            dx = (x - cx) / 175
+            dy = (y - cy) / 175
+            if dx * dx + dy * dy < 1:
+                r, g, b = 255, 184, 0
+            face_dx = (x - cx) / 90
+            face_dy = (y - 240) / 100
+            if face_dx * face_dx + face_dy * face_dy < 1:
+                r, g, b = 255, 224, 188
+            body_dx = (x - cx) / 145
+            body_dy = (y - 415) / 120
+            if body_dx * body_dx + body_dy * body_dy < 1:
+                r, g, b = 34, 34, 34
+            if 70 <= y <= 78 and 105 <= x <= 495:
+                r, g, b = 255, 184, 0
+            if 605 <= y <= 613 and 120 <= x <= 480:
+                r, g, b = 255, 184, 0
+            row.extend((r, g, b))
+        rows.append(b"\x00" + bytes(row))
+    raw = b"".join(rows)
+    return (
+        b"\x89PNG\r\n\x1a\n"
+        + png_chunk(b"IHDR", struct.pack(">IIBBBBB", width, height, 8, 2, 0, 0, 0))
+        + png_chunk(b"IDAT", zlib.compress(raw, 6))
+        + png_chunk(b"IEND", b"")
+    )
+
+
 def call_kl_image2(image_data_url: str, prompt: str, size: str) -> dict[str, Any]:
     token = os.getenv("KL_API_TOKEN") or os.getenv("KL_API_KEY")
     if not token:
@@ -780,13 +899,37 @@ def call_kl_image2(image_data_url: str, prompt: str, size: str) -> dict[str, Any
     if proxy_url:
         opener = request.build_opener(request.ProxyHandler({"http": proxy_url, "https": proxy_url}))
     started = time.time()
+    console_log("info", "KL_IMAGE_REQUEST", "开始调用 KL 图片接口", {
+        "target": safe_url(target),
+        "model": model,
+        "endpoint": endpoint,
+        "size": size,
+        "mimeType": mime_type,
+        "imageBytes": len(image_bytes),
+        "requestBytes": len(body),
+        "proxyConfigured": bool(proxy_url),
+        "proxyUrl": safe_url(proxy_url),
+        "timeoutSeconds": timeout_seconds,
+    })
     try:
         with opener.open(req, timeout=timeout_seconds) as resp:
             raw_text = resp.read().decode("utf-8", errors="replace")
             payload = json.loads(raw_text)
             output_url = extract_output_url(payload)
             if not output_url:
+                console_log("error", "KL_IMAGE_RESPONSE_INVALID", "KL API 未返回图片字段", {
+                    "target": safe_url(target),
+                    "httpStatus": resp.status,
+                    "elapsedMs": int((time.time() - started) * 1000),
+                    "responseSummary": summarize_payload(payload),
+                })
                 raise RuntimeError(f"KL API 未返回图片字段: {summarize_payload(payload)}")
+            console_log("info", "KL_IMAGE_RESPONSE_OK", "KL 图片接口调用成功", {
+                "target": safe_url(target),
+                "httpStatus": resp.status,
+                "elapsedMs": int((time.time() - started) * 1000),
+                "responseKeys": list(payload.keys()) if isinstance(payload, dict) else [],
+            })
             return {
                 "url": output_url,
                 "httpStatus": resp.status,
@@ -800,14 +943,35 @@ def call_kl_image2(image_data_url: str, prompt: str, size: str) -> dict[str, Any
             }
     except error.HTTPError as exc:
         detail = exc.read().decode("utf-8", errors="replace")
+        console_log("error", "KL_IMAGE_HTTP_ERROR", "KL 图片接口返回 HTTP 错误", {
+            "target": safe_url(target),
+            "httpStatus": exc.code,
+            "elapsedMs": int((time.time() - started) * 1000),
+            "detail": detail,
+        })
         raise RuntimeError(f"KL API HTTP {exc.code}: {detail}") from exc
+    except Exception as exc:
+        console_log("error", "KL_IMAGE_REQUEST_ERROR", "KL 图片接口调用异常", {
+            "target": safe_url(target),
+            "elapsedMs": int((time.time() - started) * 1000),
+            "exceptionType": type(exc).__name__,
+            "message": str(exc),
+        })
+        raise
 
 
 def process_generation(task_id: str) -> None:
     task = STATE.tasks.get(task_id)
     if not task or task["status"] == "CANCELLED":
+        console_log("warn", "GENERATION_TASK_SKIPPED", "生成任务不存在或已取消", {"taskId": task_id})
         return
 
+    console_log("info", "GENERATION_TASK_RUNNING", "生成任务开始执行", {
+        "taskId": task_id,
+        "styleCount": len(task.get("images", [])),
+        "size": task.get("size"),
+        "mode": runtime_config().get("generationMode"),
+    })
     task["status"] = "RUNNING"
     task["progress"] = 18
     task["provider"] = runtime_config()
@@ -918,6 +1082,12 @@ def process_generation(task_id: str) -> None:
         task["charged"] = True
     task["provider"]["completedAt"] = now_iso()
     task["provider"]["successCount"] = success_count
+    console_log("info" if success_count else "error", "GENERATION_TASK_COMPLETED", "生成任务执行完成", {
+        "taskId": task_id,
+        "status": task["status"],
+        "successCount": success_count,
+        "totalCount": len(task["images"]),
+    })
     task["provider"]["totalCount"] = len(task["images"])
     task["updatedAt"] = now_iso()
     persist_state()
@@ -1276,9 +1446,9 @@ def upload_image(body: UploadReq, req: Request, user_id: str = Depends(current_u
         raise AppError(400, "UPLOAD_INVALID_IMAGE", "请上传 base64 图片 dataUrl")
     estimated_bytes = len(image_bytes)
     if body.width <= 0 or body.height <= 0:
-        add_debug_check(req, "UPLOAD_DIMENSION_INVALID", "图片宽高异常", level="warning", details={"width": body.width, "height": body.height})
+        add_debug_check(req, "UPLOAD_DIMENSION_INVALID", "图片宽高异常", level="warn", details={"width": body.width, "height": body.height})
     if estimated_bytes > 4 * 1024 * 1024:
-        add_debug_check(req, "UPLOAD_SIZE_LARGE", "上传图片较大，真实生成可能较慢", level="warning", details={"estimatedBytes": estimated_bytes})
+        add_debug_check(req, "UPLOAD_SIZE_LARGE", "上传图片较大，真实生成可能较慢", level="warn", details={"estimatedBytes": estimated_bytes})
     upload = create_upload_record(
         user_id=user_id,
         image_bytes=image_bytes,
@@ -1330,7 +1500,7 @@ def validate_upload(body: ValidateReq, req: Request, user_id: str = Depends(curr
         "requestUserId": user_id,
         "uploadUserId": upload.get("userId") if upload else "",
         "valid": valid,
-    }, level="info" if valid else "warning")
+    }, level="info" if valid else "warn")
     return {"valid": valid, "reason": "" if valid else "图片不存在或已过期"}
 
 
@@ -1360,12 +1530,12 @@ def create_generation(body: GenerationCreateReq, req: Request, user_id: str = De
     styles = [style for style in requested_styles if style in STYLE_PROMPTS]
     invalid_styles = [style for style in requested_styles if style not in STYLE_PROMPTS]
     if invalid_styles:
-        add_debug_check(req, "GENERATION_STYLE_FILTERED", "部分风格参数不存在，已过滤", level="warning", details={"invalidStyles": invalid_styles, "allowedStyles": list(STYLE_PROMPTS)})
+        add_debug_check(req, "GENERATION_STYLE_FILTERED", "部分风格参数不存在，已过滤", level="warn", details={"invalidStyles": invalid_styles, "allowedStyles": list(STYLE_PROMPTS)})
     if not styles:
         add_debug_check(req, "GENERATION_STYLE_EMPTY", "没有可用生成风格", level="error", details={"requestedStyles": requested_styles})
         raise AppError(400, "STYLE_INVALID", "请选择有效写真风格")
     if not re.fullmatch(r"\d+x\d+", body.size):
-        add_debug_check(req, "GENERATION_SIZE_SUSPICIOUS", "size 参数格式异常", level="warning", details={"size": body.size})
+        add_debug_check(req, "GENERATION_SIZE_SUSPICIOUS", "size 参数格式异常", level="warn", details={"size": body.size})
     task_id = gen_id("task")
     task = {
         "taskId": task_id,
@@ -1510,8 +1680,25 @@ def payment_reconcile() -> dict[str, bool]:
 
 
 @app.post("/share/create-poster")
-def create_poster(_: PosterReq, user_id: str = Depends(current_user_id)) -> dict[str, str]:
-    return {"posterUrl": svg_data_url("AI影像写真馆", "扫码生成你的艺术写真", "#FFB800")}
+def create_poster(body: PosterReq, user_id: str = Depends(current_user_id)) -> dict[str, str]:
+    poster_id = gen_id("poster")
+    stored = OBJECT_STORAGE.put_bytes(simple_poster_png(), mime_type="image/png", folder="generated", name=f"{poster_id}.png")
+    STATE.generated_assets[poster_id] = {
+        "assetId": poster_id,
+        "style": "poster",
+        "mimeType": "image/png",
+        "ext": "png",
+        "url": stored["url"],
+        "key": stored["key"],
+        "storage": stored["storage"],
+        "sizeBytes": stored["sizeBytes"],
+        "sourceImageUrl": body.imageUrl or "",
+        "taskId": body.taskId or "",
+        "userId": user_id,
+        "createdAt": now_iso(),
+    }
+    persist_state()
+    return {"posterUrl": stored["url"]}
 
 
 @app.post("/share/reward")

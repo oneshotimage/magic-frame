@@ -1,27 +1,31 @@
-# AI 影像写真馆模型可行性测试台
+# AI 影像写真馆
 
-一个零依赖本地网页版测试平台，用于验证 KL API 聚合的 Liblib、即梦、GPT Image 2、Nano Banana 是否满足 MVP 的图生图写真生成要求。
+微信原生小程序 + FastAPI 后端，用于上传照片并通过 KL API 生成 AI 写真，同时提供后台管理页面。
 
-## 启动
+## 启动后端
 
 ```bash
-npm start
+python3 -m uvicorn backend.main:app --reload --port 8000
 ```
 
 打开：
 
 ```text
-http://localhost:4173
+http://127.0.0.1:8000/health
+http://127.0.0.1:8000/admin
 ```
 
 ## 目录结构
 
 ```text
 backend/
-└── server.js              # 本地 API 服务、KL API 代理、MVP 业务接口
+├── main.py                # FastAPI API 服务与管理后台入口
+├── cloud_runtime.py       # 数据库和对象存储适配
+└── test_api.py            # 后端测试
 
 frontend/
-├── public/                # 静态前端页面与样式脚本
+├── admin/                 # FastAPI 托管的管理后台页面
+├── public/                # 本地模型测试台
 └── weapp/                 # 微信原生小程序，可直接导入微信开发者工具
 
 docs/                      # PRD、架构文档、Swagger、开发历史
@@ -34,7 +38,7 @@ docs/                      # PRD、架构文档、Swagger、开发历史
 1. 启动本地后端：
 
 ```bash
-PORT=4180 npm start
+python3 -m uvicorn backend.main:app --reload --port 8000
 ```
 
 2. 在微信开发者工具中导入目录：
@@ -46,31 +50,31 @@ frontend/weapp
 3. 使用测试号或游客 AppID 打开项目。`project.config.json` 已设置 `urlCheck: false`，本地调试会请求：
 
 ```text
-http://localhost:4180
+http://127.0.0.1:8000
 ```
 
 如需改后端地址，修改 `frontend/weapp/app.js` 中的 `globalData.apiBaseUrl`。上传照片、风格选择、生成任务、作品集、购买、广告奖励、分享海报、反馈、个人中心等页面均已接入后端 API。
 
-也可以用环境变量启动，避免每次在页面输入 Token：
+也可以用环境变量启动：
 
 ```bash
-KL_API_TOKEN="你的 KL API Token" npm start
+KL_API_TOKEN="你的 KL API Token" python3 -m uvicorn backend.main:app --reload --port 8000
 ```
 
 ## 后端测试
 
-后端接口测试使用 Node.js 内置 `node:test`，覆盖 Swagger 文档中的 Auth、User、Credit、Upload、Generation、Order、Payment、Share、Feedback API。
+后端测试覆盖 Auth、User、Credit、Upload、Generation、Order、Payment、Share、Feedback 和管理后台 API。
 
 ```bash
-npm test
+python3 -m pytest backend/test_api.py
 ```
 
 ## FastAPI 后端
 
-除默认 Node 后端外，项目还提供了一个参考 `xinge/backend` 结构实现的 FastAPI 后端：
+项目后端为参考 `xinge/backend` 结构实现的 FastAPI 服务：
 
 ```text
-backend_fastapi/
+backend/
 ├── main.py          # FastAPI 服务，接口路径与小程序保持一致
 ├── test_api.py      # FastAPI TestClient 冒烟测试
 ├── pyproject.toml
@@ -80,13 +84,13 @@ backend_fastapi/
 启动：
 
 ```bash
-python3 -m uvicorn backend_fastapi.main:app --reload --port 8000
+python3 -m uvicorn backend.main:app --reload --port 8000
 ```
 
 测试：
 
 ```bash
-python3 -m pytest backend_fastapi/test_api.py
+python3 -m pytest backend/test_api.py
 ```
 
 微信小程序切换到 FastAPI 后端时，将 `frontend/weapp/app.js` 的 `apiBaseUrl` 改为 `http://127.0.0.1:8000`。
@@ -104,7 +108,7 @@ ADMIN_USERNAME=admin
 ADMIN_PASSWORD=admin123
 ```
 
-后台代码位于 `frontend/admin/`，接口位于 `backend_fastapi/` 的 `/admin/api/*`。
+后台代码位于 `frontend/admin/`，接口位于 `backend/` 的 `/admin/api/*`。
 
 FastAPI 后端默认要求真实调用 KL API。可复制 `.env.example` 为 `.env` 并填入：
 
@@ -115,10 +119,11 @@ KL_IMAGE_MODEL=gpt-image-2
 KL_IMAGE_ENDPOINT=/v1/images/edits
 KL_TIMEOUT_SECONDS=600
 PUBLIC_BASE_URL=http://127.0.0.1:8000
-KL_PROXY_URL=http://127.0.0.1:51004
+KL_PROXY_URL=http://127.0.0.1:7890
+LOG_LEVEL=info
 ```
 
-如果只想本地跑通流程，显式设置 `AI_MOCK_GENERATION=1` 才会启用 mock 图片。运行状态可看 `GET /config/runtime`，小程序生成中和结果页也会展示 KL 调用模式、模型、接口、HTTP 状态和错误摘要。
+如果只想本地跑通流程，显式设置 `AI_MOCK_GENERATION=1` 才会启用 mock 图片。运行状态可看 `GET /config/runtime`，小程序生成中和结果页也会展示 KL 调用模式、模型、接口、HTTP 状态和错误摘要。后端控制台日志支持 `LOG_LEVEL=debug|info|warn|error`。
 
 当 KL 返回 `b64_json` 时，FastAPI 会转成 `/assets/generated/{assetId}.png` HTTP 图片地址，避免微信小程序 `<image>` 无法稳定展示 base64 data URL。
 
@@ -132,7 +137,7 @@ AI_UNLIMITED_CREDITS=1
 
 ## Docker Compose 部署
 
-后端支持 Docker Compose 部署，容器内仍由 `backend/server.js` 同时提供 API 与静态前端资源。
+后端支持 Docker Compose 部署，容器内由 `backend.main:app` 提供 API 与管理后台。
 
 ```bash
 docker compose up -d --build
@@ -141,7 +146,7 @@ docker compose up -d --build
 如需指定宿主机端口：
 
 ```bash
-PORT=4180 docker compose up -d --build
+FASTAPI_PORT=8000 docker compose up -d --build
 ```
 
 常用环境变量：
@@ -150,10 +155,32 @@ PORT=4180 docker compose up -d --build
 KL_API_BASE_URL=https://api.kl-api.info
 KL_API_TOKEN=你的 KL API Token
 KL_IMAGE_MODEL=gpt-image-2
-KL_PROXY_URL=http://127.0.0.1:51004
+KL_PROXY_URL=http://127.0.0.1:7890
 ```
 
-如果未配置 `KL_API_TOKEN` 或 `KL_API_KEY`，生成接口会返回本地模拟作品，用于完整业务流程测试；配置后会调用 KL API `gpt-image-2` 的 `/v1/images/edits`。
+如果未配置 `KL_API_TOKEN` 或 `KL_API_KEY`，真实生成会失败并在任务详情、后台日志里给出错误。需要本地完整流程测试时显式设置 `AI_MOCK_GENERATION=1`。
+
+## 微信云托管部署
+
+云托管构建上下文使用仓库根目录，Dockerfile 路径使用：
+
+```text
+Dockerfile
+```
+
+服务启动会读取云托管注入的 `PORT`：
+
+```bash
+uvicorn backend.main:app --host 0.0.0.0 --port ${PORT:-8000}
+```
+
+健康检查路径：
+
+```text
+/health
+```
+
+详细步骤见 [docs/wechat-cloud-run-deploy.md](docs/wechat-cloud-run-deploy.md)。
 
 ## 使用流程
 
@@ -202,7 +229,7 @@ KL_PROXY_URL=http://127.0.0.1:51004
 }
 ```
 
-Nano Banana 已支持「提交任务 + 轮询任务」。如果其它 KL 模型也返回异步任务 ID，可以把该模型的适配器改成 `fal-queue` 或按响应结构扩展 `backend/server.js`。
+Nano Banana 已支持「提交任务 + 轮询任务」。如果其它 KL 模型也返回异步任务 ID，可以把该模型的适配器改成 `fal-queue` 或按响应结构扩展后端适配逻辑。
 
 ## 已实现能力
 

@@ -13,7 +13,8 @@ body {
 }
 
 button,
-input {
+input,
+select {
   font: inherit;
 }
 
@@ -136,7 +137,8 @@ input {
   font-weight: 700;
 }
 
-input {
+input,
+select {
   width: 100%;
   padding: 12px 14px;
   border: 1px solid #ded5c4;
@@ -269,6 +271,77 @@ th {
 .status.PENDING {
   background: #fff0c2;
   color: #7a5300;
+}
+
+.log-level {
+  display: inline-flex;
+  min-width: 48px;
+  justify-content: center;
+  padding: 4px 8px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.log-level.debug {
+  background: #e7edf8;
+  color: #285083;
+}
+
+.log-level.info {
+  background: #dcf5e8;
+  color: #106b3c;
+}
+
+.log-level.warn {
+  background: #fff0c2;
+  color: #7a5300;
+}
+
+.log-level.error {
+  background: #ffe2dd;
+  color: #9d261a;
+}
+
+.debug-head {
+  align-items: flex-start;
+}
+
+.debug-actions,
+.debug-filters {
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+}
+
+.debug-filters {
+  padding: 16px 18px;
+  border-bottom: 1px solid #eee6d8;
+  flex-wrap: wrap;
+  background: #fffdf8;
+}
+
+.debug-filters label {
+  min-width: 150px;
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 6px;
+  color: #6e675d;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.debug-filters button {
+  flex: none;
+}
+
+.check-line {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
 }
 
 .thumb {

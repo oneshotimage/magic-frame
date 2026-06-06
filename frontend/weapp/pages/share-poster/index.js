@@ -12,12 +12,33 @@ Page({
     const app = getApp();
     const image = resolveAssetUrl(app.globalData.previewImage || app.globalData.currentTask?.images?.[0]?.url || '');
     this.setData({ image });
-    this.prepareShareImage(image);
+    this.createPoster(image);
+  },
+
+  createPoster(image) {
+    if (!image) return;
+    this.setData({ creating: true });
+    request({
+      url: '/share/create-poster',
+      method: 'POST',
+      data: {
+        imageUrl: image,
+        taskId: getApp().globalData.currentTask?.taskId || ''
+      }
+    }).then((res) => {
+      const posterUrl = resolveAssetUrl(res.posterUrl || image);
+      this.prepareShareImage(posterUrl || image);
+    }).catch((error) => {
+      console.warn('[share-poster] create poster failed', error);
+      this.prepareShareImage(image);
+    });
   },
 
   prepareShareImage(image) {
-    if (!image) return;
-    this.setData({ creating: true });
+    if (!image) {
+      this.setData({ creating: false });
+      return;
+    }
     if (!/^https?:\/\//i.test(image)) {
       this.setData({ posterUrl: image, shareImage: image, creating: false });
       return;

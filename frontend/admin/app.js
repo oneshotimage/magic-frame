@@ -1,6 +1,12 @@
 const state = {
   token: localStorage.getItem('adminToken') || '',
-  view: 'dashboard'
+  view: 'dashboard',
+  debugFilters: {
+    level: '',
+    path: '',
+    status: '',
+    limit: '80'
+  }
 };
 
 const titles = {
@@ -10,7 +16,8 @@ const titles = {
   orders: ['订单', '支付订单与充值记录'],
   feedback: ['反馈', '用户提交的问题与建议'],
   assets: ['图片资产', 'image2 输出转存后的可访问图片'],
-  runtime: ['运行配置', 'KL API、代理、无限额度和 mock 配置']
+  runtime: ['运行配置', 'KL API、代理、无限额度和 mock 配置'],
+  debug: ['调试日志', '按 info、debug、warn、error 查看请求和生成链路']
 };
 
 const $ = (selector) => document.querySelector(selector);
@@ -84,6 +91,22 @@ function setView(view) {
 
 function status(value) {
   return `<span class="status ${fmt(value)}">${fmt(value)}</span>`;
+}
+
+function logLevelBadge(level) {
+  const normalized = fmt(level).toLowerCase();
+  return `<span class="log-level ${normalized}">${escapeHtml(normalized)}</span>`;
+}
+
+function summarizeChecks(checks = []) {
+  if (!checks.length) return '-';
+  return checks.slice(0, 3).map((check) => `
+    <div class="check-line">
+      ${logLevelBadge(check.level)}
+      <span>${escapeHtml(check.code || '')}</span>
+      <span class="muted">${escapeHtml(check.message || '')}</span>
+    </div>
+  `).join('');
 }
 
 function table(headers, rows) {
@@ -196,6 +219,70 @@ async function loadRuntime() {
   $('#runtimeView').innerHTML = `<section class="panel"><div class="panel-head"><strong>当前配置</strong></div><pre>${JSON.stringify(data, null, 2)}</pre></section>`;
 }
 
+function debugQuery() {
+  const params = new URLSearchParams();
+  const { level, path, status, limit } = state.debugFilters;
+  if (level) params.set('level', level);
+  if (path) params.set('path', path);
+  if (status) params.set('status', status);
+  if (limit) params.set('limit', limit);
+  const query = params.toString();
+  return query ? `?${query}` : '';
+}
+
+async function loadDebug() {
+  const data = await api(`/admin/api/debug/logs${debugQuery()}`);
+  const filters = state.debugFilters;
+  $('#debugView').innerHTML = `
+    <section class="panel">
+      <div class="panel-head debug-head">
+        <div>
+          <strong>调试日志</strong>
+          <div class="muted">共 ${data.total} 条匹配记录，当前显示 ${data.items.length} 条</div>
+        </div>
+        <div class="debug-actions">
+          <button class="secondary" data-action="debugReload">刷新日志</button>
+          <button class="danger" data-action="debugClear">清空日志</button>
+        </div>
+      </div>
+      <div class="debug-filters">
+        <label>
+          等级
+          <select id="debugLevelFilter">
+            <option value="" ${filters.level === '' ? 'selected' : ''}>全部</option>
+            <option value="debug" ${filters.level === 'debug' ? 'selected' : ''}>debug</option>
+            <option value="info" ${filters.level === 'info' ? 'selected' : ''}>info</option>
+            <option value="warn" ${filters.level === 'warn' ? 'selected' : ''}>warn</option>
+            <option value="error" ${filters.level === 'error' ? 'selected' : ''}>error</option>
+          </select>
+        </label>
+        <label>
+          路径包含
+          <input id="debugPathFilter" value="${escapeHtml(filters.path)}" placeholder="例如 generation 或 kl_image2" />
+        </label>
+        <label>
+          HTTP 状态
+          <input id="debugStatusFilter" value="${escapeHtml(filters.status)}" inputmode="numeric" placeholder="例如 500" />
+        </label>
+        <label>
+          数量
+          <input id="debugLimitFilter" value="${escapeHtml(filters.limit)}" inputmode="numeric" />
+        </label>
+        <button class="primary small" data-action="debugApply">应用筛选</button>
+      </div>
+    </section>
+    ${table(['等级', '时间', '请求', '状态/耗时', '检查项', '操作'], data.items.map((item) => row([
+      logLevelBadge(item.level || 'info'),
+      fmt(item.startedAt),
+      `<div><strong>${escapeHtml(item.method || '')}</strong> <code>${escapeHtml(item.path || '')}</code></div><div class="muted">${escapeHtml(item.id || '')}</div>`,
+      `<div>${fmt(item.statusCode)}</div><div class="muted">${fmt(item.durationMs)}ms</div>`,
+      summarizeChecks(item.checks || []),
+      `<button class="secondary" data-action="debugDetail" data-id="${escapeHtml(item.id || '')}">详情</button>`
+    ])))}
+  `;
+  state.debugItems = data.items;
+}
+
 async function loadCurrentView() {
   try {
     if (state.view === 'dashboard') await loadDashboard();
@@ -205,6 +292,7 @@ async function loadCurrentView() {
     if (state.view === 'feedback') await loadFeedback();
     if (state.view === 'assets') await loadAssets();
     if (state.view === 'runtime') await loadRuntime();
+    if (state.view === 'debug') await loadDebug();
   } catch (error) {
     if (/登录|token|401/i.test(error.message)) {
       localStorage.removeItem('adminToken');
@@ -231,6 +319,25 @@ async function handleAction(action, id) {
   if (action === 'orderClose') {
     await api(`/admin/api/orders/${id}/close`, { method: 'POST', body: '{}' });
     return loadOrders();
+  }
+  if (action === 'debugReload') return loadDebug();
+  if (action === 'debugApply') {
+    state.debugFilters = {
+      level: $('#debugLevelFilter')?.value || '',
+      path: $('#debugPathFilter')?.value.trim() || '',
+      status: $('#debugStatusFilter')?.value.trim() || '',
+      limit: $('#debugLimitFilter')?.value.trim() || '80'
+    };
+    return loadDebug();
+  }
+  if (action === 'debugClear') {
+    if (!confirm('确认清空所有调试日志？')) return;
+    await api('/admin/api/debug/logs', { method: 'DELETE' });
+    return loadDebug();
+  }
+  if (action === 'debugDetail') {
+    const item = (state.debugItems || []).find((entry) => entry.id === id);
+    return detail('调试日志详情', item || { id, message: '当前列表中未找到该日志' });
   }
 }
 

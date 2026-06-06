@@ -1,6 +1,6 @@
 Page({
   skip() {
-    wx.navigateTo({ url: '/pages/login/index' });
+    wx.switchTab({ url: '/pages/home/index' });
   },
 
   start() {

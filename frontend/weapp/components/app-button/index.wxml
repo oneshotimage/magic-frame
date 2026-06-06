@@ -6,6 +6,6 @@
   data-value="{{value}}"
   bindtap="onTap"
 >
-  <text class="button-text">{{text}}</text>
   <text wx:if="{{icon}}" class="button-icon">{{icon}}</text>
+  <text class="button-text">{{text}}</text>
 </button>

@@ -42,7 +42,7 @@ def database_url() -> str:
         port = os.getenv("MYSQL_PORT", "3306")
         return f"mysql://{quote(mysql_user)}:{quote(mysql_password or '')}@{mysql_host}:{port}/{mysql_database}"
 
-    return f"sqlite:///{data_dir() / 'backend_fastapi.db'}"
+    return f"sqlite:///{data_dir() / 'backend.db'}"
 
 
 class SnapshotStore:
@@ -64,7 +64,7 @@ class SnapshotStore:
         try:
             import pymysql  # type: ignore
         except ImportError as exc:  # pragma: no cover - only used with MySQL env.
-            raise RuntimeError("MySQL storage requires pymysql. Install backend_fastapi dependencies.") from exc
+            raise RuntimeError("MySQL storage requires pymysql. Install backend dependencies.") from exc
         parsed = urlparse(self.url)
         return pymysql.connect(
             host=parsed.hostname or "127.0.0.1",
@@ -78,7 +78,7 @@ class SnapshotStore:
 
     def _sqlite_conn(self) -> sqlite3.Connection:
         parsed = urlparse(self.url)
-        path = parsed.path if parsed.scheme == "sqlite" else str(data_dir() / "backend_fastapi.db")
+        path = parsed.path if parsed.scheme == "sqlite" else str(data_dir() / "backend.db")
         Path(path).parent.mkdir(parents=True, exist_ok=True)
         return sqlite3.connect(path)
 

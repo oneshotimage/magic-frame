@@ -1,15 +1,24 @@
-FROM node:20-alpine
+FROM python:3.12-slim
+
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
+ENV PORT=8000
+ENV DATA_DIR=/data
 
 WORKDIR /app
 
-COPY package.json ./
+RUN pip install --no-cache-dir \
+    "fastapi>=0.116.0,<1.0.0" \
+    "uvicorn>=0.35.0,<1.0.0" \
+    "python-multipart>=0.0.20,<1.0.0" \
+    "pymysql>=1.1.1,<2.0.0" \
+    "cos-python-sdk-v5>=1.9.37,<2.0.0"
+
 COPY backend ./backend
-COPY frontend ./frontend
-COPY docs ./docs
+COPY frontend/admin ./frontend/admin
 
-ENV NODE_ENV=production
-ENV PORT=4173
+RUN mkdir -p /data
 
-EXPOSE 4173
+EXPOSE 8000
 
-CMD ["node", "backend/server.js"]
+CMD ["sh", "-c", "uvicorn backend.main:app --host 0.0.0.0 --port ${PORT:-8000}"]

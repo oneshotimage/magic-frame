@@ -4,10 +4,7 @@
   <view class="main">
     <view class="home-hero">
       <view class="hero-image-wrap">
-        <view class="home-hero-img hero-css">
-          <view class="hero-face"></view>
-          <view class="hero-body"></view>
-        </view>
+        <image class="home-hero-img" mode="aspectFill" src="{{heroImage}}" />
         <view class="hero-gradient"></view>
       </view>
       <view class="hero-info">
@@ -39,9 +36,7 @@
       <view class="style-grid">
         <block wx:for="{{styles}}" wx:key="id">
           <view class="style-card {{selectedMap[item.id] ? 'active' : ''}}" data-id="{{item.id}}" bindtap="toggleStyle">
-            <view class="style-image style-theme {{item.theme}}">
-              <view class="style-face">{{item.icon}}</view>
-            </view>
+            <image class="style-image" mode="aspectFill" src="{{item.image}}" />
             <view wx:if="{{item.badge}}" class="hot">{{item.badge}}</view>
             <view class="style-mask">
               <view class="style-name">{{item.short}}</view>
@@ -54,7 +49,7 @@
   </view>
 
   <view class="cta-wrap">
-    <app-button text="立即制作" bind:press="goUpload" />
+    <app-button text="立即制作" icon="✦" variant="home-cta" bind:press="goUpload" />
   </view>
 
   <app-tabbar active="home" />

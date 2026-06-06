@@ -1,6 +1,6 @@
 # AI 影像写真馆 FastAPI Backend
 
-这个目录参考 `xinge/backend` 的组织方式，实现一个可用于微信小程序联调的 FastAPI 后端。它与现有 `backend/server.js` 并存，接口路径保持与当前小程序一致，因此小程序只需要把 `frontend/weapp/app.js` 里的 `apiBaseUrl` 改成 FastAPI 服务地址即可切换。
+这个目录参考 `xinge/backend` 的组织方式，实现一个可用于微信小程序联调和微信云托管部署的 FastAPI 后端。接口路径保持与当前小程序一致，因此小程序只需要把 `frontend/weapp/app.js` 里的 `apiBaseUrl` 改成服务地址即可切换。
 
 ## 已实现接口
 
@@ -63,7 +63,7 @@ ADMIN_PASSWORD=admin123
 从仓库根目录运行：
 
 ```bash
-python3 -m uvicorn backend_fastapi.main:app --reload --port 8000
+python3 -m uvicorn backend.main:app --reload --port 8000
 ```
 
 启动后可访问：
@@ -84,19 +84,19 @@ apiBaseUrl: 'http://127.0.0.1:8000'
 FastAPI 版本已提供容器入口：
 
 ```text
-backend_fastapi/Dockerfile
+Dockerfile
 ```
 
 在微信云托管中创建服务时，构建上下文选择仓库根目录，Dockerfile 路径填写：
 
 ```text
-backend_fastapi/Dockerfile
+Dockerfile
 ```
 
 容器会读取云托管注入的 `PORT` 环境变量，并通过以下命令启动：
 
 ```bash
-uvicorn backend_fastapi.main:app --host 0.0.0.0 --port ${PORT:-8000}
+uvicorn backend.main:app --host 0.0.0.0 --port ${PORT:-8000}
 ```
 
 健康检查建议使用：
@@ -163,6 +163,7 @@ KL_IMAGE_ENDPOINT=/v1/images/edits
 KL_TIMEOUT_SECONDS=600
 AI_MOCK_GENERATION=0
 AI_UNLIMITED_CREDITS=0
+LOG_LEVEL=info
 ADMIN_USERNAME=admin
 ADMIN_PASSWORD=请改成强密码
 ```
@@ -182,13 +183,19 @@ KL_IMAGE_MODEL=gpt-image-2
 KL_IMAGE_ENDPOINT=/v1/images/edits
 KL_TIMEOUT_SECONDS=600
 PUBLIC_BASE_URL=http://127.0.0.1:8000
-python3 -m uvicorn backend_fastapi.main:app --reload --port 8000
+python3 -m uvicorn backend.main:app --reload --port 8000
 ```
 
 如果本地网络需要代理：
 
 ```bash
-KL_PROXY_URL=http://127.0.0.1:51004
+KL_PROXY_URL=http://127.0.0.1:7890
+```
+
+后端控制台日志支持分级输出：
+
+```bash
+LOG_LEVEL=debug  # 可选 debug、info、warn、error，默认 info
 ```
 
 也可以把这些配置写入仓库根目录 `.env`，FastAPI 后端启动时会自动读取。仓库提供了 `.env.example` 模板。
@@ -223,11 +230,11 @@ http://127.0.0.1:8000/assets/generated/{assetId}.png
 ## 测试
 
 ```bash
-python3 -m pytest backend_fastapi/test_api.py
+python3 -m pytest backend/test_api.py
 ```
 
 如果本地没有 pytest，也可以直接用 Python 导入 FastAPI TestClient 的方式执行：
 
 ```bash
-python3 backend_fastapi/test_api.py
+python3 backend/test_api.py
 ```

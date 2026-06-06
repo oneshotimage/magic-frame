@@ -44,14 +44,14 @@ Deploy:
 npm run worker:deploy
 ```
 
-When the local network requires the proxy at `http://127.0.0.1:51004`, run Wrangler with proxy variables and a writable temporary npm cache:
+When the local network requires the proxy at `http://127.0.0.1:7890`, run Wrangler with proxy variables and a writable temporary npm cache:
 
 ```bash
-HTTPS_PROXY=http://127.0.0.1:51004 \
-HTTP_PROXY=http://127.0.0.1:51004 \
-ALL_PROXY=http://127.0.0.1:51004 \
-npm_config_proxy=http://127.0.0.1:51004 \
-npm_config_https_proxy=http://127.0.0.1:51004 \
+HTTPS_PROXY=http://127.0.0.1:7890 \
+HTTP_PROXY=http://127.0.0.1:7890 \
+ALL_PROXY=http://127.0.0.1:7890 \
+npm_config_proxy=http://127.0.0.1:7890 \
+npm_config_https_proxy=http://127.0.0.1:7890 \
 npm_config_cache=/private/tmp/npm-cache \
 XDG_CONFIG_HOME=/private/tmp/xdg-config \
 npx wrangler deploy
@@ -75,9 +75,9 @@ Required token scope:
 
 ```bash
 export CLOUDFLARE_API_TOKEN="..."
-HTTPS_PROXY=http://127.0.0.1:51004 \
-HTTP_PROXY=http://127.0.0.1:51004 \
-ALL_PROXY=http://127.0.0.1:51004 \
+HTTPS_PROXY=http://127.0.0.1:7890 \
+HTTP_PROXY=http://127.0.0.1:7890 \
+ALL_PROXY=http://127.0.0.1:7890 \
 npm_config_cache=/private/tmp/npm-cache \
 XDG_CONFIG_HOME=/private/tmp/xdg-config \
 npx wrangler deploy
