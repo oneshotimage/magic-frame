@@ -131,16 +131,39 @@ tcb run service:config --envParams
 - `ADMIN_PASSWORD` 必须改成强密码。
 - 脚本不会把 Secret 写入仓库文件；只有加 `--print-envparams` 才会输出明文参数，慎用。
 
-## Docker 内置 `.env` 临时方案
+## Dockerfile 内置环境变量临时方案
 
-当前 Dockerfile 会把仓库根目录 `.env` 复制到镜像 `/app/.env`，FastAPI 启动时会自动读取。这样即使云托管控制台环境变量没有生效，容器内也能拿到配置。
+如果云托管控制台环境变量没有生效，可以临时把 `.env` 渲染成带 `ENV` 指令的 Dockerfile：
+
+```bash
+python3 scripts/render_dockerfile_env.py \
+  --env-file .env \
+  --base-dockerfile Dockerfile \
+  --output Dockerfile.env
+```
+
+如果脚本提示风险配置但你确认要继续：
+
+```bash
+python3 scripts/render_dockerfile_env.py \
+  --env-file .env \
+  --base-dockerfile Dockerfile \
+  --output Dockerfile.env \
+  --allow-risk
+```
+
+然后云托管部署时 Dockerfile 路径填写：
+
+```text
+Dockerfile.env
+```
 
 注意：
 
-- 这是临时排障方案，Secret 会进入镜像层；生产长期方案仍建议使用云托管环境变量或密钥管理。
-- 修改 `.env` 后必须重新构建并重新部署镜像，运行中的容器不会自动更新。
-- 不要把 `.env` 提交到 Git 仓库。
-- 云托管里如果同时配置了同名环境变量，系统环境变量优先，`.env` 不会覆盖。
+- 这是临时排障方案，Secret 会进入 Dockerfile、镜像层和镜像历史；生产长期方案仍建议使用云托管环境变量或密钥管理。
+- 修改 `.env` 后必须重新运行脚本生成 `Dockerfile.env`，再重新部署镜像。
+- `Dockerfile.env` 已加入 `.gitignore`，不要提交。
+- 云托管里如果同时配置了同名环境变量，运行时系统环境变量通常会覆盖镜像内 `ENV`。
 
 ## 小程序配置
 

@@ -3,6 +3,8 @@ node_modules/
 .env
 .env.*
 !.env.example
+Dockerfile.env
+backend/Dockerfile.env
 dist/
 build/
 coverage/
