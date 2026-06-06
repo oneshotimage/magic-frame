@@ -85,6 +85,8 @@ def test_debug_log_levels_are_normalized() -> None:
 
 def test_startup_environment_report_redacts_secrets(monkeypatch) -> None:
     monkeypatch.setenv("KL_API_TOKEN", "secret-kl-token")
+    monkeypatch.setenv("KL_IMAGE_SIZE", "1536x1024")
+    monkeypatch.setenv("KL_FORCE_IPV4", "1")
     monkeypatch.setenv("COS_SECRET_KEY", "secret-cos-key")
     monkeypatch.setenv("ADMIN_PASSWORD", "secret-admin-password")
 
@@ -95,6 +97,10 @@ def test_startup_environment_report_redacts_secrets(monkeypatch) -> None:
     assert "secret-cos-key" not in text
     assert "secret-admin-password" not in text
     assert "KL_API_TOKEN" in text
+    assert report["env"]["KL_IMAGE_SIZE"]["value"] == "1536x1024"
+    assert report["env"]["KL_FORCE_IPV4"]["value"] == "1"
+    assert report["runtime"]["klImageSize"] == "1536x1024"
+    assert report["runtime"]["klForceIpv4"] is True
     assert "MYSQL_USER" in report["env"]
     assert "<redacted:" in text
 
@@ -147,6 +153,27 @@ def test_user_credit_upload_generation_flow() -> None:
 
     history = client.get("/generation/history", headers=headers)
     assert history.json()["total"] >= 1
+
+
+def test_generation_size_can_be_configured_by_env(monkeypatch) -> None:
+    headers = auth_headers()
+    monkeypatch.setenv("KL_IMAGE_SIZE", "1536x1024")
+
+    upload = client.post(
+        "/upload/image",
+        headers=headers,
+        json={"dataUrl": svg_data_url("Size", "input"), "width": 1024, "height": 1024},
+    )
+    assert upload.status_code == 200, upload.text
+
+    task = client.post(
+        "/generation/create",
+        headers=headers,
+        json={"inputImageId": upload.json()["imageId"], "styles": ["pixar"], "size": "1024x1024"},
+    )
+    assert task.status_code == 200, task.text
+    assert task.json()["size"] == "1536x1024"
+    assert task.json()["sizeSource"] == "env"
 
 
 def test_orders_payment_share_feedback() -> None:
@@ -229,6 +256,21 @@ def test_call_kl_image2_builds_real_multipart_request(monkeypatch) -> None:
     assert b"gpt-image-2" in captured["data"]
     assert b'name="response_format"' not in captured["data"]
     assert b'name="image"; filename="portrait.jpg"' in captured["data"]
+
+
+def test_force_ipv4_getaddrinfo_filters_ipv6(monkeypatch) -> None:
+    original_getaddrinfo = generation.socket.getaddrinfo
+    fake_results = [
+        (generation.socket.AF_INET6, generation.socket.SOCK_STREAM, 6, "", ("2606:4700::1", 443, 0, 0)),
+        (generation.socket.AF_INET, generation.socket.SOCK_STREAM, 6, "", ("104.18.1.1", 443)),
+    ]
+
+    monkeypatch.setattr(generation.socket, "getaddrinfo", lambda *_args, **_kwargs: fake_results)
+    with generation.force_ipv4_getaddrinfo(True):
+        filtered = generation.socket.getaddrinfo("example.com", 443)
+
+    assert filtered == [fake_results[1]]
+    assert generation.socket.getaddrinfo is not original_getaddrinfo
 
 
 def test_remote_generation_url_is_restored_to_object_storage(monkeypatch) -> None:

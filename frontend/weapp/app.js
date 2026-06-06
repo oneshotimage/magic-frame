@@ -2,7 +2,9 @@ const { login } = require('./utils/api');
 
 App({
   globalData: {
-    apiBaseUrl: 'http://192.168.2.65:8000',
+    // Local LAN HTTP is only for developer-tool debugging. Real devices should use HTTPS.
+    // apiBaseUrl: 'http://192.168.123.211:8000',
+    apiBaseUrl: "https://images-3-264959-8-1439090877.sh.run.tcloudbase.com",
     token: '',
     user: null,
     credits: null,
@@ -19,6 +21,15 @@ App({
     if (token) {
       this.globalData.token = token;
     }
+  },
+
+  onPageNotFound(res = {}) {
+    console.warn('[app] page not found, fallback to home', {
+      path: res.path || '',
+      query: res.query || {},
+      isEntryPage: Boolean(res.isEntryPage)
+    });
+    wx.switchTab({ url: '/pages/home/index' });
   },
 
   ensureLogin() {

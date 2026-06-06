@@ -2,10 +2,12 @@ from __future__ import annotations
 
 from typing import Any
 from urllib import error, request
+from contextlib import contextmanager
 import base64
 import json
 import os
 import re
+import socket
 import struct
 import time
 import uuid
@@ -27,6 +29,26 @@ from .core import (
     truthy_env,
 )
 from .services import consume_credit
+
+
+@contextmanager
+def force_ipv4_getaddrinfo(enabled: bool):
+    if not enabled:
+        yield
+        return
+
+    original_getaddrinfo = socket.getaddrinfo
+
+    def ipv4_getaddrinfo(*args, **kwargs):
+        results = original_getaddrinfo(*args, **kwargs)
+        ipv4_results = [item for item in results if item[0] == socket.AF_INET]
+        return ipv4_results or results
+
+    socket.getaddrinfo = ipv4_getaddrinfo
+    try:
+        yield
+    finally:
+        socket.getaddrinfo = original_getaddrinfo
 
 def svg_data_url(title: str, subtitle: str, color: str = "#FFB800") -> str:
     svg = f"""<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024">
@@ -206,7 +228,9 @@ def call_kl_image2(image_data_url: str, prompt: str, size: str) -> dict[str, Any
     endpoint = os.getenv("KL_IMAGE_ENDPOINT", "/v1/images/edits")
     target = f"{base_url}{endpoint}"
     proxy_url = os.getenv("KL_PROXY_URL") or ""
+    proxy_access_token = os.getenv("KL_PROXY_ACCESS_TOKEN") or ""
     timeout_seconds = int(os.getenv("KL_TIMEOUT_SECONDS", "600"))
+    force_ipv4 = truthy_env("KL_FORCE_IPV4")
 
     match = re.match(r"^data:([^;]+);base64,(.*)$", image_data_url)
     if not match:
@@ -243,6 +267,7 @@ def call_kl_image2(image_data_url: str, prompt: str, size: str) -> dict[str, Any
             "Authorization": f"Bearer {token}",
             "Content-Type": f"multipart/form-data; boundary={boundary}",
             "Accept": "application/json",
+            **({"x-kl-proxy-token": proxy_access_token} if proxy_access_token else {}),
         },
     )
     opener = request.build_opener()
@@ -259,10 +284,13 @@ def call_kl_image2(image_data_url: str, prompt: str, size: str) -> dict[str, Any
         "requestBytes": len(body),
         "proxyConfigured": bool(proxy_url),
         "proxyUrl": safe_url(proxy_url),
+        "forceIpv4": force_ipv4,
         "timeoutSeconds": timeout_seconds,
     })
     try:
-        with opener.open(req, timeout=timeout_seconds) as resp:
+        with force_ipv4_getaddrinfo(force_ipv4):
+            resp_ctx = opener.open(req, timeout=timeout_seconds)
+        with resp_ctx as resp:
             raw_text = resp.read().decode("utf-8", errors="replace")
             payload = json.loads(raw_text)
             output_url = extract_output_url(payload)
@@ -301,12 +329,20 @@ def call_kl_image2(image_data_url: str, prompt: str, size: str) -> dict[str, Any
         })
         raise RuntimeError(f"KL API HTTP {exc.code}: {detail}") from exc
     except Exception as exc:
+        network_hint = ""
+        message = str(exc)
+        if "Network is unreachable" in message or "Errno 101" in message:
+            network_hint = "云托管容器无法访问 KL/Cloudflare Worker 地址，请检查云托管出网能力、域名解析、IPv6 出口；可设置 KL_FORCE_IPV4=1 强制使用 IPv4。"
         console_log("error", "KL_IMAGE_REQUEST_ERROR", "KL 图片接口调用异常", {
             "target": safe_url(target),
             "elapsedMs": int((time.time() - started) * 1000),
             "exceptionType": type(exc).__name__,
-            "message": str(exc),
+            "message": message,
+            "networkHint": network_hint,
+            "forceIpv4": force_ipv4,
         })
+        if network_hint:
+            raise RuntimeError(f"{message}; {network_hint}") from exc
         raise
 
 

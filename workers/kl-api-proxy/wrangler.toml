@@ -1,0 +1,7 @@
+name = "kl-api-proxy"
+main = "index.js"
+compatibility_date = "2026-05-31"
+account_id = "ade026028635934e3bcf9af5fee7af23"
+
+[vars]
+UPSTREAM_HOST = "api.kl-api.info"

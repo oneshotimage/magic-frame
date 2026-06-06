@@ -4,7 +4,7 @@ function getAppSafe() {
 
 function baseUrl() {
   const app = getAppSafe();
-  return app.globalData.apiBaseUrl || 'http://192.168.0.106:8000';
+  return app.globalData.apiBaseUrl;
 }
 
 function normalizeNetworkError(error, fallback = '网络请求失败', requestUrl = '') {

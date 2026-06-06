@@ -9,6 +9,8 @@
     "backend:test": "node --test backend/tests/*.test.js",
     "worker:dev": "npx wrangler dev",
     "worker:deploy": "npx wrangler deploy",
+    "kl-proxy:dev": "npx wrangler dev --config workers/kl-api-proxy/wrangler.toml",
+    "kl-proxy:deploy": "npx wrangler deploy --config workers/kl-api-proxy/wrangler.toml",
     "cloudflare:whoami": "npx wrangler whoami"
   }
 }

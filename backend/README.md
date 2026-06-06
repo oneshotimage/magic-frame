@@ -182,6 +182,7 @@ KL_API_BASE_URL=https://api.kl-api.info
 KL_API_TOKEN=你的 KL API Token
 KL_IMAGE_MODEL=gpt-image-2
 KL_IMAGE_ENDPOINT=/v1/images/edits
+KL_IMAGE_SIZE=1024x1024
 KL_TIMEOUT_SECONDS=600
 AI_MOCK_GENERATION=0
 AI_UNLIMITED_CREDITS=0
@@ -203,15 +204,26 @@ KL_API_BASE_URL=https://api.kl-api.info
 KL_API_TOKEN=你的 KL API Token
 KL_IMAGE_MODEL=gpt-image-2
 KL_IMAGE_ENDPOINT=/v1/images/edits
+KL_IMAGE_SIZE=1024x1024
 KL_TIMEOUT_SECONDS=600
 PUBLIC_BASE_URL=http://127.0.0.1:8000
 python3 -m uvicorn backend.main:app --reload --port 8000
 ```
 
+`KL_IMAGE_SIZE` 控制真实生成图片尺寸，格式为 `宽x高`，例如 `1024x1024`、`1536x1024`、`1024x1536`。如果配置了 `KL_IMAGE_SIZE`，服务端会优先使用环境变量，覆盖小程序请求里的 `size`。
+
 如果本地网络需要代理：
 
 ```bash
 KL_PROXY_URL=http://127.0.0.1:7890
+```
+
+云托管通过 Cloudflare Worker 中转 KL API 时，建议开启 IPv4 强制解析，避免容器没有 IPv6 出口时报 `Network is unreachable`：
+
+```bash
+KL_API_BASE_URL=https://你的-worker.workers.dev
+KL_PROXY_URL=
+KL_FORCE_IPV4=1
 ```
 
 后端控制台日志支持分级输出：

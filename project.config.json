@@ -15,6 +15,7 @@
     "minifyWXML": true
   },
   "compileType": "miniprogram",
+  "miniprogramRoot": "frontend/weapp/",
   "simulatorPluginLibVersion": {},
   "packOptions": {
     "ignore": [],

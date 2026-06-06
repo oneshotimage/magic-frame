@@ -45,7 +45,7 @@ class ValidateReq(BaseModel):
 class GenerationCreateReq(BaseModel):
     inputImageId: str
     styles: list[str] | None = None
-    size: str = "128x128"
+    size: str | None = None
 
 
 class OrderCreateReq(BaseModel):
@@ -80,4 +80,3 @@ class AdminCreditAdjustReq(BaseModel):
     amount: int | None = None
     balance: int | None = None
     reason: str | None = None
-

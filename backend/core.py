@@ -66,6 +66,16 @@ def truthy_env(name: str, default: str = "") -> bool:
     return value in {"1", "true", "yes", "on"}
 
 
+def generation_image_size(requested_size: str | None = None) -> tuple[str, str]:
+    env_size = os.getenv("KL_IMAGE_SIZE", "").strip()
+    if env_size:
+        return env_size, "env"
+    request_size = (requested_size or "").strip()
+    if request_size:
+        return request_size, "request"
+    return "1024x1024", "default"
+
+
 def safe_url(url: str) -> str:
     if not url:
         return ""
@@ -75,6 +85,7 @@ def safe_url(url: str) -> str:
 def runtime_config() -> dict[str, Any]:
     token = os.getenv("KL_API_TOKEN") or os.getenv("KL_API_KEY") or ""
     proxy = os.getenv("KL_PROXY_URL") or ""
+    image_size, image_size_source = generation_image_size()
     return {
         "generationMode": "mock" if truthy_env("AI_MOCK_GENERATION") else "real",
         "mockEnabled": truthy_env("AI_MOCK_GENERATION"),
@@ -82,8 +93,11 @@ def runtime_config() -> dict[str, Any]:
         "klBaseUrl": os.getenv("KL_API_BASE_URL", "https://api.kl-api.info"),
         "klImageEndpoint": os.getenv("KL_IMAGE_ENDPOINT", "/v1/images/edits"),
         "klImageModel": os.getenv("KL_IMAGE_MODEL", "gpt-image-2"),
+        "klImageSize": image_size,
+        "klImageSizeSource": image_size_source,
         "klProxyConfigured": bool(proxy),
         "klProxyUrl": safe_url(proxy),
+        "klForceIpv4": truthy_env("KL_FORCE_IPV4"),
         "klTimeoutSeconds": int(os.getenv("KL_TIMEOUT_SECONDS", "600")),
         "publicBaseUrl": os.getenv("PUBLIC_BASE_URL", "http://127.0.0.1:8000").rstrip("/"),
         "unlimitedCredits": truthy_env("AI_UNLIMITED_CREDITS", "1"),
@@ -122,8 +136,11 @@ def startup_environment_report() -> dict[str, Any]:
         "KL_API_BASE_URL": masked_env_value("KL_API_BASE_URL"),
         "KL_IMAGE_ENDPOINT": masked_env_value("KL_IMAGE_ENDPOINT"),
         "KL_IMAGE_MODEL": masked_env_value("KL_IMAGE_MODEL"),
+        "KL_IMAGE_SIZE": masked_env_value("KL_IMAGE_SIZE"),
         "KL_TIMEOUT_SECONDS": masked_env_value("KL_TIMEOUT_SECONDS"),
         "KL_PROXY_URL": masked_env_value("KL_PROXY_URL"),
+        "KL_PROXY_ACCESS_TOKEN": masked_env_value("KL_PROXY_ACCESS_TOKEN", secret=True),
+        "KL_FORCE_IPV4": masked_env_value("KL_FORCE_IPV4"),
         "KL_API_TOKEN": masked_env_value("KL_API_TOKEN", secret=True),
         "KL_API_KEY": masked_env_value("KL_API_KEY", secret=True),
         "DATABASE_URL": masked_env_value("DATABASE_URL", secret=True),
@@ -155,6 +172,8 @@ def startup_environment_report() -> dict[str, Any]:
     checks: list[dict[str, Any]] = []
     if config["generationMode"] == "real" and not config["klTokenConfigured"]:
         checks.append({"level": "error", "code": "KL_TOKEN_MISSING", "message": "真实生成模式缺少 KL_API_TOKEN 或 KL_API_KEY"})
+    if config["klImageSize"] and not re.fullmatch(r"\d+x\d+", config["klImageSize"]):
+        checks.append({"level": "warn", "code": "KL_IMAGE_SIZE_INVALID", "message": "KL_IMAGE_SIZE 格式应为 宽x高，例如 1024x1024、1536x1024、1024x1536", "env": "KL_IMAGE_SIZE", "value": config["klImageSize"]})
     if config["objectStorage"].get("strict") and config["objectStorage"].get("mode") != "cos":
         checks.append({"level": "error", "code": "COS_STRICT_NOT_READY", "message": "OBJECT_STORAGE_STRICT=1 但 COS 未启用，请检查 bucket、region 和密钥"})
     if config["objectStorage"].get("mode") == "cos" and not config["objectStorage"].get("sdkAvailable"):
@@ -200,6 +219,8 @@ def startup_environment_report() -> dict[str, Any]:
         checks.append({"level": "warn", "code": "PUBLIC_BASE_URL_NOT_HTTPS", "message": "PUBLIC_BASE_URL 不是 HTTPS，正式小程序可能无法加载资源", "env": "PUBLIC_BASE_URL"})
     if kl_proxy.startswith(("http://127.", "http://localhost", "http://0.0.0.0")):
         checks.append({"level": "warn", "code": "KL_PROXY_LOCAL", "message": "KL_PROXY_URL 指向本机地址，云托管容器内通常无法访问宿主机代理", "env": "KL_PROXY_URL"})
+    if config["klBaseUrl"].endswith(".workers.dev") and not config["klForceIpv4"]:
+        checks.append({"level": "warn", "code": "KL_WORKER_IPV4_RECOMMENDED", "message": "KL_API_BASE_URL 使用 Cloudflare Worker，云托管容器如无 IPv6 出口可能报 Network is unreachable，建议设置 KL_FORCE_IPV4=1", "env": "KL_FORCE_IPV4"})
     if config["objectStorage"].get("mode") == "cos" and not config["objectStorage"].get("strict"):
         checks.append({"level": "warn", "code": "COS_STRICT_DISABLED", "message": "OBJECT_STORAGE_STRICT 未开启，COS 上传失败时会降级到本地文件，云托管实例重建后图片可能丢失", "env": "OBJECT_STORAGE_STRICT"})
     if cos_public_base.startswith("http://"):

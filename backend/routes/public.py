@@ -10,7 +10,7 @@ from fastapi import APIRouter, Depends, File, Form, Request, UploadFile
 
 from ..catalog import PACKAGES, STYLE_PROMPTS
 from ..cloud_runtime import parse_data_url
-from ..core import AppError, OBJECT_STORAGE, STATE, add_debug_check, clone, gen_id, now_iso, persist_state, runtime_config, truthy_env
+from ..core import AppError, OBJECT_STORAGE, STATE, add_debug_check, clone, gen_id, generation_image_size, now_iso, persist_state, runtime_config, truthy_env
 from ..generation import process_generation, simple_poster_png
 from ..schemas import (
     ConsumeReq,
@@ -223,11 +223,14 @@ def validate_upload(body: ValidateReq, req: Request, user_id: str = Depends(curr
 @router.post("/generation/create")
 def create_generation(body: GenerationCreateReq, req: Request, user_id: str = Depends(current_user_id)) -> dict[str, Any]:
     config = runtime_config()
+    generation_size, generation_size_source = generation_image_size(body.size)
     add_debug_check(req, "GENERATION_CREATE_RECEIVED", "收到生成任务请求", details={
         "userId": user_id,
         "inputImageId": body.inputImageId,
         "styles": body.styles,
-        "size": body.size,
+        "requestSize": body.size,
+        "size": generation_size,
+        "sizeSource": generation_size_source,
         "runtime": config,
     })
     if not truthy_env("AI_UNLIMITED_CREDITS", "1") and get_credits(user_id)["balance"] <= 0:
@@ -250,8 +253,8 @@ def create_generation(body: GenerationCreateReq, req: Request, user_id: str = De
     if not styles:
         add_debug_check(req, "GENERATION_STYLE_EMPTY", "没有可用生成风格", level="error", details={"requestedStyles": requested_styles})
         raise AppError(400, "STYLE_INVALID", "请选择有效写真风格")
-    if not re.fullmatch(r"\d+x\d+", body.size):
-        add_debug_check(req, "GENERATION_SIZE_SUSPICIOUS", "size 参数格式异常", level="warn", details={"size": body.size})
+    if not re.fullmatch(r"\d+x\d+", generation_size):
+        add_debug_check(req, "GENERATION_SIZE_SUSPICIOUS", "size 参数格式异常", level="warn", details={"requestSize": body.size, "size": generation_size, "sizeSource": generation_size_source})
     input_image_data_url = upload.get("inputImageDataUrl") or ""
     if not input_image_data_url and str(upload.get("url") or "").startswith("data:image/"):
         input_image_data_url = upload["url"]
@@ -271,7 +274,8 @@ def create_generation(body: GenerationCreateReq, req: Request, user_id: str = De
         "inputImageDataUrl": input_image_data_url,
         "status": "QUEUED",
         "progress": 8,
-        "size": body.size,
+        "size": generation_size,
+        "sizeSource": generation_size_source,
         "charged": False,
         "startedAt": "",
         "completedAt": "",

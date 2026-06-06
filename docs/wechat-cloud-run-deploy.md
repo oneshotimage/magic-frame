@@ -19,6 +19,7 @@ KL_API_BASE_URL=https://api.kl-api.info
 KL_API_TOKEN=你的 KL API Token
 KL_IMAGE_MODEL=gpt-image-2
 KL_IMAGE_ENDPOINT=/v1/images/edits
+KL_IMAGE_SIZE=1024x1024
 KL_TIMEOUT_SECONDS=600
 AI_MOCK_GENERATION=0
 AI_UNLIMITED_CREDITS=0
@@ -32,6 +33,16 @@ ADMIN_PASSWORD=请改成强密码
 ```bash
 KL_PROXY_URL=http://代理地址:端口
 ```
+
+如果使用 Cloudflare Worker 中转 KL API，云托管里推荐配置：
+
+```bash
+KL_API_BASE_URL=https://你的-worker.workers.dev
+KL_PROXY_URL=
+KL_FORCE_IPV4=1
+```
+
+`KL_FORCE_IPV4=1` 会让后端访问 KL/Worker 时只使用 IPv4 解析结果，避免容器没有 IPv6 出口时报 `Network is unreachable`。
 
 本地代理 `http://127.0.0.1:7890` 只适用于本机开发，不适用于云托管容器。
 
