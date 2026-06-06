@@ -243,6 +243,7 @@ def test_call_kl_image2_builds_real_multipart_request(monkeypatch) -> None:
     monkeypatch.setenv("KL_IMAGE_ENDPOINT", "/v1/images/edits")
     monkeypatch.setenv("KL_IMAGE_MODEL", "gpt-image-2")
     monkeypatch.setenv("KL_TIMEOUT_SECONDS", "600")
+    monkeypatch.setenv("KL_USER_AGENT", "test-user-agent")
     monkeypatch.setattr(generation.request, "build_opener", lambda *args: FakeOpener())
 
     result = main.call_kl_image2(svg_data_url("Demo", "input"), "prompt", "1024x1024")
@@ -251,6 +252,8 @@ def test_call_kl_image2_builds_real_multipart_request(monkeypatch) -> None:
     assert captured["url"] == "https://api.kl-api.info/v1/images/edits"
     assert captured["timeout"] == 600
     assert captured["headers"]["Authorization"] == "Bearer test-token"
+    assert captured["headers"]["User-agent"] == "test-user-agent"
+    assert captured["headers"]["Accept-language"].startswith("zh-CN")
     assert "multipart/form-data" in captured["headers"]["Content-type"]
     assert b'name="model"' in captured["data"]
     assert b"gpt-image-2" in captured["data"]

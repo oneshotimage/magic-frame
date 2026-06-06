@@ -40,9 +40,17 @@ KL_PROXY_URL=http://代理地址:端口
 KL_API_BASE_URL=https://你的-worker.workers.dev
 KL_PROXY_URL=
 KL_FORCE_IPV4=1
+KL_USER_AGENT=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0 Safari/537.36
 ```
 
 `KL_FORCE_IPV4=1` 会让后端访问 KL/Worker 时只使用 IPv4 解析结果，避免容器没有 IPv6 出口时报 `Network is unreachable`。
+`KL_USER_AGENT` 会覆盖 Python 默认请求标识，避免 Cloudflare Browser Integrity Check 把云托管后端识别成异常客户端。
+
+如果仍然返回 Cloudflare `Error 1010: browser_signature_banned`，说明请求在 Worker 执行前被 Cloudflare 安全规则拦截。需要到 Cloudflare 控制台关闭或跳过对应规则：
+
+- Security / Settings：关闭 Browser Integrity Check。
+- Security / Bots：关闭 Bot Fight Mode 或 Super Bot Fight Mode。
+- WAF Custom Rules：为 Worker 域名添加 Skip 规则，跳过 Browser Integrity Check / Bot Fight Mode / WAF Managed Rules。
 
 本地代理 `http://127.0.0.1:7890` 只适用于本机开发，不适用于云托管容器。
 

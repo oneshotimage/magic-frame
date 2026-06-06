@@ -231,6 +231,7 @@ def call_kl_image2(image_data_url: str, prompt: str, size: str) -> dict[str, Any
     proxy_access_token = os.getenv("KL_PROXY_ACCESS_TOKEN") or ""
     timeout_seconds = int(os.getenv("KL_TIMEOUT_SECONDS", "600"))
     force_ipv4 = truthy_env("KL_FORCE_IPV4")
+    user_agent = os.getenv("KL_USER_AGENT") or "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0 Safari/537.36"
 
     match = re.match(r"^data:([^;]+);base64,(.*)$", image_data_url)
     if not match:
@@ -267,6 +268,8 @@ def call_kl_image2(image_data_url: str, prompt: str, size: str) -> dict[str, Any
             "Authorization": f"Bearer {token}",
             "Content-Type": f"multipart/form-data; boundary={boundary}",
             "Accept": "application/json",
+            "Accept-Language": "zh-CN,zh;q=0.9,en;q=0.8",
+            "User-Agent": user_agent,
             **({"x-kl-proxy-token": proxy_access_token} if proxy_access_token else {}),
         },
     )
@@ -285,6 +288,7 @@ def call_kl_image2(image_data_url: str, prompt: str, size: str) -> dict[str, Any
         "proxyConfigured": bool(proxy_url),
         "proxyUrl": safe_url(proxy_url),
         "forceIpv4": force_ipv4,
+        "userAgentConfigured": bool(os.getenv("KL_USER_AGENT")),
         "timeoutSeconds": timeout_seconds,
     })
     try:
@@ -321,12 +325,18 @@ def call_kl_image2(image_data_url: str, prompt: str, size: str) -> dict[str, Any
             }
     except error.HTTPError as exc:
         detail = exc.read().decode("utf-8", errors="replace")
+        cloudflare_hint = ""
+        if exc.code == 403 and ("error_code\":1010" in detail or "browser_signature_banned" in detail):
+            cloudflare_hint = "Cloudflare 1010 browser_signature_banned，Worker 前置安全规则拦截了云托管请求。请在 Cloudflare 关闭 Browser Integrity Check/Bot Fight Mode，或为该 Worker/自定义域名添加 WAF Skip 规则。"
         console_log("error", "KL_IMAGE_HTTP_ERROR", "KL 图片接口返回 HTTP 错误", {
             "target": safe_url(target),
             "httpStatus": exc.code,
             "elapsedMs": int((time.time() - started) * 1000),
             "detail": detail,
+            "cloudflareHint": cloudflare_hint,
         })
+        if cloudflare_hint:
+            raise RuntimeError(f"KL API HTTP {exc.code}: {detail}; {cloudflare_hint}") from exc
         raise RuntimeError(f"KL API HTTP {exc.code}: {detail}") from exc
     except Exception as exc:
         network_hint = ""

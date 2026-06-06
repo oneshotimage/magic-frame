@@ -51,9 +51,13 @@ https://kl-api-proxy.<your-subdomain>.workers.dev
 KL_API_BASE_URL=https://kl-api-proxy.<your-subdomain>.workers.dev
 KL_IMAGE_ENDPOINT=/v1/images/edits
 KL_PROXY_URL=
+KL_FORCE_IPV4=1
+KL_USER_AGENT=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0 Safari/537.36
 ```
 
 后端仍然会把 `Authorization: Bearer <KL_API_TOKEN>` 转发给 KL API。
+
+如果后端请求 Worker 返回 Cloudflare `Error 1010: browser_signature_banned`，请求是在 Worker 运行前被 Cloudflare 安全规则拦截。请在 Cloudflare 控制台关闭 Browser Integrity Check/Bot Fight Mode，或给 Worker 域名添加 WAF Skip 规则。
 
 ## 可选访问保护
 
