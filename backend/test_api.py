@@ -16,6 +16,7 @@ if str(ROOT) not in sys.path:
 os.environ.setdefault("AI_MOCK_GENERATION", "1")
 os.environ["PUBLIC_BASE_URL"] = "http://127.0.0.1:8000"
 os.environ["DATABASE_URL"] = "sqlite:///.data/test_api.db"
+Path(".data/test_api.db").unlink(missing_ok=True)
 for key in (
     "WECHAT_APPID",
     "WECHAT_APP_ID",
@@ -38,6 +39,7 @@ os.environ["OBJECT_STORAGE_STRICT"] = "0"
 from backend import main
 from backend import generation
 from backend import services
+from backend import core
 from backend.main import app, svg_data_url
 
 
@@ -132,6 +134,30 @@ def test_health() -> None:
     res = client.get("/health")
     assert res.status_code == 200
     assert res.json()["status"] == "ok"
+
+
+def test_database_uses_business_tables() -> None:
+    expected = {
+        "users",
+        "auth_tokens",
+        "refresh_tokens",
+        "credits",
+        "credit_logs",
+        "uploads",
+        "generation_tasks",
+        "generation_images",
+        "orders",
+        "feedback",
+        "ad_rewards",
+        "generated_assets",
+        "admin_tokens",
+        "debug_logs",
+    }
+    assert core.STORE.status()["schema"] == "relational"
+    assert expected.issubset(set(core.STORE.status()["tables"]))
+    with core.STORE._sqlite_conn() as conn:
+        rows = conn.execute("SELECT name FROM sqlite_master WHERE type='table'").fetchall()
+    assert expected.issubset({row[0] for row in rows})
 
 
 def test_debug_log_levels_are_normalized() -> None:

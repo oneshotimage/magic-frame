@@ -45,6 +45,6 @@
 
   <view class="bottom-actions">
     <button class="ghost-button" bindtap="cancelTask">取消任务</button>
-    <button class="ghost-button" bindtap="viewResult">查看当前结果</button>
+    <button class="ghost-button" bindtap="goWorks">返回作品集</button>
   </view>
 </view>

@@ -1,8 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-export CLOUDFLARE_API_TOKEN=""
-
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 CONFIG_PATH="${CONFIG_PATH:-workers/kl-api-proxy/wrangler.toml}"
 WORKER_NAME="${WORKER_NAME:-kl-api-proxy}"

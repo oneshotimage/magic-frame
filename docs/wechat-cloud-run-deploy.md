@@ -92,6 +92,8 @@ MYSQL_DATABASE=数据库名
 
 未配置数据库时后端会降级到容器内 SQLite，只适合临时调试。
 
+服务启动时会自动创建业务表，包含 `users`、`uploads`、`generation_tasks`、`generation_images`、`orders`、`credit_logs`、`debug_logs` 等；完整说明见 [DATABASE_SCHEMA.md](DATABASE_SCHEMA.md)。旧版 `app_snapshots` 仅作为历史快照迁移兼容。
+
 ## 图片存储
 
 正式环境必须配置 COS，确保小程序真机可加载生成图片且实例重建后图片不丢。

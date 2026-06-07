@@ -1,5 +1,42 @@
 # 开发历史
 
+## 2026-06-07 - 支持生成中任务回访并拆分数据库业务表
+
+任务：生成任务耗时较长时，用户可退出生成中页，从作品集重新进入正在生成的任务；同时将后端持久化从单表快照升级为真实业务表，便于后续维护、查询和运营。
+
+改动项：
+
+- 小程序生成中页底部新增“返回作品集”，返回时不取消后端任务。
+- 作品集新增“正在生成”任务卡片，展示任务状态、进度、预计剩余时间和风格信息。
+- 点击作品集里的未完成任务，可携带 `taskId` 重新进入生成中页继续轮询进度。
+- 后端数据库持久化从 `app_snapshots` 快照表升级为业务表：
+  - `users`
+  - `auth_tokens`
+  - `refresh_tokens`
+  - `credits`
+  - `credit_logs`
+  - `uploads`
+  - `generation_tasks`
+  - `generation_images`
+  - `orders`
+  - `feedback`
+  - `ad_rewards`
+  - `generated_assets`
+  - `admin_tokens`
+  - `debug_logs`
+- 保留 `app_snapshots` 作为旧数据迁移兼容：业务表为空时会尝试读取旧快照，后续保存写入新业务表。
+- MySQL 写入使用事务，SQLite/MySQL 保存加锁，降低并发 `persist_state()` 时的数据覆盖风险。
+- 新增 `docs/DATABASE_SCHEMA.md`，补充数据库名来源、表结构用途、关键关系和常用运营查询。
+- 同步更新 `backend/README.md`、`docs/wechat-cloud-run-deploy.md` 和 `docs/SPEC.md`。
+
+验证：
+
+- `node --check frontend/weapp/pages/works/index.js` 通过。
+- `node --check frontend/weapp/pages/generating/index.js` 通过。
+- 小程序 `app.json`、作品集页和生成中页 JSON 解析通过。
+- `python3 -m py_compile backend/cloud_runtime.py backend/core.py backend/test_api.py` 通过。
+- `python3 -m pytest backend/test_api.py` 通过，18 个测试全部成功。
+
 ## 2026-05-31 - 初始化 AI影像写真馆全栈 MVP
 
 任务：基于后端架构文档、Swagger 文档、前端架构文档和 Figma 视觉，实现可运行的前后端 MVP。

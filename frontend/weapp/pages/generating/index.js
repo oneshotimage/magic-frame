@@ -119,8 +119,8 @@ Page({
     });
   },
 
-  viewResult() {
-    wx.navigateTo({ url: '/pages/result/index' });
+  goWorks() {
+    wx.switchTab({ url: '/pages/works/index' });
   },
 
   goBack() {

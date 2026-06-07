@@ -5,6 +5,29 @@
     <view class="page-title">我的作品</view>
     <view class="page-subtitle">记录你的每一次奇妙变身，共生成了 {{totalCount}} 张精美写真。</view>
 
+    <view wx:if="{{runningTasks.length}}" class="running-section">
+      <view class="section-head">
+        <view class="section-title">正在生成</view>
+        <view class="section-count">{{runningTasks.length}} 个任务</view>
+      </view>
+      <view wx:for="{{runningTasks}}" wx:key="taskId" class="running-card" bindtap="openRunningTask" data-task-id="{{item.taskId}}">
+        <view class="running-top">
+          <view>
+            <view class="running-title">{{item.statusText}}</view>
+            <view class="running-meta">{{item.styleText}}</view>
+          </view>
+          <view class="running-progress">{{item.progress}}%</view>
+        </view>
+        <view class="running-bar">
+          <view class="running-bar-fill" style="width: {{item.progressWidth}};"></view>
+        </view>
+        <view class="running-bottom">
+          <text>预计剩余 {{item.remainingText}}</text>
+          <text wx:if="{{item.createdText}}">{{item.createdText}}</text>
+        </view>
+      </view>
+    </view>
+
     <scroll-view class="filter-scroll" scroll-x enhanced show-scrollbar="{{false}}">
       <view class="filter-row">
         <view wx:for="{{filters}}" wx:key="id" class="filter-chip {{activeFilter === item.id ? 'active' : ''}}" bindtap="selectFilter" data-id="{{item.id}}">{{item.name}}</view>
