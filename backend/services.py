@@ -2,7 +2,9 @@ from __future__ import annotations
 
 from datetime import datetime, timedelta
 from typing import Any
+from urllib import parse, request
 import base64
+import json
 import os
 import re
 
@@ -22,6 +24,48 @@ from .core import (
     restore_state,
     truthy_env,
 )
+
+
+def configured_wechat_appid() -> str:
+    return os.getenv("WECHAT_APPID") or os.getenv("WECHAT_APP_ID") or ""
+
+
+def configured_wechat_secret() -> str:
+    return os.getenv("WECHAT_SECRET") or os.getenv("WECHAT_APP_SECRET") or ""
+
+
+def wechat_code2session(code: str) -> dict[str, Any]:
+    appid = configured_wechat_appid()
+    secret = configured_wechat_secret()
+    if not appid or not secret:
+        return {"openId": f"mock_openid_{code or 'dev'}", "mock": True}
+    if not code:
+        raise AppError(400, "WECHAT_CODE_MISSING", "缺少微信登录 code")
+    params = parse.urlencode({
+        "appid": appid,
+        "secret": secret,
+        "js_code": code,
+        "grant_type": "authorization_code",
+    })
+    url = f"https://api.weixin.qq.com/sns/jscode2session?{params}"
+    timeout_seconds = int(os.getenv("WECHAT_CODE2SESSION_TIMEOUT_SECONDS", "10"))
+    try:
+        with request.urlopen(url, timeout=timeout_seconds) as resp:
+            payload = json.loads(resp.read().decode("utf-8", errors="replace"))
+    except Exception as exc:  # noqa: BLE001
+        raise AppError(502, "WECHAT_CODE2SESSION_NETWORK_ERROR", f"微信登录网络异常：{type(exc).__name__}") from exc
+    if payload.get("errcode"):
+        errmsg = payload.get("errmsg") or "微信登录失败"
+        raise AppError(401, "WECHAT_CODE2SESSION_FAILED", f"微信登录失败：{errmsg}")
+    open_id = payload.get("openid")
+    if not open_id:
+        raise AppError(502, "WECHAT_OPENID_MISSING", "微信登录未返回 openid")
+    return {
+        "openId": open_id,
+        "unionId": payload.get("unionid") or "",
+        "sessionKeyConfigured": bool(payload.get("session_key")),
+        "mock": False,
+    }
 
 def create_upload_record(
     *,
@@ -96,17 +140,46 @@ def current_admin(authorization: str | None = Header(default=None)) -> str:
     return token
 
 
-def get_or_create_user(code: str | None = None) -> dict[str, Any]:
-    open_id = f"mock_openid_{code or 'dev'}"
+def user_id_from_token(token: str | None) -> str:
+    if not token:
+        return ""
+    clean = token.removeprefix("Bearer").strip()
+    user_id = STATE.tokens.get(clean)
+    if not user_id and STORE.available:
+        restore_state(STORE.load())
+        user_id = STATE.tokens.get(clean)
+    return user_id or ""
+
+
+def get_or_create_user(code: str | None = None, bind_access_token: str | None = None) -> dict[str, Any]:
+    session = wechat_code2session(code or "dev")
+    open_id = session["openId"]
+    union_id = session.get("unionId") or ""
     for user in STATE.users.values():
         if user["openId"] == open_id:
+            if union_id and user.get("unionId") != union_id:
+                user["unionId"] = union_id
+                user["updatedAt"] = now_iso()
+                persist_state()
             return user
+    bind_user_id = user_id_from_token(bind_access_token)
+    if bind_user_id and bind_user_id in STATE.users:
+        user = STATE.users[bind_user_id]
+        user["openId"] = open_id
+        if union_id:
+            user["unionId"] = union_id
+        user["wechatBoundAt"] = now_iso()
+        user["updatedAt"] = now_iso()
+        persist_state()
+        return user
     user_id = gen_id("usr")
     user = {
         "userId": user_id,
         "openId": open_id,
+        "unionId": union_id,
         "nickname": "微信用户",
         "avatarUrl": "",
+        "wechatBoundAt": "" if session.get("mock") else now_iso(),
         "createdAt": now_iso(),
         "updatedAt": now_iso(),
     }
@@ -212,7 +285,40 @@ def public_task(task: dict[str, Any]) -> dict[str, Any]:
     data.pop("inputImageDataUrl", None)
     data.pop("userId", None)
     enrich_task_elapsed(data)
+    enrich_task_generation_estimate(data)
     return normalize_generated_image_urls(data)
+
+
+def generation_seconds_per_image() -> int:
+    try:
+        return max(1, int(os.getenv("GENERATION_SECONDS_PER_IMAGE", "60")))
+    except ValueError:
+        return 60
+
+
+def enrich_task_generation_estimate(task: dict[str, Any]) -> None:
+    images = task.get("images") or []
+    total_count = max(1, len(images))
+    seconds_per_image = generation_seconds_per_image()
+    estimated_total_ms = total_count * seconds_per_image * 1000
+    terminal = task.get("status") in {"SUCCESS", "FAILED", "PARTIAL_SUCCESS", "TIMEOUT", "CANCELLED"}
+    elapsed_ms = int(task.get("elapsedMs") or 0)
+    success_or_failed_count = sum(1 for image in images if image.get("status") in {"SUCCESS", "FAILED"})
+    base_progress = int(task.get("progress") or 0)
+    if terminal:
+        estimated_progress = 100
+        estimated_remaining_ms = 0
+    else:
+        elapsed_progress = int(min(95, max(0, elapsed_ms / estimated_total_ms * 95)))
+        completed_progress = int(min(95, success_or_failed_count / total_count * 95))
+        estimated_progress = max(base_progress, elapsed_progress, completed_progress)
+        estimated_remaining_ms = max(0, estimated_total_ms - elapsed_ms)
+    task["generationSecondsPerImage"] = seconds_per_image
+    task["estimatedTotalMs"] = estimated_total_ms
+    task["estimatedRemainingMs"] = estimated_remaining_ms
+    task["estimatedProgress"] = estimated_progress
+    if not terminal:
+        task["progress"] = estimated_progress
 
 
 def parse_iso(value: str | None):

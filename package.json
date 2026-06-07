@@ -10,7 +10,8 @@
     "worker:dev": "npx wrangler dev",
     "worker:deploy": "npx wrangler deploy",
     "kl-proxy:dev": "npx wrangler dev --config workers/kl-api-proxy/wrangler.toml",
-    "kl-proxy:deploy": "npx wrangler deploy --config workers/kl-api-proxy/wrangler.toml",
+    "kl-proxy:deploy": "npx wrangler deploy --config workers/kl-api-proxy/wrangler.toml --keep-vars",
+    "kl-proxy:versions": "npx wrangler versions list --config workers/kl-api-proxy/wrangler.toml --name kl-api-proxy",
     "cloudflare:whoami": "npx wrangler whoami"
   }
 }

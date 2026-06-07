@@ -100,6 +100,8 @@ def runtime_config() -> dict[str, Any]:
         "klForceIpv4": truthy_env("KL_FORCE_IPV4"),
         "klUserAgentConfigured": bool(os.getenv("KL_USER_AGENT", "").strip()),
         "klTimeoutSeconds": int(os.getenv("KL_TIMEOUT_SECONDS", "600")),
+        "klRetry5xxCount": int(os.getenv("KL_RETRY_5XX_COUNT", "1")),
+        "klRetryBackoffSeconds": int(os.getenv("KL_RETRY_BACKOFF_SECONDS", "120")),
         "publicBaseUrl": os.getenv("PUBLIC_BASE_URL", "http://127.0.0.1:8000").rstrip("/"),
         "unlimitedCredits": truthy_env("AI_UNLIMITED_CREDITS", "1"),
         "logLevel": configured_log_level(),
@@ -134,17 +136,25 @@ def startup_environment_report() -> dict[str, Any]:
         "LOG_LEVEL": masked_env_value("LOG_LEVEL"),
         "AI_MOCK_GENERATION": masked_env_value("AI_MOCK_GENERATION"),
         "AI_UNLIMITED_CREDITS": masked_env_value("AI_UNLIMITED_CREDITS"),
+        "GENERATION_SECONDS_PER_IMAGE": masked_env_value("GENERATION_SECONDS_PER_IMAGE"),
         "KL_API_BASE_URL": masked_env_value("KL_API_BASE_URL"),
         "KL_IMAGE_ENDPOINT": masked_env_value("KL_IMAGE_ENDPOINT"),
         "KL_IMAGE_MODEL": masked_env_value("KL_IMAGE_MODEL"),
         "KL_IMAGE_SIZE": masked_env_value("KL_IMAGE_SIZE"),
         "KL_TIMEOUT_SECONDS": masked_env_value("KL_TIMEOUT_SECONDS"),
+        "KL_RETRY_5XX_COUNT": masked_env_value("KL_RETRY_5XX_COUNT"),
+        "KL_RETRY_BACKOFF_SECONDS": masked_env_value("KL_RETRY_BACKOFF_SECONDS"),
         "KL_PROXY_URL": masked_env_value("KL_PROXY_URL"),
         "KL_PROXY_ACCESS_TOKEN": masked_env_value("KL_PROXY_ACCESS_TOKEN", secret=True),
         "KL_FORCE_IPV4": masked_env_value("KL_FORCE_IPV4"),
         "KL_USER_AGENT": masked_env_value("KL_USER_AGENT"),
         "KL_API_TOKEN": masked_env_value("KL_API_TOKEN", secret=True),
         "KL_API_KEY": masked_env_value("KL_API_KEY", secret=True),
+        "WECHAT_APPID": masked_env_value("WECHAT_APPID"),
+        "WECHAT_APP_ID": masked_env_value("WECHAT_APP_ID"),
+        "WECHAT_SECRET": masked_env_value("WECHAT_SECRET", secret=True),
+        "WECHAT_APP_SECRET": masked_env_value("WECHAT_APP_SECRET", secret=True),
+        "WECHAT_CODE2SESSION_TIMEOUT_SECONDS": masked_env_value("WECHAT_CODE2SESSION_TIMEOUT_SECONDS"),
         "DATABASE_URL": masked_env_value("DATABASE_URL", secret=True),
         "MYSQL_ADDRESS": masked_env_value("MYSQL_ADDRESS"),
         "MYSQL_HOST": masked_env_value("MYSQL_HOST"),
@@ -174,6 +184,10 @@ def startup_environment_report() -> dict[str, Any]:
     checks: list[dict[str, Any]] = []
     if config["generationMode"] == "real" and not config["klTokenConfigured"]:
         checks.append({"level": "error", "code": "KL_TOKEN_MISSING", "message": "真实生成模式缺少 KL_API_TOKEN 或 KL_API_KEY"})
+    if not (os.getenv("WECHAT_APPID") or os.getenv("WECHAT_APP_ID")):
+        checks.append({"level": "warn", "code": "WECHAT_APPID_MISSING", "message": "缺少 WECHAT_APPID，微信登录将使用 mock openid，重新登录会产生新用户", "env": "WECHAT_APPID"})
+    if not (os.getenv("WECHAT_SECRET") or os.getenv("WECHAT_APP_SECRET")):
+        checks.append({"level": "warn", "code": "WECHAT_SECRET_MISSING", "message": "缺少 WECHAT_SECRET，微信登录将使用 mock openid，重新登录会产生新用户", "env": "WECHAT_SECRET"})
     if config["klImageSize"] and not re.fullmatch(r"\d+x\d+", config["klImageSize"]):
         checks.append({"level": "warn", "code": "KL_IMAGE_SIZE_INVALID", "message": "KL_IMAGE_SIZE 格式应为 宽x高，例如 1024x1024、1536x1024、1024x1536", "env": "KL_IMAGE_SIZE", "value": config["klImageSize"]})
     if config["objectStorage"].get("strict") and config["objectStorage"].get("mode") != "cos":

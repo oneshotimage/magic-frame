@@ -3,14 +3,16 @@ const { login } = require('./utils/api');
 App({
   globalData: {
     // Local LAN HTTP is only for developer-tool debugging. Real devices should use HTTPS.
-    // apiBaseUrl: 'http://192.168.123.211:8000',
-    apiBaseUrl: "https://images-3-264959-8-1439090877.sh.run.tcloudbase.com",
+    apiBaseUrl: 'http://192.168.123.211:8000',
+    // apiBaseUrl: "https://images-3-264959-8-1439090877.sh.run.tcloudbase.com",
+    // apiBaseUrl: "https://kl-api.bytestrans.info/cloudrun",
     token: '',
     user: null,
     credits: null,
     selectedStyles: ['pixar', 'realistic', 'handdrawn', 'comic'],
     upload: null,
     uploadDataUrl: '',
+    
     currentTask: null,
     previewImage: '',
     currentOrder: null

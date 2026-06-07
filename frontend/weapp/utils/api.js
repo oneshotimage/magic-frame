@@ -180,6 +180,7 @@ function login(userInfo = {}) {
     timeout: 15000,
     data: {
       code,
+      bindAccessToken: getAppSafe().globalData.token || wx.getStorageSync('accessToken') || '',
       device: wx.getSystemInfoSync(),
       userInfo
     }

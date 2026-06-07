@@ -3,5 +3,10 @@ main = "index.js"
 compatibility_date = "2026-05-31"
 account_id = "ade026028635934e3bcf9af5fee7af23"
 
+routes = [
+  { pattern = "kl-api.bytestrans.info", zone_name = "bytestrans.info", custom_domain = true }
+]
+
 [vars]
 UPSTREAM_HOST = "api.kl-api.info"
+CLOUDRUN_UPSTREAM = "https://images-3-264959-8-1439090877.sh.run.tcloudbase.com"

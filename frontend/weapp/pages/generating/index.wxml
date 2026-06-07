@@ -21,7 +21,7 @@
     </view>
 
     <view class="percent-row">
-      <text class="percent-number">{{task.progress || 0}}</text>
+      <text class="percent-number">{{displayProgress || 0}}</text>
       <text class="percent-mark">%</text>
     </view>
     <view class="generating-title">AI正在为您创作艺术写真</view>
@@ -29,7 +29,11 @@
       <text class="elapsed-label">已等待</text>
       <text class="elapsed-value">{{elapsedText}}</text>
     </view>
-    <view class="generating-subtitle">预计还需 5~15 秒，请耐心等待</view>
+    <view class="elapsed-row remaining-row">
+      <text class="elapsed-label">预计剩余</text>
+      <text class="elapsed-value">{{remainingText}}</text>
+    </view>
+    <view class="generating-subtitle">{{estimateText}}，请耐心等待</view>
   </view>
 
   <view class="tips-panel">

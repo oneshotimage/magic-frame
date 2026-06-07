@@ -17,12 +17,18 @@
 PUBLIC_BASE_URL=https://你的云托管服务域名
 KL_API_BASE_URL=https://api.kl-api.info
 KL_API_TOKEN=你的 KL API Token
+WECHAT_APPID=你的微信小程序 AppID
+WECHAT_SECRET=你的微信小程序 AppSecret
+WECHAT_CODE2SESSION_TIMEOUT_SECONDS=10
 KL_IMAGE_MODEL=gpt-image-2
 KL_IMAGE_ENDPOINT=/v1/images/edits
 KL_IMAGE_SIZE=1024x1024
 KL_TIMEOUT_SECONDS=600
+KL_RETRY_5XX_COUNT=1
+KL_RETRY_BACKOFF_SECONDS=120
 AI_MOCK_GENERATION=0
 AI_UNLIMITED_CREDITS=0
+GENERATION_SECONDS_PER_IMAGE=60
 LOG_LEVEL=info
 ADMIN_USERNAME=admin
 ADMIN_PASSWORD=请改成强密码
@@ -45,6 +51,16 @@ KL_USER_AGENT=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTM
 
 `KL_FORCE_IPV4=1` 会让后端访问 KL/Worker 时只使用 IPv4 解析结果，避免容器没有 IPv6 出口时报 `Network is unreachable`。
 `KL_USER_AGENT` 会覆盖 Python 默认请求标识，避免 Cloudflare Browser Integrity Check 把云托管后端识别成异常客户端。
+
+如果 KL 返回 Cloudflare `Error 524`，说明 KL 上游超过 Cloudflare 120 秒读超时。可以先用：
+
+```bash
+KL_IMAGE_SIZE=1024x1024
+KL_RETRY_5XX_COUNT=1
+KL_RETRY_BACKOFF_SECONDS=120
+```
+
+如果仍频繁超时，优先降低生成尺寸或减少单次生成风格数；`KL_TIMEOUT_SECONDS=600` 不能突破 KL 自身 Cloudflare 的 120 秒限制。
 
 如果仍然返回 Cloudflare `Error 1010: browser_signature_banned`，说明请求在 Worker 执行前被 Cloudflare 安全规则拦截。需要到 Cloudflare 控制台关闭或跳过对应规则：
 

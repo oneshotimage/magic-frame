@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from typing import Any
+import os
 import re
 import threading
 import time
@@ -44,7 +45,7 @@ router = APIRouter()
 
 @router.post("/auth/wechat-login")
 def wechat_login(body: LoginReq) -> dict[str, Any]:
-    user = get_or_create_user(body.code)
+    user = get_or_create_user(body.code, body.bindAccessToken)
     if body.userInfo:
         nickname = body.userInfo.get("nickname") or body.userInfo.get("nickName")
         avatar_url = body.userInfo.get("avatarUrl") or body.userInfo.get("avatar_url")
@@ -276,6 +277,7 @@ def create_generation(body: GenerationCreateReq, req: Request, user_id: str = De
         "progress": 8,
         "size": generation_size,
         "sizeSource": generation_size_source,
+        "generationSecondsPerImage": int(os.getenv("GENERATION_SECONDS_PER_IMAGE", "60")),
         "charged": False,
         "startedAt": "",
         "completedAt": "",

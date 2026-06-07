@@ -180,18 +180,32 @@ DATA_DIR/objects
 PUBLIC_BASE_URL=https://你的云托管服务域名
 KL_API_BASE_URL=https://api.kl-api.info
 KL_API_TOKEN=你的 KL API Token
+WECHAT_APPID=你的微信小程序 AppID
+WECHAT_SECRET=你的微信小程序 AppSecret
+WECHAT_CODE2SESSION_TIMEOUT_SECONDS=10
 KL_IMAGE_MODEL=gpt-image-2
 KL_IMAGE_ENDPOINT=/v1/images/edits
 KL_IMAGE_SIZE=1024x1024
 KL_TIMEOUT_SECONDS=600
+KL_RETRY_5XX_COUNT=1
+KL_RETRY_BACKOFF_SECONDS=120
 AI_MOCK_GENERATION=0
 AI_UNLIMITED_CREDITS=0
+GENERATION_SECONDS_PER_IMAGE=60
 LOG_LEVEL=info
 ADMIN_USERNAME=admin
 ADMIN_PASSWORD=请改成强密码
 ```
 
 `/health` 会返回数据库和对象存储状态，部署后可先检查 `runtime.database` 与 `runtime.objectStorage`。
+
+## 微信登录
+
+配置 `WECHAT_APPID` 和 `WECHAT_SECRET` 后，后端会使用微信 `jscode2session` 将小程序 `wx.login()` 返回的 code 换成稳定 `openid`，并用 `openid` 作为用户唯一标识。
+
+未配置微信环境变量时只使用本地 mock openid，`wx.login()` 的 code 每次都会变化，重新登录会创建不同用户，不适合生产。
+
+小程序登录时会把本地旧 `accessToken` 作为 `bindAccessToken` 传给后端。升级到真实 `openid` 后，如果旧 token 仍有效，后端会把旧用户绑定到真实 `openid`，旧作品历史继续归属同一个用户。
 
 ## KL API
 
@@ -202,15 +216,21 @@ ADMIN_PASSWORD=请改成强密码
 ```bash
 KL_API_BASE_URL=https://api.kl-api.info
 KL_API_TOKEN=你的 KL API Token
+WECHAT_APPID=你的微信小程序 AppID
+WECHAT_SECRET=你的微信小程序 AppSecret
+WECHAT_CODE2SESSION_TIMEOUT_SECONDS=10
 KL_IMAGE_MODEL=gpt-image-2
 KL_IMAGE_ENDPOINT=/v1/images/edits
 KL_IMAGE_SIZE=1024x1024
 KL_TIMEOUT_SECONDS=600
+KL_RETRY_5XX_COUNT=1
+KL_RETRY_BACKOFF_SECONDS=120
 PUBLIC_BASE_URL=http://127.0.0.1:8000
 python3 -m uvicorn backend.main:app --reload --port 8000
 ```
 
 `KL_IMAGE_SIZE` 控制真实生成图片尺寸，格式为 `宽x高`，例如 `1024x1024`、`1536x1024`、`1024x1536`。如果配置了 `KL_IMAGE_SIZE`，服务端会优先使用环境变量，覆盖小程序请求里的 `size`。
+`KL_RETRY_5XX_COUNT` 和 `KL_RETRY_BACKOFF_SECONDS` 用于 KL/Cloudflare 返回 500/502/503/504/524 时等待后重试。524 表示 KL 上游超过 Cloudflare 120 秒读超时，重试只能缓解临时拥堵；如果持续出现，应降低 `KL_IMAGE_SIZE` 或改用 KL 的异步生成接口。
 
 如果本地网络需要代理：
 

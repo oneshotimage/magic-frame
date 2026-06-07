@@ -6,6 +6,7 @@ from pydantic import BaseModel, ConfigDict
 
 class LoginReq(BaseModel):
     code: str | None = None
+    bindAccessToken: str | None = None
     device: dict[str, Any] | None = None
     userInfo: dict[str, Any] | None = None
 

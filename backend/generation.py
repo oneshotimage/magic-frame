@@ -218,6 +218,17 @@ def simple_poster_png() -> bytes:
     )
 
 
+def kl_retry_delay_seconds(detail: str, default_delay: int) -> int:
+    try:
+        payload = json.loads(detail)
+        value = int(payload.get("retry_after") or 0)
+        if value > 0:
+            return value
+    except Exception:  # noqa: BLE001
+        pass
+    return default_delay
+
+
 def call_kl_image2(image_data_url: str, prompt: str, size: str) -> dict[str, Any]:
     token = os.getenv("KL_API_TOKEN") or os.getenv("KL_API_KEY")
     if not token:
@@ -232,6 +243,8 @@ def call_kl_image2(image_data_url: str, prompt: str, size: str) -> dict[str, Any
     timeout_seconds = int(os.getenv("KL_TIMEOUT_SECONDS", "600"))
     force_ipv4 = truthy_env("KL_FORCE_IPV4")
     user_agent = os.getenv("KL_USER_AGENT") or "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0 Safari/537.36"
+    retry_count = max(0, int(os.getenv("KL_RETRY_5XX_COUNT", "1")))
+    retry_delay_seconds = max(0, int(os.getenv("KL_RETRY_BACKOFF_SECONDS", "120")))
 
     match = re.match(r"^data:([^;]+);base64,(.*)$", image_data_url)
     if not match:
@@ -290,70 +303,107 @@ def call_kl_image2(image_data_url: str, prompt: str, size: str) -> dict[str, Any
         "forceIpv4": force_ipv4,
         "userAgentConfigured": bool(os.getenv("KL_USER_AGENT")),
         "timeoutSeconds": timeout_seconds,
+        "retry5xxCount": retry_count,
+        "retryBackoffSeconds": retry_delay_seconds,
     })
-    try:
+    for attempt in range(retry_count + 1):
+        attempt_started = time.time()
         with force_ipv4_getaddrinfo(force_ipv4):
-            resp_ctx = opener.open(req, timeout=timeout_seconds)
-        with resp_ctx as resp:
-            raw_text = resp.read().decode("utf-8", errors="replace")
-            payload = json.loads(raw_text)
-            output_url = extract_output_url(payload)
-            if not output_url:
-                console_log("error", "KL_IMAGE_RESPONSE_INVALID", "KL API 未返回图片字段", {
+            try:
+                resp_ctx = opener.open(req, timeout=timeout_seconds)
+                with resp_ctx as resp:
+                    raw_text = resp.read().decode("utf-8", errors="replace")
+                    payload = json.loads(raw_text)
+                    output_url = extract_output_url(payload)
+                    if not output_url:
+                        console_log("error", "KL_IMAGE_RESPONSE_INVALID", "KL API 未返回图片字段", {
+                            "target": safe_url(target),
+                            "httpStatus": resp.status,
+                            "attempt": attempt + 1,
+                            "maxAttempts": retry_count + 1,
+                            "elapsedMs": int((time.time() - started) * 1000),
+                            "responseSummary": summarize_payload(payload),
+                        })
+                        raise RuntimeError(f"KL API 未返回图片字段: {summarize_payload(payload)}")
+                    console_log("info", "KL_IMAGE_RESPONSE_OK", "KL 图片接口调用成功", {
+                        "target": safe_url(target),
+                        "httpStatus": resp.status,
+                        "attempt": attempt + 1,
+                        "maxAttempts": retry_count + 1,
+                        "attemptElapsedMs": int((time.time() - attempt_started) * 1000),
+                        "elapsedMs": int((time.time() - started) * 1000),
+                        "responseKeys": list(payload.keys()) if isinstance(payload, dict) else [],
+                    })
+                    return {
+                        "url": output_url,
+                        "httpStatus": resp.status,
+                        "elapsedMs": int((time.time() - started) * 1000),
+                        "target": target,
+                        "model": model,
+                        "endpoint": endpoint,
+                        "requestBytes": len(body),
+                        "attempts": attempt + 1,
+                        "responseKeys": list(payload.keys()) if isinstance(payload, dict) else [],
+                        "rawSummary": summarize_payload(payload),
+                    }
+            except error.HTTPError as exc:
+                detail = exc.read().decode("utf-8", errors="replace")
+                cloudflare_hint = ""
+                retryable_hint = ""
+                if exc.code == 403 and ("error_code\":1010" in detail or "browser_signature_banned" in detail):
+                    cloudflare_hint = "Cloudflare 1010 browser_signature_banned，Worker 前置安全规则拦截了云托管请求。请在 Cloudflare 关闭 Browser Integrity Check/Bot Fight Mode，或为该 Worker/自定义域名添加 WAF Skip 规则。"
+                if exc.code in {500, 502, 503, 504, 524}:
+                    retryable_hint = "KL/Cloudflare 上游响应超时或临时错误，可等待后重试；524 表示 KL 上游超过 Cloudflare 120 秒读超时。"
+                if retryable_hint and attempt < retry_count:
+                    delay = kl_retry_delay_seconds(detail, retry_delay_seconds)
+                    console_log("warn", "KL_IMAGE_HTTP_RETRY", "KL 图片接口返回可重试 HTTP 错误，等待后重试", {
+                        "target": safe_url(target),
+                        "httpStatus": exc.code,
+                        "attempt": attempt + 1,
+                        "maxAttempts": retry_count + 1,
+                        "attemptElapsedMs": int((time.time() - attempt_started) * 1000),
+                        "elapsedMs": int((time.time() - started) * 1000),
+                        "retryAfterSeconds": delay,
+                        "detail": detail,
+                        "retryableHint": retryable_hint,
+                    })
+                    time.sleep(delay)
+                    continue
+                console_log("error", "KL_IMAGE_HTTP_ERROR", "KL 图片接口返回 HTTP 错误", {
                     "target": safe_url(target),
-                    "httpStatus": resp.status,
+                    "httpStatus": exc.code,
+                    "attempt": attempt + 1,
+                    "maxAttempts": retry_count + 1,
                     "elapsedMs": int((time.time() - started) * 1000),
-                    "responseSummary": summarize_payload(payload),
+                    "detail": detail,
+                    "cloudflareHint": cloudflare_hint,
+                    "retryableHint": retryable_hint,
                 })
-                raise RuntimeError(f"KL API 未返回图片字段: {summarize_payload(payload)}")
-            console_log("info", "KL_IMAGE_RESPONSE_OK", "KL 图片接口调用成功", {
-                "target": safe_url(target),
-                "httpStatus": resp.status,
-                "elapsedMs": int((time.time() - started) * 1000),
-                "responseKeys": list(payload.keys()) if isinstance(payload, dict) else [],
-            })
-            return {
-                "url": output_url,
-                "httpStatus": resp.status,
-                "elapsedMs": int((time.time() - started) * 1000),
-                "target": target,
-                "model": model,
-                "endpoint": endpoint,
-                "requestBytes": len(body),
-                "responseKeys": list(payload.keys()) if isinstance(payload, dict) else [],
-                "rawSummary": summarize_payload(payload),
-            }
-    except error.HTTPError as exc:
-        detail = exc.read().decode("utf-8", errors="replace")
-        cloudflare_hint = ""
-        if exc.code == 403 and ("error_code\":1010" in detail or "browser_signature_banned" in detail):
-            cloudflare_hint = "Cloudflare 1010 browser_signature_banned，Worker 前置安全规则拦截了云托管请求。请在 Cloudflare 关闭 Browser Integrity Check/Bot Fight Mode，或为该 Worker/自定义域名添加 WAF Skip 规则。"
-        console_log("error", "KL_IMAGE_HTTP_ERROR", "KL 图片接口返回 HTTP 错误", {
-            "target": safe_url(target),
-            "httpStatus": exc.code,
-            "elapsedMs": int((time.time() - started) * 1000),
-            "detail": detail,
-            "cloudflareHint": cloudflare_hint,
-        })
-        if cloudflare_hint:
-            raise RuntimeError(f"KL API HTTP {exc.code}: {detail}; {cloudflare_hint}") from exc
-        raise RuntimeError(f"KL API HTTP {exc.code}: {detail}") from exc
-    except Exception as exc:
-        network_hint = ""
-        message = str(exc)
-        if "Network is unreachable" in message or "Errno 101" in message:
-            network_hint = "云托管容器无法访问 KL/Cloudflare Worker 地址，请检查云托管出网能力、域名解析、IPv6 出口；可设置 KL_FORCE_IPV4=1 强制使用 IPv4。"
-        console_log("error", "KL_IMAGE_REQUEST_ERROR", "KL 图片接口调用异常", {
-            "target": safe_url(target),
-            "elapsedMs": int((time.time() - started) * 1000),
-            "exceptionType": type(exc).__name__,
-            "message": message,
-            "networkHint": network_hint,
-            "forceIpv4": force_ipv4,
-        })
-        if network_hint:
-            raise RuntimeError(f"{message}; {network_hint}") from exc
-        raise
+                if cloudflare_hint:
+                    raise RuntimeError(f"KL API HTTP {exc.code}: {detail}; {cloudflare_hint}") from exc
+                if retryable_hint:
+                    raise RuntimeError(f"KL API HTTP {exc.code}: {detail}; {retryable_hint}") from exc
+                raise RuntimeError(f"KL API HTTP {exc.code}: {detail}") from exc
+            except Exception as exc:
+                network_hint = ""
+                message = str(exc)
+                if "Network is unreachable" in message or "Errno 101" in message:
+                    network_hint = "云托管容器无法访问 KL/Cloudflare Worker 地址，请检查云托管出网能力、域名解析、IPv6 出口；可设置 KL_FORCE_IPV4=1 强制使用 IPv4。"
+                console_log("error", "KL_IMAGE_REQUEST_ERROR", "KL 图片接口调用异常", {
+                    "target": safe_url(target),
+                    "attempt": attempt + 1,
+                    "maxAttempts": retry_count + 1,
+                    "elapsedMs": int((time.time() - started) * 1000),
+                    "exceptionType": type(exc).__name__,
+                    "message": message,
+                    "networkHint": network_hint,
+                    "forceIpv4": force_ipv4,
+                })
+                if network_hint:
+                    raise RuntimeError(f"{message}; {network_hint}") from exc
+                raise
+
+    raise RuntimeError("KL API 调用失败：重试次数已用尽")
 
 
 def process_generation(task_id: str) -> None:

@@ -1,4 +1,7 @@
-const UPSTREAM = 'https://api.kl-api.info';
+const KL_UPSTREAM = 'https://api.kl-api.info';
+const CLOUDRUN_UPSTREAM = 'https://images-3-264959-8-1439090877.sh.run.tcloudbase.com';
+const CLOUDRUN_PREFIX = '/cloudrun';
+const PROXY_VERSION = '2026-06-07-cloudrun-proxy-v2';
 
 function corsHeaders() {
   return {
@@ -32,7 +35,7 @@ function filteredRequestHeaders(headers) {
   return next;
 }
 
-function filteredResponseHeaders(headers) {
+function filteredResponseHeaders(headers, upstream, route) {
   const next = new Headers(headers);
   next.delete('content-security-policy');
   next.delete('content-security-policy-report-only');
@@ -40,7 +43,9 @@ function filteredResponseHeaders(headers) {
   for (const [key, value] of Object.entries(corsHeaders())) {
     next.set(key, value);
   }
-  next.set('x-kl-proxy-upstream', UPSTREAM);
+  next.set('x-kl-proxy-upstream', upstream);
+  next.set('x-kl-proxy-route', route);
+  next.set('x-kl-proxy-version', PROXY_VERSION);
   return next;
 }
 
@@ -57,21 +62,29 @@ export default {
       return new Response(null, { status: 204, headers: corsHeaders() });
     }
 
-    if (!authorized(request, env)) {
+    const incoming = new URL(request.url);
+    const isCloudrun = incoming.pathname === CLOUDRUN_PREFIX || incoming.pathname.startsWith(`${CLOUDRUN_PREFIX}/`);
+
+    if (!isCloudrun && !authorized(request, env)) {
       return json({ code: 'PROXY_UNAUTHORIZED', message: 'missing or invalid x-kl-proxy-token' }, 401);
     }
 
-    const incoming = new URL(request.url);
     if (incoming.pathname === '/' || incoming.pathname === '/health') {
       return json({
         status: 'ok',
         service: 'kl-api-proxy',
-        upstream: UPSTREAM,
+        version: PROXY_VERSION,
+        upstream: KL_UPSTREAM,
+        cloudrunUpstream: env.CLOUDRUN_UPSTREAM || CLOUDRUN_UPSTREAM,
+        cloudrunPrefix: CLOUDRUN_PREFIX,
         protected: Boolean(env.PROXY_ACCESS_TOKEN)
       });
     }
 
-    const upstream = new URL(incoming.pathname + incoming.search, UPSTREAM);
+    const upstreamBase = isCloudrun ? (env.CLOUDRUN_UPSTREAM || CLOUDRUN_UPSTREAM) : KL_UPSTREAM;
+    const upstreamPath = isCloudrun ? incoming.pathname.slice(CLOUDRUN_PREFIX.length) || '/' : incoming.pathname;
+    const route = isCloudrun ? 'cloudrun' : 'kl';
+    const upstream = new URL(upstreamPath + incoming.search, upstreamBase);
     const init = {
       method: request.method,
       headers: filteredRequestHeaders(request.headers),
@@ -84,12 +97,12 @@ export default {
       return new Response(response.body, {
         status: response.status,
         statusText: response.statusText,
-        headers: filteredResponseHeaders(response.headers)
+        headers: filteredResponseHeaders(response.headers, upstreamBase, route)
       });
     } catch (error) {
       return json({
         code: 'UPSTREAM_FETCH_FAILED',
-        message: 'failed to reach KL API upstream',
+        message: `failed to reach ${isCloudrun ? 'CloudBase Run' : 'KL API'} upstream`,
         upstream: upstream.toString(),
         error: error instanceof Error ? error.message : String(error)
       }, 502);

@@ -14,8 +14,13 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 os.environ.setdefault("AI_MOCK_GENERATION", "1")
+os.environ["PUBLIC_BASE_URL"] = "http://127.0.0.1:8000"
 os.environ["DATABASE_URL"] = "sqlite:///.data/test_api.db"
 for key in (
+    "WECHAT_APPID",
+    "WECHAT_APP_ID",
+    "WECHAT_SECRET",
+    "WECHAT_APP_SECRET",
     "COS_SECRET_ID",
     "COS_SECRET_KEY",
     "TENCENTCLOUD_SECRET_ID",
@@ -32,6 +37,7 @@ os.environ["OBJECT_STORAGE_STRICT"] = "0"
 
 from backend import main
 from backend import generation
+from backend import services
 from backend.main import app, svg_data_url
 
 
@@ -66,6 +72,60 @@ def test_auth_refresh_issues_new_access_token() -> None:
     assert refreshed.status_code == 200, refreshed.text
     assert refreshed.json()["accessToken"] != login.json()["accessToken"]
     assert refreshed.json()["expiresIn"] == 7200
+
+
+def test_wechat_code2session_openid_is_stable(monkeypatch) -> None:
+    class FakeResponse:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *_args):
+            return False
+
+        def read(self) -> bytes:
+            return json.dumps({"openid": "wx-openid-stable", "unionid": "union-1", "session_key": "session"}).encode("utf-8")
+
+    monkeypatch.setenv("WECHAT_APPID", "appid")
+    monkeypatch.setenv("WECHAT_SECRET", "secret")
+    monkeypatch.setattr(services.request, "urlopen", lambda *_args, **_kwargs: FakeResponse())
+
+    first = client.post("/auth/wechat-login", json={"code": "code-a"})
+    second = client.post("/auth/wechat-login", json={"code": "code-b"})
+
+    assert first.status_code == 200, first.text
+    assert second.status_code == 200, second.text
+    assert first.json()["user"]["userId"] == second.json()["user"]["userId"]
+    assert first.json()["user"]["openId"] == "wx-openid-stable"
+    assert first.json()["user"]["unionId"] == "union-1"
+
+
+def test_wechat_login_binds_existing_token_to_real_openid(monkeypatch) -> None:
+    legacy = client.post("/auth/wechat-login", json={"code": f"legacy-code-{time.time_ns()}"})
+    assert legacy.status_code == 200, legacy.text
+    legacy_user_id = legacy.json()["user"]["userId"]
+
+    class FakeResponse:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *_args):
+            return False
+
+        def read(self) -> bytes:
+            return json.dumps({"openid": "wx-openid-bind", "session_key": "session"}).encode("utf-8")
+
+    monkeypatch.setenv("WECHAT_APPID", "appid")
+    monkeypatch.setenv("WECHAT_SECRET", "secret")
+    monkeypatch.setattr(services.request, "urlopen", lambda *_args, **_kwargs: FakeResponse())
+
+    bound = client.post("/auth/wechat-login", json={
+        "code": "real-code",
+        "bindAccessToken": legacy.json()["accessToken"],
+    })
+
+    assert bound.status_code == 200, bound.text
+    assert bound.json()["user"]["userId"] == legacy_user_id
+    assert bound.json()["user"]["openId"] == "wx-openid-bind"
 
 
 def test_health() -> None:
@@ -176,6 +236,30 @@ def test_generation_size_can_be_configured_by_env(monkeypatch) -> None:
     assert task.json()["sizeSource"] == "env"
 
 
+def test_generation_progress_estimate_uses_seconds_per_image(monkeypatch) -> None:
+    headers = auth_headers()
+    monkeypatch.setenv("GENERATION_SECONDS_PER_IMAGE", "60")
+
+    upload = client.post(
+        "/upload/image",
+        headers=headers,
+        json={"dataUrl": svg_data_url("Progress", "input"), "width": 1024, "height": 1024},
+    )
+    assert upload.status_code == 200, upload.text
+
+    task = client.post(
+        "/generation/create",
+        headers=headers,
+        json={"inputImageId": upload.json()["imageId"], "styles": ["pixar", "comic"]},
+    )
+    assert task.status_code == 200, task.text
+    data = task.json()
+    assert data["generationSecondsPerImage"] == 60
+    assert data["estimatedTotalMs"] == 120000
+    assert data["estimatedRemainingMs"] >= 0
+    assert data["estimatedProgress"] >= 0
+
+
 def test_orders_payment_share_feedback() -> None:
     headers = auth_headers()
 
@@ -274,6 +358,47 @@ def test_force_ipv4_getaddrinfo_filters_ipv6(monkeypatch) -> None:
 
     assert filtered == [fake_results[1]]
     assert generation.socket.getaddrinfo is not original_getaddrinfo
+
+
+def test_call_kl_image2_retries_cloudflare_524(monkeypatch) -> None:
+    attempts = {"count": 0}
+    retry_detail = json.dumps({"error_code": 524, "retry_after": 1})
+
+    class FakeSuccessResponse:
+        status = 200
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *_args):
+            return False
+
+        def read(self) -> bytes:
+            return json.dumps({"data": [{"url": "https://example.com/out.png"}]}).encode("utf-8")
+
+    class FakeHTTPError(generation.error.HTTPError):
+        def read(self) -> bytes:
+            return retry_detail.encode("utf-8")
+
+    class FakeOpener:
+        def open(self, req, timeout):
+            attempts["count"] += 1
+            if attempts["count"] == 1:
+                raise FakeHTTPError(req.full_url, 524, "A timeout occurred", {}, None)
+            return FakeSuccessResponse()
+
+    monkeypatch.setenv("KL_API_TOKEN", "test-token")
+    monkeypatch.setenv("KL_API_BASE_URL", "https://api.kl-api.info")
+    monkeypatch.setenv("KL_IMAGE_ENDPOINT", "/v1/images/edits")
+    monkeypatch.setenv("KL_RETRY_5XX_COUNT", "1")
+    monkeypatch.setenv("KL_RETRY_BACKOFF_SECONDS", "120")
+    monkeypatch.setattr(generation.request, "build_opener", lambda *args: FakeOpener())
+    monkeypatch.setattr(generation.time, "sleep", lambda _seconds: None)
+
+    result = main.call_kl_image2(svg_data_url("Demo", "input"), "prompt", "1024x1024")
+
+    assert result["url"] == "https://example.com/out.png"
+    assert result["attempts"] == 2
 
 
 def test_remote_generation_url_is_restored_to_object_storage(monkeypatch) -> None:

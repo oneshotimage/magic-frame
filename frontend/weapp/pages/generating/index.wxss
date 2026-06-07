@@ -233,6 +233,11 @@
   box-shadow: 0 8rpx 28rpx rgba(255, 184, 0, 0.12);
 }
 
+.remaining-row {
+  margin-top: 12rpx;
+  background: rgba(255, 255, 255, 0.72);
+}
+
 .elapsed-label {
   color: #666666;
   font-size: 24rpx;
