@@ -11,7 +11,7 @@ from fastapi import APIRouter, Depends, File, Form, Request, UploadFile
 
 from ..catalog import PACKAGES, STYLE_PROMPTS
 from ..cloud_runtime import parse_data_url
-from ..core import AppError, OBJECT_STORAGE, STATE, add_debug_check, clone, gen_id, generation_image_size, now_iso, persist_state, runtime_config, truthy_env
+from ..core import AppError, OBJECT_STORAGE, STATE, add_debug_check, clone, gen_id, generation_image_size, now_iso, persist_auth_state, persist_state, runtime_config, truthy_env
 from ..generation import process_generation, simple_poster_png
 from ..schemas import (
     ConsumeReq,
@@ -54,7 +54,7 @@ def wechat_login(body: LoginReq) -> dict[str, Any]:
         if avatar_url:
             user["avatarUrl"] = avatar_url
         user["updatedAt"] = now_iso()
-        persist_state()
+        persist_auth_state()
     return {**issue_tokens(user["userId"]), "user": clone(user), "credits": credits_response(user["userId"])}
 
 @router.post("/auth/refresh")
@@ -66,7 +66,7 @@ def logout(user_id: str = Depends(current_user_id)) -> dict[str, Any]:
     for token, owner in list(STATE.tokens.items()):
         if owner == user_id:
             STATE.tokens.pop(token, None)
-    persist_state()
+    persist_auth_state()
     return {"ok": True}
 
 @router.get("/user/profile")

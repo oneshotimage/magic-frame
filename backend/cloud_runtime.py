@@ -210,6 +210,24 @@ class SnapshotStore:
                 self._save_relational(conn, payload, "?")
                 conn.commit()
 
+    def save_auth_state(self, payload: dict[str, Any]) -> None:
+        if not self.available:
+            return
+        with self._save_lock:
+            if self.kind == "mysql":
+                with self._mysql_conn() as conn:
+                    try:
+                        with conn.cursor() as cur:
+                            self._save_auth_relational(cur, payload, "%s")
+                        conn.commit()
+                    except Exception:
+                        conn.rollback()
+                        raise
+                return
+            with self._sqlite_conn() as conn:
+                self._save_auth_relational(conn, payload, "?")
+                conn.commit()
+
     def _mysql_schema(self) -> list[str]:
         longtext = "LONGTEXT"
         text = "TEXT"
@@ -525,24 +543,14 @@ class SnapshotStore:
         for table in reversed(self.BUSINESS_TABLES):
             self._execute(cur, f"DELETE FROM {table}")
         many = placeholder
-        for user in payload.get("users", {}).values():
-            self._execute(cur, f"INSERT INTO users (user_id, open_id, union_id, nickname, avatar_url, wechat_bound_at, created_at, updated_at, raw_json) VALUES ({','.join([many] * 9)})", (
-                user.get("userId"), user.get("openId", ""), user.get("unionId", ""), user.get("nickname", ""), user.get("avatarUrl", ""),
-                user.get("wechatBoundAt", ""), user.get("createdAt", ""), user.get("updatedAt", ""), self._json(user),
-            ))
+        self._save_auth_relational(cur, payload, placeholder, replace_tokens=False, now=now)
+        self._execute(cur, "DELETE FROM auth_tokens")
+        self._execute(cur, "DELETE FROM refresh_tokens")
         for token, user_id in payload.get("tokens", {}).items():
-            self._execute(cur, f"INSERT INTO auth_tokens (token, user_id, created_at) VALUES ({','.join([many] * 3)})", (token, user_id, now))
+            self._insert_auth_token(cur, placeholder, token, user_id, now)
         for token, user_id in payload.get("refresh_tokens", {}).items():
-            self._execute(cur, f"INSERT INTO refresh_tokens (token, user_id, created_at) VALUES ({','.join([many] * 3)})", (token, user_id, now))
-        for credits in payload.get("credits", {}).values():
-            self._execute(cur, f"INSERT INTO credits (user_id, balance, total_credits, used_credits, today_ad_count, daily_ad_limit, updated_at, raw_json) VALUES ({','.join([many] * 8)})", (
-                credits.get("userId"), int(credits.get("balance", 0)), int(credits.get("totalCredits", 0)), int(credits.get("usedCredits", 0)),
-                int(credits.get("todayAdCount", 0)), int(credits.get("dailyAdLimit", 3)), credits.get("updatedAt", ""), self._json(credits),
-            ))
-        for item in payload.get("credit_logs", []):
-            self._execute(cur, f"INSERT INTO credit_logs (log_id, user_id, type, amount, biz_id, created_at, raw_json) VALUES ({','.join([many] * 7)})", (
-                item.get("id"), item.get("userId", ""), item.get("type", ""), int(item.get("amount", 0)), item.get("bizId", ""), item.get("createdAt", ""), self._json(item),
-            ))
+            self._insert_refresh_token(cur, placeholder, token, user_id, now)
+        many = placeholder
         for upload in payload.get("uploads", {}).values():
             self._execute(cur, f"INSERT INTO uploads (image_id, user_id, url, object_url, object_key, storage, input_image_data_url, width, height, size_bytes, mime_type, expires_at, created_at, raw_json) VALUES ({','.join([many] * 14)})", (
                 upload.get("imageId"), upload.get("userId", ""), upload.get("url", ""), upload.get("objectUrl", ""), upload.get("objectKey", ""),
@@ -588,6 +596,40 @@ class SnapshotStore:
                 log_id, item.get("level", "info"), item.get("code", ""), item.get("path", ""), item.get("method", ""),
                 int(item.get("statusCode", 0) or 0), int(item.get("elapsedMs", 0) or 0), item.get("createdAt", ""), self._json(item),
             ))
+
+    def _save_auth_relational(self, cur: Any, payload: dict[str, Any], placeholder: str, *, replace_tokens: bool = True, now: int | None = None) -> None:
+        now = now or int(time.time())
+        many = placeholder
+        for user in payload.get("users", {}).values():
+            self._execute(cur, f"DELETE FROM users WHERE user_id={placeholder}", (user.get("userId"),))
+            self._execute(cur, f"INSERT INTO users (user_id, open_id, union_id, nickname, avatar_url, wechat_bound_at, created_at, updated_at, raw_json) VALUES ({','.join([many] * 9)})", (
+                user.get("userId"), user.get("openId", ""), user.get("unionId", ""), user.get("nickname", ""), user.get("avatarUrl", ""),
+                user.get("wechatBoundAt", ""), user.get("createdAt", ""), user.get("updatedAt", ""), self._json(user),
+            ))
+        for credits in payload.get("credits", {}).values():
+            self._execute(cur, f"DELETE FROM credits WHERE user_id={placeholder}", (credits.get("userId"),))
+            self._execute(cur, f"INSERT INTO credits (user_id, balance, total_credits, used_credits, today_ad_count, daily_ad_limit, updated_at, raw_json) VALUES ({','.join([many] * 8)})", (
+                credits.get("userId"), int(credits.get("balance", 0)), int(credits.get("totalCredits", 0)), int(credits.get("usedCredits", 0)),
+                int(credits.get("todayAdCount", 0)), int(credits.get("dailyAdLimit", 3)), credits.get("updatedAt", ""), self._json(credits),
+            ))
+        self._execute(cur, "DELETE FROM credit_logs")
+        for item in payload.get("credit_logs", []):
+            self._execute(cur, f"INSERT INTO credit_logs (log_id, user_id, type, amount, biz_id, created_at, raw_json) VALUES ({','.join([many] * 7)})", (
+                item.get("id"), item.get("userId", ""), item.get("type", ""), int(item.get("amount", 0)), item.get("bizId", ""), item.get("createdAt", ""), self._json(item),
+            ))
+        if replace_tokens:
+            self._execute(cur, "DELETE FROM auth_tokens")
+            self._execute(cur, "DELETE FROM refresh_tokens")
+            for token, user_id in payload.get("tokens", {}).items():
+                self._insert_auth_token(cur, placeholder, token, user_id, now)
+            for token, user_id in payload.get("refresh_tokens", {}).items():
+                self._insert_refresh_token(cur, placeholder, token, user_id, now)
+
+    def _insert_auth_token(self, cur: Any, placeholder: str, token: str, user_id: str, now: int) -> None:
+        self._execute(cur, f"INSERT INTO auth_tokens (token, user_id, created_at) VALUES ({','.join([placeholder] * 3)})", (token, user_id, now))
+
+    def _insert_refresh_token(self, cur: Any, placeholder: str, token: str, user_id: str, now: int) -> None:
+        self._execute(cur, f"INSERT INTO refresh_tokens (token, user_id, created_at) VALUES ({','.join([placeholder] * 3)})", (token, user_id, now))
 
 
 class ObjectStorage:

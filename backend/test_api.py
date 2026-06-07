@@ -229,6 +229,94 @@ def test_legacy_snapshot_can_migrate_to_business_tables(tmp_path, monkeypatch) -
     assert user_count == 1
 
 
+def test_auth_persistence_does_not_rewrite_generation_tables(tmp_path, monkeypatch) -> None:
+    db_path = tmp_path / "auth_perf.db"
+    monkeypatch.setenv("DATABASE_URL", f"sqlite:///{db_path}")
+    store = SnapshotStore()
+    task = {
+        "taskId": "task_keep",
+        "userId": "usr_keep",
+        "inputImageId": "img_keep",
+        "inputImageDataUrl": "data:image/png;base64,AA==",
+        "status": "SUCCESS",
+        "progress": 100,
+        "size": "1024x1024",
+        "sizeSource": "default",
+        "generationSecondsPerImage": 60,
+        "charged": True,
+        "startedAt": "2026-06-07T00:00:00+08:00",
+        "completedAt": "2026-06-07T00:00:01+08:00",
+        "elapsedMs": 1000,
+        "provider": {},
+        "images": [
+            {
+                "imageId": "out_keep",
+                "style": "pixar",
+                "status": "SUCCESS",
+                "url": "https://example.com/a.png",
+                "errorMessage": "",
+                "elapsedMs": 1000,
+                "provider": {},
+            }
+        ],
+        "createdAt": "2026-06-07T00:00:00+08:00",
+        "updatedAt": "2026-06-07T00:00:01+08:00",
+    }
+    store.save({
+        "users": {},
+        "tokens": {},
+        "refresh_tokens": {},
+        "credits": {},
+        "credit_logs": [],
+        "uploads": {},
+        "tasks": {"task_keep": task},
+        "orders": {},
+        "feedback": [],
+        "ad_rewards": [],
+        "generated_assets": {},
+        "admin_tokens": [],
+        "debug_logs": [],
+    })
+
+    auth_payload = {
+        "users": {
+            "usr_auth": {
+                "userId": "usr_auth",
+                "openId": "openid_auth",
+                "unionId": "",
+                "nickname": "auth",
+                "avatarUrl": "",
+                "wechatBoundAt": "",
+                "createdAt": "2026-06-07T00:00:00+08:00",
+                "updatedAt": "2026-06-07T00:00:00+08:00",
+            }
+        },
+        "tokens": {"atk_auth": "usr_auth"},
+        "refresh_tokens": {"rtk_auth": "usr_auth"},
+        "credits": {
+            "usr_auth": {
+                "userId": "usr_auth",
+                "balance": 6,
+                "totalCredits": 6,
+                "usedCredits": 0,
+                "todayAdCount": 0,
+                "dailyAdLimit": 3,
+                "updatedAt": "2026-06-07T00:00:00+08:00",
+            }
+        },
+        "credit_logs": [],
+    }
+    store.save_auth_state(auth_payload)
+
+    with store._sqlite_conn() as conn:
+        task_count = conn.execute("SELECT COUNT(*) FROM generation_tasks").fetchone()[0]
+        image_count = conn.execute("SELECT COUNT(*) FROM generation_images").fetchone()[0]
+        token_count = conn.execute("SELECT COUNT(*) FROM auth_tokens").fetchone()[0]
+    assert task_count == 1
+    assert image_count == 1
+    assert token_count == 1
+
+
 def test_debug_log_levels_are_normalized() -> None:
     assert main.normalize_log_level("debug") == "debug"
     assert main.normalize_log_level("info") == "info"

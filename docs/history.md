@@ -1,5 +1,35 @@
 # 开发历史
 
+## 2026-06-07 - 优化登录和登出接口耗时
+
+任务：排查登录、登出接口耗时约 4 秒的问题，并降低认证链路的数据库写入成本。
+
+原因：
+
+- 登录和登出都会触发 `persist_state()`。
+- 业务表拆分后，旧的 `persist_state()` 仍采用全量保存策略：删除并重写所有业务表。
+- 当 `generation_tasks`、`generation_images`、`uploads`、`generated_assets`、`debug_logs` 等历史数据变多时，认证接口也会被迫重写大量无关数据。
+- 登录还额外包含小程序 `wx.login()`、后端微信 `code2session` 和云网络链路耗时。
+
+改动项：
+
+- 新增 `SnapshotStore.save_auth_state()`，只同步认证相关数据：
+  - `users`
+  - `auth_tokens`
+  - `refresh_tokens`
+  - `credits`
+  - `credit_logs`
+- 新增 `persist_auth_state()`。
+- 登录创建用户、绑定 openid、更新用户信息、签发 token 改为轻量持久化。
+- 登出删除 access token 后改为轻量持久化，不再重写生成任务和图片表。
+- 新增测试，确保 auth 持久化不会清空 `generation_tasks` 和 `generation_images`。
+
+验证：
+
+- 本地模拟 200 个历史任务、800 张生成图记录后，登录约 14ms，登出约 6ms。
+- `python3 -m py_compile backend/cloud_runtime.py backend/core.py backend/services.py backend/routes/public.py backend/test_api.py` 通过。
+- `python3 -m pytest backend/test_api.py` 通过，20 个测试全部成功。
+
 ## 2026-06-07 - 支持生成中任务回访并拆分数据库业务表
 
 任务：生成任务耗时较长时，用户可退出生成中页，从作品集重新进入正在生成的任务；同时将后端持久化从单表快照升级为真实业务表，便于后续维护、查询和运营。

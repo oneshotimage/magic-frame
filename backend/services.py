@@ -19,6 +19,7 @@ from .core import (
     gen_id,
     now_dt,
     now_iso,
+    persist_auth_state,
     persist_state,
     random_token,
     restore_state,
@@ -160,7 +161,7 @@ def get_or_create_user(code: str | None = None, bind_access_token: str | None = 
             if union_id and user.get("unionId") != union_id:
                 user["unionId"] = union_id
                 user["updatedAt"] = now_iso()
-                persist_state()
+                persist_auth_state()
             return user
     bind_user_id = user_id_from_token(bind_access_token)
     if bind_user_id and bind_user_id in STATE.users:
@@ -170,7 +171,7 @@ def get_or_create_user(code: str | None = None, bind_access_token: str | None = 
             user["unionId"] = union_id
         user["wechatBoundAt"] = now_iso()
         user["updatedAt"] = now_iso()
-        persist_state()
+        persist_auth_state()
         return user
     user_id = gen_id("usr")
     user = {
@@ -194,7 +195,7 @@ def get_or_create_user(code: str | None = None, bind_access_token: str | None = 
         "updatedAt": now_iso(),
     }
     STATE.credit_logs.append({"id": gen_id("log"), "userId": user_id, "type": "grant", "amount": 6, "bizId": "new_user", "createdAt": now_iso()})
-    persist_state()
+    persist_auth_state()
     return user
 
 
@@ -203,7 +204,7 @@ def issue_tokens(user_id: str) -> dict[str, str]:
     refresh_token = random_token("rtk")
     STATE.tokens[access_token] = user_id
     STATE.refresh_tokens[refresh_token] = user_id
-    persist_state()
+    persist_auth_state()
     return {"accessToken": access_token, "refreshToken": refresh_token, "expiresIn": 7200}
 
 

@@ -365,6 +365,10 @@ def persist_state() -> None:
     STORE.save(state_snapshot())
 
 
+def persist_auth_state() -> None:
+    STORE.save_auth_state(state_snapshot())
+
+
 restore_state(STORE.load())
 
 
