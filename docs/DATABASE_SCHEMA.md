@@ -73,6 +73,20 @@ SELECT COUNT(*) FROM generation_tasks;
 SELECT COUNT(*) FROM generation_images;
 ```
 
+确认新业务表数据正常后，可以删除旧快照表：
+
+```bash
+python3 scripts/migrate_legacy_snapshot.py --drop-legacy --drop-without-migration
+```
+
+如果还没有执行迁移，也可以迁移成功后同时删除旧表：
+
+```bash
+python3 scripts/migrate_legacy_snapshot.py --drop-legacy
+```
+
+删除前建议先备份数据库，或至少确认 `users`、`generation_tasks`、`generation_images`、`uploads`、`generated_assets` 的行数符合预期。
+
 ## 常用查询
 
 查看某个用户最近任务：

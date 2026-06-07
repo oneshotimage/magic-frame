@@ -179,6 +179,19 @@ class SnapshotStore:
         self.save(legacy, key=key)
         return {"migrated": True, "reason": "", "counts": self.table_counts()}
 
+    def drop_legacy_snapshot_table(self) -> None:
+        if not self.available:
+            return
+        if self.kind == "mysql":
+            with self._mysql_conn() as conn:
+                with conn.cursor() as cur:
+                    cur.execute("DROP TABLE IF EXISTS app_snapshots")
+                conn.commit()
+            return
+        with self._sqlite_conn() as conn:
+            conn.execute("DROP TABLE IF EXISTS app_snapshots")
+            conn.commit()
+
     def save(self, payload: dict[str, Any], key: str = "default") -> None:
         if not self.available:
             return

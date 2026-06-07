@@ -40,6 +40,8 @@ def main() -> int:
     parser.add_argument("--key", default="default", help="legacy snapshot key, default: default")
     parser.add_argument("--dry-run", action="store_true", help="only print status and do not write business tables")
     parser.add_argument("--force", action="store_true", help="overwrite existing business table data")
+    parser.add_argument("--drop-legacy", action="store_true", help="drop legacy app_snapshots table after migration checks")
+    parser.add_argument("--drop-without-migration", action="store_true", help="allow dropping app_snapshots when business tables already contain data")
     parser.add_argument("--json", action="store_true", help="print machine-readable JSON")
     args = parser.parse_args()
 
@@ -60,7 +62,10 @@ def main() -> int:
         "existingBusinessRows": existing_rows,
         "dryRun": args.dry_run,
         "force": args.force,
+        "dropLegacy": args.drop_legacy,
+        "dropWithoutMigration": args.drop_without_migration,
         "migrated": False,
+        "legacyDropped": False,
         "reason": "",
     }
 
@@ -77,6 +82,14 @@ def main() -> int:
         result.update(migration)
         result["businessTableCountsAfter"] = STORE.table_counts()
 
+    if args.drop_legacy and not args.dry_run:
+        can_drop = bool(result.get("migrated")) or (args.drop_without_migration and existing_rows > 0)
+        if can_drop:
+            STORE.drop_legacy_snapshot_table()
+            result["legacyDropped"] = True
+        elif not result["reason"]:
+            result["reason"] = "legacy table not dropped; migrate first or pass --drop-without-migration"
+
     if args.json:
         print(json.dumps(result, ensure_ascii=False, indent=2))
     else:
@@ -87,9 +100,10 @@ def main() -> int:
         if "businessTableCountsAfter" in result:
             print(f"business table rows after: {result['businessTableCountsAfter']}")
         print(f"migrated: {result['migrated']}")
+        print(f"legacy dropped: {result['legacyDropped']}")
         if result["reason"]:
             print(f"reason: {result['reason']}")
-    return 0 if result["migrated"] or args.dry_run else 1
+    return 0 if result["migrated"] or result["legacyDropped"] or args.dry_run else 1
 
 
 if __name__ == "__main__":

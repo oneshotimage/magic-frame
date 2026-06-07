@@ -219,6 +219,14 @@ def test_legacy_snapshot_can_migrate_to_business_tables(tmp_path, monkeypatch) -
     with store._sqlite_conn() as conn:
         row = conn.execute("SELECT user_id, open_id FROM users").fetchone()
     assert row == ("usr_legacy", "openid_legacy")
+    store.drop_legacy_snapshot_table()
+    with store._sqlite_conn() as conn:
+        legacy_table = conn.execute(
+            "SELECT name FROM sqlite_master WHERE type='table' AND name='app_snapshots'"
+        ).fetchone()
+        user_count = conn.execute("SELECT COUNT(*) FROM users").fetchone()[0]
+    assert legacy_table is None
+    assert user_count == 1
 
 
 def test_debug_log_levels_are_normalized() -> None:

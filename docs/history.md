@@ -57,6 +57,24 @@
 - `python3 -m py_compile backend/cloud_runtime.py backend/test_api.py scripts/migrate_legacy_snapshot.py` 通过。
 - `python3 -m pytest backend/test_api.py` 通过，19 个测试全部成功。
 
+## 2026-06-07 - 支持迁移后删除旧快照表
+
+任务：旧数据迁移到业务表并验证后，支持安全删除 `app_snapshots`。
+
+改动项：
+
+- `SnapshotStore` 新增 `drop_legacy_snapshot_table()`。
+- `scripts/migrate_legacy_snapshot.py` 新增：
+  - `--drop-legacy`：迁移成功后删除旧 `app_snapshots`。
+  - `--drop-without-migration`：业务表已有数据且确认不需要旧快照时，允许直接删除旧表。
+- `docs/DATABASE_SCHEMA.md` 补充删除旧表命令和删除前检查建议。
+- 测试覆盖迁移后删除旧表，确认新业务表数据仍保留。
+
+验证：
+
+- `python3 -m py_compile backend/cloud_runtime.py backend/test_api.py scripts/migrate_legacy_snapshot.py` 通过。
+- `python3 -m pytest backend/test_api.py` 通过，19 个测试全部成功。
+
 ## 2026-05-31 - 初始化 AI影像写真馆全栈 MVP
 
 任务：基于后端架构文档、Swagger 文档、前端架构文档和 Figma 视觉，实现可运行的前后端 MVP。
