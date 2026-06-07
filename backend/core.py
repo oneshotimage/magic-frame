@@ -221,8 +221,6 @@ def startup_environment_report() -> dict[str, Any]:
             })
         else:
             checks.append({"level": "error", "code": "DATABASE_UNAVAILABLE", "message": "数据库不可用，请检查 MySQL 地址、端口、用户名、密码、库名和网络白名单", "details": config["database"]})
-    if config["database"].get("kind") == "sqlite":
-        checks.append({"level": "warn", "code": "DATABASE_SQLITE", "message": "当前使用 SQLite，本地调试可用，云托管正式环境建议 MySQL"})
     if config["mockEnabled"]:
         checks.append({"level": "warn", "code": "MOCK_GENERATION_ENABLED", "message": "AI_MOCK_GENERATION=1，当前不会真实调用 KL 生成", "env": "AI_MOCK_GENERATION"})
     if truthy_env("AI_UNLIMITED_CREDITS", "1"):

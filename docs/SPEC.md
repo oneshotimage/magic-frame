@@ -94,8 +94,8 @@
 
 ### 存储
 
-- 本地开发：未配置数据库时可使用 SQLite 和本地对象目录。
-- 云托管：优先使用 MySQL 和 COS，正式环境设置 `OBJECT_STORAGE_STRICT=1`。
+- 本地开发和云托管都使用 MySQL；未配置 MySQL 时仅允许临时内存态调试，数据不会持久化。
+- 云托管：使用 MySQL 和 COS，正式环境设置 `OBJECT_STORAGE_STRICT=1`。
 - 图片资产：上传图、生成图、分享海报应写入 COS，并返回可被小程序真机访问的 HTTP/HTTPS URL。
 
 ## 管理后台规格

@@ -8,7 +8,7 @@
 
 - 优先使用 `DATABASE_URL` 中的库名。
 - 未配置 `DATABASE_URL` 时，使用微信云托管 MySQL 环境变量：`MYSQL_DATABASE` 或 `MYSQL_DB`。
-- 本地未配置 MySQL 时使用 SQLite：`.data/backend.db`。
+- 后端不再支持 SQLite 持久化；未配置 MySQL 时数据不会持久化。
 
 ## 表列表
 

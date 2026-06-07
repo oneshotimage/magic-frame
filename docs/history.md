@@ -1,5 +1,22 @@
 # 开发历史
 
+## 2026-06-07 - 移除 SQLite 持久化逻辑
+
+任务：生产和本地开发统一使用 MySQL，去掉 SQLite 数据库持久化分支。
+
+改动项：
+
+- `SnapshotStore` 改为 MySQL-only。
+- 未配置 `DATABASE_URL` 或微信云托管 MySQL 环境变量时，数据库状态明确返回不可用，不再创建 `.data/backend.db`。
+- 移除 SQLite schema、SQLite 连接、SQLite 表统计和 SQLite 保存逻辑。
+- API 回归测试改为进程内状态运行，不再依赖 SQLite 文件。
+- 同步更新 `backend/README.md`、`docs/SPEC.md`、`docs/wechat-cloud-run-deploy.md`、`docs/DATABASE_SCHEMA.md` 和 `docs/BACKEND_MODULES.md`。
+
+验证：
+
+- `python3 -m py_compile backend/cloud_runtime.py backend/core.py backend/test_api.py scripts/migrate_legacy_snapshot.py` 通过。
+- `python3 -m pytest backend/test_api.py` 通过。
+
 ## 2026-06-07 - 优化登录和登出接口耗时
 
 任务：排查登录、登出接口耗时约 4 秒的问题，并降低认证链路的数据库写入成本。
@@ -55,7 +72,7 @@
   - `admin_tokens`
   - `debug_logs`
 - 保留 `app_snapshots` 作为旧数据迁移兼容：业务表为空时会尝试读取旧快照，后续保存写入新业务表。
-- MySQL 写入使用事务，SQLite/MySQL 保存加锁，降低并发 `persist_state()` 时的数据覆盖风险。
+- MySQL 写入使用事务并加锁，降低并发 `persist_state()` 时的数据覆盖风险。
 - 新增 `docs/DATABASE_SCHEMA.md`，补充数据库名来源、表结构用途、关键关系和常用运营查询。
 - 同步更新 `backend/README.md`、`docs/wechat-cloud-run-deploy.md` 和 `docs/SPEC.md`。
 

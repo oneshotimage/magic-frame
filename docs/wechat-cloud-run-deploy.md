@@ -90,7 +90,7 @@ MYSQL_PASSWORD=密码
 MYSQL_DATABASE=数据库名
 ```
 
-未配置数据库时后端会降级到容器内 SQLite，只适合临时调试。
+未配置数据库时后端不会再降级到 SQLite；服务启动环境检查会报告数据库不可用，数据不会持久化。云托管部署必须配置 MySQL。
 
 服务启动时会自动创建业务表，包含 `users`、`uploads`、`generation_tasks`、`generation_images`、`orders`、`credit_logs`、`debug_logs` 等；完整说明见 [DATABASE_SCHEMA.md](DATABASE_SCHEMA.md)。旧版 `app_snapshots` 仅作为历史快照迁移兼容。
 

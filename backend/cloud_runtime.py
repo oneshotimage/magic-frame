@@ -8,8 +8,6 @@ import importlib.util
 import json
 import mimetypes
 import os
-import re
-import sqlite3
 import threading
 import time
 import uuid
@@ -45,7 +43,7 @@ def database_url() -> str:
         port = os.getenv("MYSQL_PORT", "3306")
         return f"mysql://{quote(mysql_user)}:{quote(mysql_password or '')}@{mysql_host}:{port}/{mysql_database}"
 
-    return f"sqlite:///{data_dir() / 'backend.db'}"
+    return ""
 
 
 class SnapshotStore:
@@ -68,7 +66,7 @@ class SnapshotStore:
 
     def __init__(self) -> None:
         self.url = database_url()
-        self.kind = "mysql" if self.url.startswith(("mysql://", "mysql+pymysql://")) else "sqlite"
+        self.kind = "mysql"
         self.available = True
         self.error = ""
         self._save_lock = threading.Lock()
@@ -88,6 +86,10 @@ class SnapshotStore:
         }
 
     def _mysql_conn(self):
+        if not self.url:
+            raise RuntimeError("MySQL database is not configured. Set DATABASE_URL or MYSQL_ADDRESS/MYSQL_USERNAME/MYSQL_DATABASE.")
+        if not self.url.startswith(("mysql://", "mysql+pymysql://")):
+            raise RuntimeError("Only MySQL is supported. DATABASE_URL must start with mysql:// or mysql+pymysql://.")
         try:
             import pymysql  # type: ignore
         except ImportError as exc:  # pragma: no cover - only used with MySQL env.
@@ -103,69 +105,40 @@ class SnapshotStore:
             autocommit=False,
         )
 
-    def _sqlite_conn(self) -> sqlite3.Connection:
-        parsed = urlparse(self.url)
-        path = parsed.path if parsed.scheme == "sqlite" else str(data_dir() / "backend.db")
-        if path.startswith("/."):
-            path = str(ROOT_DIR / path.lstrip("/"))
-        Path(path).parent.mkdir(parents=True, exist_ok=True)
-        return sqlite3.connect(path)
-
     def _ensure_table(self) -> None:
-        if self.kind == "mysql":
-            with self._mysql_conn() as conn:
-                with conn.cursor() as cur:
-                    for statement in self._mysql_schema():
-                        cur.execute(statement)
-                conn.commit()
-            return
-        with self._sqlite_conn() as conn:
-            for statement in self._sqlite_schema():
-                conn.execute(statement)
+        with self._mysql_conn() as conn:
+            with conn.cursor() as cur:
+                for statement in self._mysql_schema():
+                    cur.execute(statement)
             conn.commit()
 
     def load(self, key: str = "default") -> dict[str, Any] | None:
         if not self.available:
             return None
-        if self.kind == "mysql":
-            with self._mysql_conn() as conn:
-                with conn.cursor() as cur:
-                    snapshot = self._load_relational(cur)
-                    return snapshot or self._load_legacy_snapshot(cur, "%s", key)
-        with self._sqlite_conn() as conn:
-            snapshot = self._load_relational(conn)
-            return snapshot or self._load_legacy_snapshot(conn, "?", key)
+        with self._mysql_conn() as conn:
+            with conn.cursor() as cur:
+                snapshot = self._load_relational(cur)
+                return snapshot or self._load_legacy_snapshot(cur, "%s", key)
 
     def load_legacy_snapshot(self, key: str = "default") -> dict[str, Any] | None:
         if not self.available:
             return None
-        if self.kind == "mysql":
-            with self._mysql_conn() as conn:
-                with conn.cursor() as cur:
-                    return self._load_legacy_snapshot(cur, "%s", key)
-        with self._sqlite_conn() as conn:
-            return self._load_legacy_snapshot(conn, "?", key)
+        with self._mysql_conn() as conn:
+            with conn.cursor() as cur:
+                return self._load_legacy_snapshot(cur, "%s", key)
 
     def table_counts(self) -> dict[str, int]:
         if not self.available:
             return {}
         counts: dict[str, int] = {}
-        if self.kind == "mysql":
-            with self._mysql_conn() as conn:
-                with conn.cursor() as cur:
-                    for table in self.BUSINESS_TABLES:
-                        try:
-                            cur.execute(f"SELECT COUNT(*) FROM {table}")
-                            counts[table] = int(cur.fetchone()[0])
-                        except Exception:  # noqa: BLE001 - table status helper should be best effort.
-                            counts[table] = -1
-            return counts
-        with self._sqlite_conn() as conn:
-            for table in self.BUSINESS_TABLES:
-                try:
-                    counts[table] = int(conn.execute(f"SELECT COUNT(*) FROM {table}").fetchone()[0])
-                except Exception:  # noqa: BLE001
-                    counts[table] = -1
+        with self._mysql_conn() as conn:
+            with conn.cursor() as cur:
+                for table in self.BUSINESS_TABLES:
+                    try:
+                        cur.execute(f"SELECT COUNT(*) FROM {table}")
+                        counts[table] = int(cur.fetchone()[0])
+                    except Exception:  # noqa: BLE001 - table status helper should be best effort.
+                        counts[table] = -1
         return counts
 
     def migrate_legacy_snapshot(self, *, key: str = "default", overwrite: bool = False) -> dict[str, Any]:
@@ -182,51 +155,36 @@ class SnapshotStore:
     def drop_legacy_snapshot_table(self) -> None:
         if not self.available:
             return
-        if self.kind == "mysql":
-            with self._mysql_conn() as conn:
-                with conn.cursor() as cur:
-                    cur.execute("DROP TABLE IF EXISTS app_snapshots")
-                conn.commit()
-            return
-        with self._sqlite_conn() as conn:
-            conn.execute("DROP TABLE IF EXISTS app_snapshots")
+        with self._mysql_conn() as conn:
+            with conn.cursor() as cur:
+                cur.execute("DROP TABLE IF EXISTS app_snapshots")
             conn.commit()
 
     def save(self, payload: dict[str, Any], key: str = "default") -> None:
         if not self.available:
             return
         with self._save_lock:
-            if self.kind == "mysql":
-                with self._mysql_conn() as conn:
-                    try:
-                        with conn.cursor() as cur:
-                            self._save_relational(cur, payload, "%s")
-                        conn.commit()
-                    except Exception:
-                        conn.rollback()
-                        raise
-                return
-            with self._sqlite_conn() as conn:
-                self._save_relational(conn, payload, "?")
-                conn.commit()
+            with self._mysql_conn() as conn:
+                try:
+                    with conn.cursor() as cur:
+                        self._save_relational(cur, payload, "%s")
+                    conn.commit()
+                except Exception:
+                    conn.rollback()
+                    raise
 
     def save_auth_state(self, payload: dict[str, Any]) -> None:
         if not self.available:
             return
         with self._save_lock:
-            if self.kind == "mysql":
-                with self._mysql_conn() as conn:
-                    try:
-                        with conn.cursor() as cur:
-                            self._save_auth_relational(cur, payload, "%s")
-                        conn.commit()
-                    except Exception:
-                        conn.rollback()
-                        raise
-                return
-            with self._sqlite_conn() as conn:
-                self._save_auth_relational(conn, payload, "?")
-                conn.commit()
+            with self._mysql_conn() as conn:
+                try:
+                    with conn.cursor() as cur:
+                        self._save_auth_relational(cur, payload, "%s")
+                    conn.commit()
+                except Exception:
+                    conn.rollback()
+                    raise
 
     def _mysql_schema(self) -> list[str]:
         longtext = "LONGTEXT"
@@ -431,57 +389,6 @@ class SnapshotStore:
             ) CHARACTER SET utf8mb4
             """,
         ]
-
-    def _sqlite_schema(self) -> list[str]:
-        statements = [statement.replace("CHARACTER SET utf8mb4", "") for statement in self._mysql_schema()]
-        type_replacements = {
-            r"\bLONGTEXT\b": "TEXT",
-            r"\bBIGINT\b": "INTEGER",
-            r"\bTINYINT\b": "INTEGER",
-            r"\bINT\b": "INTEGER",
-            r"\bVARCHAR\(\d+\)": "TEXT",
-        }
-        text_replacements = {
-            "UNIQUE KEY idx_users_open_id (open_id)": "UNIQUE (open_id)",
-            "KEY idx_auth_tokens_user_id (user_id)": "",
-            "KEY idx_refresh_tokens_user_id (user_id)": "",
-            "KEY idx_credit_logs_user_id_created_at (user_id, created_at)": "",
-            "KEY idx_uploads_user_id_created_at (user_id, created_at)": "",
-            "KEY idx_generation_tasks_user_created (user_id, created_at)": "",
-            "KEY idx_generation_tasks_status (status)": "",
-            "KEY idx_generation_images_task_id (task_id)": "",
-            "KEY idx_generation_images_status (status)": "",
-            "KEY idx_orders_user_created (user_id, created_at)": "",
-            "KEY idx_orders_status (status)": "",
-            "KEY idx_feedback_user_created (user_id, created_at)": "",
-            "KEY idx_ad_rewards_user_id (user_id)": "",
-            "KEY idx_generated_assets_user_created (user_id, created_at)": "",
-            "KEY idx_generated_assets_task_id (task_id)": "",
-            "KEY idx_debug_logs_created_at (created_at)": "",
-            "KEY idx_debug_logs_level (level)": "",
-        }
-        normalized: list[str] = []
-        for statement in statements:
-            for old, new in type_replacements.items():
-                statement = re.sub(old, new, statement)
-            for old, new in text_replacements.items():
-                statement = statement.replace(old, new)
-            statement = re.sub(r",\s*\)", "\n              )", statement, flags=re.MULTILINE)
-            statement = statement.replace("raw_json TEXT NOT NULL,\n              \n              )", "raw_json TEXT NOT NULL\n              )")
-            normalized.append(statement)
-        normalized.extend([
-            "CREATE INDEX IF NOT EXISTS idx_auth_tokens_user_id ON auth_tokens(user_id)",
-            "CREATE INDEX IF NOT EXISTS idx_refresh_tokens_user_id ON refresh_tokens(user_id)",
-            "CREATE INDEX IF NOT EXISTS idx_credit_logs_user_id_created_at ON credit_logs(user_id, created_at)",
-            "CREATE INDEX IF NOT EXISTS idx_uploads_user_id_created_at ON uploads(user_id, created_at)",
-            "CREATE INDEX IF NOT EXISTS idx_generation_tasks_user_created ON generation_tasks(user_id, created_at)",
-            "CREATE INDEX IF NOT EXISTS idx_generation_tasks_status ON generation_tasks(status)",
-            "CREATE INDEX IF NOT EXISTS idx_generation_images_task_id ON generation_images(task_id)",
-            "CREATE INDEX IF NOT EXISTS idx_orders_user_created ON orders(user_id, created_at)",
-            "CREATE INDEX IF NOT EXISTS idx_feedback_user_created ON feedback(user_id, created_at)",
-            "CREATE INDEX IF NOT EXISTS idx_generated_assets_user_created ON generated_assets(user_id, created_at)",
-        ])
-        return normalized
 
     def _json(self, value: Any) -> str:
         return json.dumps(value, ensure_ascii=False, separators=(",", ":"), default=str)

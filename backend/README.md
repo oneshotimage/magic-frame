@@ -45,7 +45,7 @@ backend/
 ├── schemas.py           # Pydantic 请求模型
 ├── services.py          # 用户、额度、上传记录、任务展示等业务服务
 ├── generation.py        # KL image2 调用、生成任务线程、图片资产和海报生成
-├── cloud_runtime.py     # SQLite/MySQL 快照存储与 COS/本地对象存储
+├── cloud_runtime.py     # MySQL 业务表存储与 COS/本地对象存储
 └── routes/
     ├── public.py        # 小程序公开 API
     ├── admin.py         # 管理后台 API
@@ -144,11 +144,7 @@ MYSQL_PASSWORD=密码
 MYSQL_DATABASE=数据库名
 ```
 
-本地开发未配置 MySQL 时，会自动使用 SQLite：
-
-```bash
-DATA_DIR=.data
-```
+后端不再降级使用 SQLite。未配置 MySQL 时服务仍可启动用于静态页或部分内存态调试，但 `/health` 和启动环境检查会明确报告数据库不可用，数据不会持久化。
 
 旧版本的 `app_snapshots` 快照表会保留用于兼容迁移；如果业务表为空，服务启动时会尝试读取旧快照，后续保存写入新的业务表。
 

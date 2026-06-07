@@ -16,7 +16,7 @@ backend/
 ├── schemas.py           # Pydantic 请求模型
 ├── services.py          # 用户、额度、上传记录、任务展示等业务服务
 ├── generation.py        # KL image2 调用、生成任务线程、图片资产和海报生成
-├── cloud_runtime.py     # SQLite/MySQL 快照存储与 COS/本地对象存储
+├── cloud_runtime.py     # MySQL 业务表存储与 COS/本地对象存储
 ├── test_api.py          # 后端接口回归测试
 └── routes/
     ├── public.py        # 小程序 API
@@ -96,7 +96,7 @@ backend/
 
 放部署运行时存储适配：
 
-- SQLite / MySQL 状态快照。
+- MySQL 业务表读写和旧快照迁移。
 - COS / 本地对象存储。
 - data URL 解析。
 

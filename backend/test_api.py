@@ -6,7 +6,6 @@ import json
 import os
 import sys
 import time
-import sqlite3
 
 from fastapi.testclient import TestClient
 
@@ -16,13 +15,20 @@ if str(ROOT) not in sys.path:
 
 os.environ.setdefault("AI_MOCK_GENERATION", "1")
 os.environ["PUBLIC_BASE_URL"] = "http://127.0.0.1:8000"
-os.environ["DATABASE_URL"] = "sqlite:///.data/test_api.db"
-Path(".data/test_api.db").unlink(missing_ok=True)
+os.environ["DATABASE_URL"] = ""
 for key in (
     "WECHAT_APPID",
     "WECHAT_APP_ID",
     "WECHAT_SECRET",
     "WECHAT_APP_SECRET",
+    "MYSQL_ADDRESS",
+    "MYSQL_HOST",
+    "MYSQL_PORT",
+    "MYSQL_USERNAME",
+    "MYSQL_USER",
+    "MYSQL_PASSWORD",
+    "MYSQL_DATABASE",
+    "MYSQL_DB",
     "COS_SECRET_ID",
     "COS_SECRET_KEY",
     "TENCENTCLOUD_SECRET_ID",
@@ -41,7 +47,6 @@ from backend import main
 from backend import generation
 from backend import services
 from backend import core
-from backend.cloud_runtime import SnapshotStore
 from backend.main import app, svg_data_url
 
 
@@ -156,165 +161,10 @@ def test_database_uses_business_tables() -> None:
         "debug_logs",
     }
     assert core.STORE.status()["schema"] == "relational"
+    assert core.STORE.status()["kind"] == "mysql"
     assert expected.issubset(set(core.STORE.status()["tables"]))
-    with core.STORE._sqlite_conn() as conn:
-        rows = conn.execute("SELECT name FROM sqlite_master WHERE type='table'").fetchall()
-    assert expected.issubset({row[0] for row in rows})
-
-
-def test_legacy_snapshot_can_migrate_to_business_tables(tmp_path, monkeypatch) -> None:
-    db_path = tmp_path / "legacy.db"
-    monkeypatch.setenv("DATABASE_URL", f"sqlite:///{db_path}")
-    legacy = {
-        "users": {
-            "usr_legacy": {
-                "userId": "usr_legacy",
-                "openId": "openid_legacy",
-                "unionId": "",
-                "nickname": "旧用户",
-                "avatarUrl": "",
-                "wechatBoundAt": "",
-                "createdAt": "2026-06-07T00:00:00+08:00",
-                "updatedAt": "2026-06-07T00:00:00+08:00",
-            }
-        },
-        "tokens": {"atk_legacy": "usr_legacy"},
-        "refresh_tokens": {"rtk_legacy": "usr_legacy"},
-        "credits": {
-            "usr_legacy": {
-                "userId": "usr_legacy",
-                "balance": 6,
-                "totalCredits": 6,
-                "usedCredits": 0,
-                "todayAdCount": 0,
-                "dailyAdLimit": 3,
-                "updatedAt": "2026-06-07T00:00:00+08:00",
-            }
-        },
-        "credit_logs": [],
-        "uploads": {},
-        "tasks": {},
-        "orders": {},
-        "feedback": [],
-        "ad_rewards": [],
-        "generated_assets": {},
-        "admin_tokens": [],
-        "debug_logs": [],
-    }
-    with sqlite3.connect(db_path) as conn:
-        conn.execute(
-            "CREATE TABLE app_snapshots (snapshot_key TEXT PRIMARY KEY, payload TEXT NOT NULL, updated_at INTEGER NOT NULL)"
-        )
-        conn.execute(
-            "INSERT INTO app_snapshots (snapshot_key, payload, updated_at) VALUES (?, ?, ?)",
-            ("default", json.dumps(legacy, ensure_ascii=False), 1),
-        )
-        conn.commit()
-
-    store = SnapshotStore()
-    result = store.migrate_legacy_snapshot()
-
-    assert result["migrated"] is True
-    assert store.table_counts()["users"] == 1
-    with store._sqlite_conn() as conn:
-        row = conn.execute("SELECT user_id, open_id FROM users").fetchone()
-    assert row == ("usr_legacy", "openid_legacy")
-    store.drop_legacy_snapshot_table()
-    with store._sqlite_conn() as conn:
-        legacy_table = conn.execute(
-            "SELECT name FROM sqlite_master WHERE type='table' AND name='app_snapshots'"
-        ).fetchone()
-        user_count = conn.execute("SELECT COUNT(*) FROM users").fetchone()[0]
-    assert legacy_table is None
-    assert user_count == 1
-
-
-def test_auth_persistence_does_not_rewrite_generation_tables(tmp_path, monkeypatch) -> None:
-    db_path = tmp_path / "auth_perf.db"
-    monkeypatch.setenv("DATABASE_URL", f"sqlite:///{db_path}")
-    store = SnapshotStore()
-    task = {
-        "taskId": "task_keep",
-        "userId": "usr_keep",
-        "inputImageId": "img_keep",
-        "inputImageDataUrl": "data:image/png;base64,AA==",
-        "status": "SUCCESS",
-        "progress": 100,
-        "size": "1024x1024",
-        "sizeSource": "default",
-        "generationSecondsPerImage": 60,
-        "charged": True,
-        "startedAt": "2026-06-07T00:00:00+08:00",
-        "completedAt": "2026-06-07T00:00:01+08:00",
-        "elapsedMs": 1000,
-        "provider": {},
-        "images": [
-            {
-                "imageId": "out_keep",
-                "style": "pixar",
-                "status": "SUCCESS",
-                "url": "https://example.com/a.png",
-                "errorMessage": "",
-                "elapsedMs": 1000,
-                "provider": {},
-            }
-        ],
-        "createdAt": "2026-06-07T00:00:00+08:00",
-        "updatedAt": "2026-06-07T00:00:01+08:00",
-    }
-    store.save({
-        "users": {},
-        "tokens": {},
-        "refresh_tokens": {},
-        "credits": {},
-        "credit_logs": [],
-        "uploads": {},
-        "tasks": {"task_keep": task},
-        "orders": {},
-        "feedback": [],
-        "ad_rewards": [],
-        "generated_assets": {},
-        "admin_tokens": [],
-        "debug_logs": [],
-    })
-
-    auth_payload = {
-        "users": {
-            "usr_auth": {
-                "userId": "usr_auth",
-                "openId": "openid_auth",
-                "unionId": "",
-                "nickname": "auth",
-                "avatarUrl": "",
-                "wechatBoundAt": "",
-                "createdAt": "2026-06-07T00:00:00+08:00",
-                "updatedAt": "2026-06-07T00:00:00+08:00",
-            }
-        },
-        "tokens": {"atk_auth": "usr_auth"},
-        "refresh_tokens": {"rtk_auth": "usr_auth"},
-        "credits": {
-            "usr_auth": {
-                "userId": "usr_auth",
-                "balance": 6,
-                "totalCredits": 6,
-                "usedCredits": 0,
-                "todayAdCount": 0,
-                "dailyAdLimit": 3,
-                "updatedAt": "2026-06-07T00:00:00+08:00",
-            }
-        },
-        "credit_logs": [],
-    }
-    store.save_auth_state(auth_payload)
-
-    with store._sqlite_conn() as conn:
-        task_count = conn.execute("SELECT COUNT(*) FROM generation_tasks").fetchone()[0]
-        image_count = conn.execute("SELECT COUNT(*) FROM generation_images").fetchone()[0]
-        token_count = conn.execute("SELECT COUNT(*) FROM auth_tokens").fetchone()[0]
-    assert task_count == 1
-    assert image_count == 1
-    assert token_count == 1
+    assert core.STORE.status()["available"] is False
+    assert "MySQL database is not configured" in core.STORE.status()["error"]
 
 
 def test_debug_log_levels_are_normalized() -> None:
