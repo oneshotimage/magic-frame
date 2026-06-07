@@ -37,6 +37,26 @@
 - `python3 -m py_compile backend/cloud_runtime.py backend/core.py backend/test_api.py` 通过。
 - `python3 -m pytest backend/test_api.py` 通过，18 个测试全部成功。
 
+## 2026-06-07 - 增加旧快照到业务表的显式迁移脚本
+
+任务：说明并实现如何把旧 `app_snapshots` 里的历史数据同步到新的业务表。
+
+改动项：
+
+- `SnapshotStore` 新增 `load_legacy_snapshot()`、`table_counts()` 和 `migrate_legacy_snapshot()`。
+- 新增 `scripts/migrate_legacy_snapshot.py`：
+  - `--dry-run` 只检查旧快照和业务表行数。
+  - 默认仅在业务表为空时迁移。
+  - `--force` 可明确覆盖已有业务表数据。
+  - `--json` 支持机器可读输出。
+- `docs/DATABASE_SCHEMA.md` 补充旧数据迁移命令和迁移后 SQL 检查方式。
+- 新增测试覆盖旧快照迁移到业务表。
+
+验证：
+
+- `python3 -m py_compile backend/cloud_runtime.py backend/test_api.py scripts/migrate_legacy_snapshot.py` 通过。
+- `python3 -m pytest backend/test_api.py` 通过，19 个测试全部成功。
+
 ## 2026-05-31 - 初始化 AI影像写真馆全栈 MVP
 
 任务：基于后端架构文档、Swagger 文档、前端架构文档和 Figma 视觉，实现可运行的前后端 MVP。

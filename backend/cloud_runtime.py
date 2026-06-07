@@ -136,6 +136,49 @@ class SnapshotStore:
             snapshot = self._load_relational(conn)
             return snapshot or self._load_legacy_snapshot(conn, "?", key)
 
+    def load_legacy_snapshot(self, key: str = "default") -> dict[str, Any] | None:
+        if not self.available:
+            return None
+        if self.kind == "mysql":
+            with self._mysql_conn() as conn:
+                with conn.cursor() as cur:
+                    return self._load_legacy_snapshot(cur, "%s", key)
+        with self._sqlite_conn() as conn:
+            return self._load_legacy_snapshot(conn, "?", key)
+
+    def table_counts(self) -> dict[str, int]:
+        if not self.available:
+            return {}
+        counts: dict[str, int] = {}
+        if self.kind == "mysql":
+            with self._mysql_conn() as conn:
+                with conn.cursor() as cur:
+                    for table in self.BUSINESS_TABLES:
+                        try:
+                            cur.execute(f"SELECT COUNT(*) FROM {table}")
+                            counts[table] = int(cur.fetchone()[0])
+                        except Exception:  # noqa: BLE001 - table status helper should be best effort.
+                            counts[table] = -1
+            return counts
+        with self._sqlite_conn() as conn:
+            for table in self.BUSINESS_TABLES:
+                try:
+                    counts[table] = int(conn.execute(f"SELECT COUNT(*) FROM {table}").fetchone()[0])
+                except Exception:  # noqa: BLE001
+                    counts[table] = -1
+        return counts
+
+    def migrate_legacy_snapshot(self, *, key: str = "default", overwrite: bool = False) -> dict[str, Any]:
+        legacy = self.load_legacy_snapshot(key)
+        if not legacy:
+            return {"migrated": False, "reason": "legacy snapshot not found", "counts": self.table_counts()}
+        counts = self.table_counts()
+        existing_rows = sum(value for value in counts.values() if value > 0)
+        if existing_rows and not overwrite:
+            return {"migrated": False, "reason": "business tables are not empty", "counts": counts}
+        self.save(legacy, key=key)
+        return {"migrated": True, "reason": "", "counts": self.table_counts()}
+
     def save(self, payload: dict[str, Any], key: str = "default") -> None:
         if not self.available:
             return

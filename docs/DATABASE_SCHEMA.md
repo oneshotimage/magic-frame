@@ -43,6 +43,36 @@
 
 每张业务表保留 `raw_json` 字段，用于兼容当前接口响应结构和未来字段扩展；同时将常用查询字段拆成独立列，便于后台运营查询。
 
+## 旧数据迁移
+
+如果旧数据还在 `app_snapshots` 表里，可以执行一次性迁移脚本。
+
+先预检查，不写入：
+
+```bash
+python3 scripts/migrate_legacy_snapshot.py --dry-run
+```
+
+确认 `legacy snapshot found: True`，且业务表为空后执行：
+
+```bash
+python3 scripts/migrate_legacy_snapshot.py
+```
+
+如果业务表已经有数据，脚本会默认拒绝覆盖。确认要用旧快照覆盖业务表时，再执行：
+
+```bash
+python3 scripts/migrate_legacy_snapshot.py --force
+```
+
+迁移后可查询：
+
+```sql
+SELECT COUNT(*) FROM users;
+SELECT COUNT(*) FROM generation_tasks;
+SELECT COUNT(*) FROM generation_images;
+```
+
 ## 常用查询
 
 查看某个用户最近任务：

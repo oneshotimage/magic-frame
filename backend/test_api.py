@@ -6,6 +6,7 @@ import json
 import os
 import sys
 import time
+import sqlite3
 
 from fastapi.testclient import TestClient
 
@@ -40,6 +41,7 @@ from backend import main
 from backend import generation
 from backend import services
 from backend import core
+from backend.cloud_runtime import SnapshotStore
 from backend.main import app, svg_data_url
 
 
@@ -158,6 +160,65 @@ def test_database_uses_business_tables() -> None:
     with core.STORE._sqlite_conn() as conn:
         rows = conn.execute("SELECT name FROM sqlite_master WHERE type='table'").fetchall()
     assert expected.issubset({row[0] for row in rows})
+
+
+def test_legacy_snapshot_can_migrate_to_business_tables(tmp_path, monkeypatch) -> None:
+    db_path = tmp_path / "legacy.db"
+    monkeypatch.setenv("DATABASE_URL", f"sqlite:///{db_path}")
+    legacy = {
+        "users": {
+            "usr_legacy": {
+                "userId": "usr_legacy",
+                "openId": "openid_legacy",
+                "unionId": "",
+                "nickname": "旧用户",
+                "avatarUrl": "",
+                "wechatBoundAt": "",
+                "createdAt": "2026-06-07T00:00:00+08:00",
+                "updatedAt": "2026-06-07T00:00:00+08:00",
+            }
+        },
+        "tokens": {"atk_legacy": "usr_legacy"},
+        "refresh_tokens": {"rtk_legacy": "usr_legacy"},
+        "credits": {
+            "usr_legacy": {
+                "userId": "usr_legacy",
+                "balance": 6,
+                "totalCredits": 6,
+                "usedCredits": 0,
+                "todayAdCount": 0,
+                "dailyAdLimit": 3,
+                "updatedAt": "2026-06-07T00:00:00+08:00",
+            }
+        },
+        "credit_logs": [],
+        "uploads": {},
+        "tasks": {},
+        "orders": {},
+        "feedback": [],
+        "ad_rewards": [],
+        "generated_assets": {},
+        "admin_tokens": [],
+        "debug_logs": [],
+    }
+    with sqlite3.connect(db_path) as conn:
+        conn.execute(
+            "CREATE TABLE app_snapshots (snapshot_key TEXT PRIMARY KEY, payload TEXT NOT NULL, updated_at INTEGER NOT NULL)"
+        )
+        conn.execute(
+            "INSERT INTO app_snapshots (snapshot_key, payload, updated_at) VALUES (?, ?, ?)",
+            ("default", json.dumps(legacy, ensure_ascii=False), 1),
+        )
+        conn.commit()
+
+    store = SnapshotStore()
+    result = store.migrate_legacy_snapshot()
+
+    assert result["migrated"] is True
+    assert store.table_counts()["users"] == 1
+    with store._sqlite_conn() as conn:
+        row = conn.execute("SELECT user_id, open_id FROM users").fetchone()
+    assert row == ("usr_legacy", "openid_legacy")
 
 
 def test_debug_log_levels_are_normalized() -> None:
