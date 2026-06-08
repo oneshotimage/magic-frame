@@ -1,4 +1,4 @@
-# AI 影像写真馆 FastAPI Backend
+# 妙影工坊 MagicFrame FastAPI Backend
 
 这个目录参考 `xinge/backend` 的组织方式，实现一个可用于微信小程序联调和微信云托管部署的 FastAPI 后端。接口路径保持与当前小程序一致，因此小程序只需要把 `frontend/weapp/app.js` 里的 `apiBaseUrl` 改成服务地址即可切换。
 

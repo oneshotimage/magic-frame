@@ -1,9 +1,51 @@
-<view class="page stack">
-  <view class="card">
-    <view class="title">确认照片</view>
-    <view class="subtitle">请确认人像清晰、无遮挡。系统会继续做内容安全校验。</view>
+<view class="confirm-page">
+  <nav-bar title="妙影工坊 MagicFrame" variant="home" bind:back="reselect" />
+
+  <view class="page-head">
+    <view class="title">确认照片 <text>✦</text></view>
+    <view class="subtitle">请确认以下照片用于生成你的写真</view>
   </view>
-  <image class="confirm-img" src="{{preview}}" mode="aspectFill" />
-  <app-button text="确认使用这张照片" bind:press="validate" />
-  <button class="secondary-btn" bindtap="reselect">重新选择</button>
+
+  <view class="photo-proof">
+    <view class="proof-frame">
+      <image class="confirm-img" src="{{preview}}" mode="aspectFill" />
+      <view class="corner lt"></view>
+      <view class="corner rt"></view>
+      <view class="corner lb"></view>
+      <view class="corner rb"></view>
+      <view class="quality-badge">
+        <text class="badge-icon">✦</text>
+        <view>
+          <view class="badge-title">MagicFrame</view>
+          <view class="badge-desc">高清画质</view>
+        </view>
+      </view>
+    </view>
+    <view class="proof-sign">MagicFrame Studio</view>
+  </view>
+
+  <view class="quality-card">
+    <view class="card-title">上传质量检查</view>
+    <block wx:for="{{checks}}" wx:key="label">
+      <view class="check-row">
+        <view class="check-dot">✓</view>
+        <text>{{item.label}}</text>
+        <text class="check-status">符合</text>
+      </view>
+    </block>
+  </view>
+
+  <view class="style-card">
+    <view>
+      <view class="card-title">已选择风格</view>
+      <view class="style-name">写实插画</view>
+      <view class="style-desc">细节丰富 · 质感真实 · 光影自然</view>
+    </view>
+    <button class="edit-style" bindtap="reselect">编辑</button>
+  </view>
+
+  <view class="bottom-actions">
+    <button class="outline-btn" bindtap="reselect">重新选择</button>
+    <app-button text="确认使用" icon="✦" variant="home-cta" bind:press="validate" />
+  </view>
 </view>

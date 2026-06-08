@@ -1,10 +1,10 @@
 .home-page {
   min-height: 100vh;
-  padding: calc(env(safe-area-inset-top) + 142rpx) 26rpx 318rpx;
+  padding: calc(env(safe-area-inset-top) + 146rpx) 26rpx 330rpx;
   box-sizing: border-box;
   background:
     radial-gradient(circle at 50% 0%, rgba(255, 184, 0, 0.13) 0, rgba(255, 184, 0, 0) 330rpx),
-    linear-gradient(180deg, #fffaf2 0%, #fffdf8 48%, #f9f9f9 100%);
+    linear-gradient(180deg, #fffaf4 0%, #fffdf8 46%, #faf9f6 100%);
   color: #222222;
   font-family: "PingFang SC", "Helvetica Neue", sans-serif;
 }
@@ -12,7 +12,7 @@
 .main {
   display: flex;
   flex-direction: column;
-  gap: 24rpx;
+  gap: 22rpx;
 }
 
 .home-hero {
@@ -28,6 +28,8 @@
   width: 100%;
   height: 100%;
   display: block;
+  transform: scale(1.03);
+  transform-origin: 58% 50%;
 }
 
 .hero-gradient {
@@ -42,7 +44,7 @@
   position: absolute;
   left: 44rpx;
   right: 44rpx;
-  top: 112rpx;
+  top: 116rpx;
   z-index: 2;
   box-sizing: border-box;
   display: flex;
@@ -56,17 +58,17 @@
 
 .hero-title {
   color: #ffffff;
-  font-size: 52rpx;
-  line-height: 1.16;
+  font-size: 53rpx;
+  line-height: 1.15;
   font-weight: 800;
   letter-spacing: 0;
   text-shadow: 0 4rpx 14rpx rgba(0, 0, 0, 0.24);
 }
 
 .hero-subtitle {
-  margin-top: 26rpx;
+  margin-top: 27rpx;
   color: rgba(255, 255, 255, 0.92);
-  font-size: 27rpx;
+  font-size: 28rpx;
   line-height: 1.48;
   font-weight: 500;
   letter-spacing: 0;
@@ -74,9 +76,9 @@
 }
 
 .credit-badge {
-  min-height: 56rpx;
-  margin-top: 30rpx;
-  padding: 11rpx 26rpx 11rpx 15rpx;
+  min-height: 58rpx;
+  margin-top: 31rpx;
+  padding: 10rpx 28rpx 10rpx 15rpx;
   border: 1rpx solid rgba(255, 232, 186, 0.88);
   border-radius: 999rpx;
   box-sizing: border-box;
@@ -90,8 +92,8 @@
 }
 
 .credit-icon {
-  width: 42rpx;
-  height: 42rpx;
+  width: 44rpx;
+  height: 44rpx;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -99,7 +101,7 @@
   border-radius: 50%;
   color: #ffffff;
   font-size: 23rpx;
-  line-height: 42rpx;
+  line-height: 44rpx;
   box-sizing: border-box;
   background: linear-gradient(180deg, #ffd35c 0%, #ff9f00 100%);
   box-shadow: inset 0 2rpx 4rpx rgba(255, 255, 255, 0.48);
@@ -107,7 +109,7 @@
 
 .credit-label {
   color: #222222;
-  font-size: 27rpx;
+  font-size: 26rpx;
   line-height: 38rpx;
   font-weight: 600;
   white-space: nowrap;
@@ -115,7 +117,7 @@
 
 .credit-value {
   color: #ff9f00;
-  font-size: 31rpx;
+  font-size: 32rpx;
   line-height: 38rpx;
   font-weight: 800;
   white-space: nowrap;
@@ -123,14 +125,14 @@
 
 .workflow-card {
   min-height: 108rpx;
-  padding: 22rpx 16rpx;
+  padding: 19rpx 29rpx;
   border: 1rpx solid rgba(255, 184, 0, 0.22);
   border-radius: 22rpx;
   box-sizing: border-box;
   display: flex;
   align-items: center;
-  gap: 8rpx;
-  background: rgba(255, 250, 239, 0.78);
+  gap: 11rpx;
+  background: rgba(255, 250, 239, 0.82);
   box-shadow: 0 10rpx 30rpx rgba(122, 80, 7, 0.06);
 }
 
@@ -139,12 +141,13 @@
   flex: 1 1 0;
   display: flex;
   align-items: center;
-  gap: 8rpx;
+  gap: 13rpx;
 }
 
 .workflow-icon {
-  width: 48rpx;
-  height: 48rpx;
+  position: relative;
+  width: 56rpx;
+  height: 56rpx;
   flex: none;
   border: 1rpx solid rgba(160, 117, 35, 0.28);
   border-radius: 50%;
@@ -154,9 +157,52 @@
   justify-content: center;
   background: rgba(255, 255, 255, 0.76);
   color: #1e1a14;
-  font-size: 23rpx;
-  line-height: 48rpx;
+  font-size: 25rpx;
+  line-height: 56rpx;
   font-weight: 700;
+}
+
+.upload-icon::before {
+  content: "";
+  width: 26rpx;
+  height: 20rpx;
+  border: 3rpx solid #1f1b13;
+  border-top: 0;
+  border-radius: 0 0 8rpx 8rpx;
+  box-sizing: border-box;
+}
+
+.upload-icon::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 13rpx;
+  width: 15rpx;
+  height: 15rpx;
+  border-left: 3rpx solid #1f1b13;
+  border-top: 3rpx solid #1f1b13;
+  transform: translateX(-50%) rotate(45deg);
+}
+
+.camera-icon::before {
+  content: "";
+  width: 28rpx;
+  height: 22rpx;
+  border: 3rpx solid #1f1b13;
+  border-radius: 6rpx;
+  box-sizing: border-box;
+}
+
+.camera-icon::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 9rpx;
+  height: 9rpx;
+  border: 3rpx solid #1f1b13;
+  border-radius: 50%;
+  transform: translate(-50%, -42%);
 }
 
 .workflow-copy {
@@ -174,21 +220,21 @@
 .workflow-desc {
   margin-top: 3rpx;
   color: #8a765a;
-  font-size: 18rpx;
+  font-size: 19rpx;
   line-height: 26rpx;
   font-weight: 500;
   white-space: nowrap;
 }
 
 .workflow-line {
-  width: 24rpx;
+  width: 47rpx;
   height: 1rpx;
   flex: none;
-  border-top: 3rpx dotted rgba(122, 80, 7, 0.28);
+  border-top: 3rpx dotted rgba(122, 80, 7, 0.34);
 }
 
 .style-section {
-  margin-top: 6rpx;
+  margin-top: 8rpx;
   display: flex;
   flex-direction: column;
   gap: 24rpx;
@@ -202,7 +248,7 @@
 
 .section-title {
   color: #222222;
-  font-size: 39rpx;
+  font-size: 38rpx;
   line-height: 55rpx;
   font-weight: 800;
 }
@@ -215,7 +261,7 @@
 
 .view-all {
   color: #8a6322;
-  font-size: 25rpx;
+  font-size: 24rpx;
   line-height: 35rpx;
   font-weight: 600;
 }
@@ -223,15 +269,15 @@
 .style-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 22rpx;
+  gap: 24rpx 22rpx;
 }
 
 .style-card {
   position: relative;
-  height: 250rpx;
+  height: 246rpx;
   padding: 0;
-  border: 4rpx solid transparent;
-  border-radius: 20rpx;
+  border: 0;
+  border-radius: 19rpx;
   box-sizing: border-box;
   overflow: hidden;
   background: #d9cbb5;
@@ -239,21 +285,21 @@
 }
 
 .style-card.active {
-  border-color: #ffb800;
+  box-shadow: 0 0 0 4rpx #ffb800, 0 10rpx 28rpx rgba(36, 25, 11, 0.09);
 }
 
 .style-image {
   width: 100%;
   height: 100%;
   display: block;
-  border-radius: 16rpx;
+  border-radius: 19rpx;
 }
 
 .style-mask {
   position: absolute;
   inset: 0;
-  padding: 0 72rpx 18rpx 18rpx;
-  border-radius: 16rpx;
+  padding: 0 74rpx 18rpx 18rpx;
+  border-radius: 19rpx;
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
@@ -263,7 +309,7 @@
 
 .style-name {
   color: #ffffff;
-  font-size: 31rpx;
+  font-size: 30rpx;
   line-height: 43rpx;
   font-weight: 800;
   text-shadow: 0 3rpx 10rpx rgba(0, 0, 0, 0.38);
@@ -272,7 +318,7 @@
 .style-desc {
   margin-top: 2rpx;
   color: rgba(255, 255, 255, 0.8);
-  font-size: 23rpx;
+  font-size: 22rpx;
   line-height: 32rpx;
   font-weight: 600;
 }
@@ -280,9 +326,9 @@
 .hot {
   position: absolute;
   top: 16rpx;
-  right: 16rpx;
+  right: 17rpx;
   z-index: 2;
-  padding: 7rpx 17rpx;
+  padding: 6rpx 18rpx;
   border-radius: 999rpx;
   background: linear-gradient(180deg, #ffc845 0%, #ffa800 100%);
   color: #ffffff;
@@ -297,10 +343,10 @@
 .style-arrow {
   position: absolute;
   right: 18rpx;
-  bottom: 22rpx;
+  bottom: 21rpx;
   z-index: 3;
-  width: 50rpx;
-  height: 50rpx;
+  width: 51rpx;
+  height: 51rpx;
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -319,9 +365,9 @@
   position: fixed;
   left: 0;
   right: 0;
-  bottom: calc(env(safe-area-inset-bottom) + 154rpx);
+  bottom: calc(env(safe-area-inset-bottom) + 151rpx);
   z-index: 34;
-  padding: 86rpx 38rpx 29rpx;
+  padding: 78rpx 38rpx 27rpx;
   box-sizing: border-box;
-  background: linear-gradient(180deg, rgba(249, 249, 249, 0) 0%, rgba(249, 249, 249, 0.92) 48%, #f9f9f9 100%);
+  background: linear-gradient(180deg, rgba(250, 249, 246, 0) 0%, rgba(250, 249, 246, 0.9) 43%, #faf9f6 100%);
 }

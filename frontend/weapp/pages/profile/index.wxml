@@ -1,10 +1,16 @@
 <view class="profile-page">
-  <nav-bar title="AI影像写真馆" bind:back="goBack" />
+  <nav-bar title="妙影工坊" compact="{{true}}" bind:back="goBack" />
 
   <view wx:if="{{!loggedIn}}" class="guest-main">
+    <view class="profile-hero">
+      <view class="hero-mark">MagicFrame</view>
+      <view class="hero-title">我的工作台</view>
+      <view class="hero-subtitle">登录后管理写真作品、点数和订单</view>
+    </view>
+
     <view class="guest-profile-row" bindtap="goLogin">
       <view class="guest-avatar-image">
-        <text class="guest-avatar-icon">♟</text>
+        <text class="guest-avatar-icon">✦</text>
       </view>
       <view class="guest-copy-wrap">
         <view class="guest-title">点击登录/注册</view>
@@ -37,6 +43,10 @@
         <view class="guest-menu-left"><text class="guest-menu-icon">▰</text><text>使用指南</text></view>
         <text class="chevron">›</text>
       </view>
+      <view class="guest-menu-row" bindtap="goFeedback">
+        <view class="guest-menu-left"><text class="guest-menu-icon">✎</text><text>意见反馈</text></view>
+        <text class="chevron">›</text>
+      </view>
       <view class="guest-menu-row last" bindtap="goFaq">
         <view class="guest-menu-left"><text class="guest-menu-icon">?</text><text>常见问题</text></view>
         <text class="chevron">›</text>
@@ -46,13 +56,23 @@
 
   <block wx:else>
     <view class="main">
+      <view class="profile-hero">
+        <view class="hero-mark">MagicFrame</view>
+        <view class="hero-title">我的工作台</view>
+        <view class="hero-subtitle">管理写真资产、生成点数和账号设置</view>
+      </view>
+
       <view class="profile-card">
+        <view class="profile-scene"></view>
         <view class="avatar-shell">
           <image wx:if="{{user && user.avatarUrl}}" class="avatar" mode="aspectFill" src="{{user.avatarUrl}}" />
           <view wx:else class="avatar avatar-fallback">AI</view>
         </view>
         <view class="identity">
-          <view class="profile-name">{{(user && user.nickname) || '张小光影'}}</view>
+          <view class="name-row">
+            <view class="profile-name">{{(user && user.nickname) || '张小光影'}}</view>
+            <view class="vip-badge">VIP</view>
+          </view>
           <view class="profile-id">ID: {{userIdText || '8839201'}}</view>
         </view>
         <button class="edit-button" bindtap="editProfile" aria-label="编辑资料">
@@ -63,11 +83,12 @@
       <view class="credits-card">
         <view class="glow glow-top"></view>
         <view class="glow glow-bottom"></view>
+        <view class="coin-visual">✦</view>
         <view class="credits-copy">
           <view class="credits-label">当前剩余点数</view>
           <view class="credits-row">
             <text class="credits-value">{{creditText || '5'}}</text>
-            <text class="credit-icon">✦</text>
+            <text class="credit-unit">次</text>
           </view>
         </view>
         <app-button text="去充值" icon="" variant="mini" bind:press="goPurchase" />
@@ -109,6 +130,15 @@
             </view>
             <text class="chevron">›</text>
           </view>
+          <view class="menu-row bordered" bindtap="goFeedback">
+            <view class="menu-left">
+              <view class="about-icon-shell feedback-shell">
+                <text class="feedback-icon">✎</text>
+              </view>
+              <view class="menu-text">意见反馈</view>
+            </view>
+            <text class="chevron">›</text>
+          </view>
           <view class="menu-row bordered" bindtap="goPrivacy">
             <view class="menu-left">
               <view class="about-icon-shell">
@@ -133,6 +163,7 @@
       <view class="logout-section">
         <button class="logout-button" bindtap="logout">退出登录</button>
       </view>
+
     </view>
   </block>
 

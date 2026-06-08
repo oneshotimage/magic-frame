@@ -6,27 +6,27 @@ Component({
   properties: {
     title: {
       type: String,
-      value: 'AI影像写真馆'
+      value: '妙影工坊'
     },
     fixed: {
       type: Boolean,
       value: true
     },
+    compact: {
+      type: Boolean,
+      value: false
+    },
     showBack: {
       type: Boolean,
       value: true
     },
-    showMore: {
-      type: Boolean,
-      value: true
+    variant: {
+      type: String,
+      value: ''
     },
     leftText: {
       type: String,
       value: '‹'
-    },
-    rightText: {
-      type: String,
-      value: '•••'
     }
   },
 
@@ -41,11 +41,6 @@ Component({
     onBack() {
       if (!this.data.showBack) return;
       this.triggerEvent('back');
-    },
-
-    onMore() {
-      if (!this.data.showMore) return;
-      this.triggerEvent('more');
     }
   }
 });

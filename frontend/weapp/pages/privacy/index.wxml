@@ -1,5 +1,5 @@
 <view class="privacy-page">
-  <nav-bar title="AI影像写真馆" fixed="{{false}}" bind:back="goBack" />
+  <nav-bar title="妙影工坊" fixed="{{false}}" bind:back="goBack" />
 
   <scroll-view class="content" scroll-y>
     <view class="header">

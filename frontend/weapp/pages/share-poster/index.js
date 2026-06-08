@@ -15,6 +15,12 @@ Page({
     this.createPoster(image);
   },
 
+  goBack() {
+    wx.navigateBack({
+      fail: () => wx.switchTab({ url: '/pages/works/index' })
+    });
+  },
+
   createPoster(image) {
     if (!image) return;
     this.setData({ creating: true });

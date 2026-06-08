@@ -1,3 +1,9 @@
+.ad-shell {
+  min-height: 100vh;
+  background: #f8f8f8;
+}
+
 .ad-page {
+  padding-top: calc(env(safe-area-inset-top) + 160rpx);
   justify-content: center;
 }

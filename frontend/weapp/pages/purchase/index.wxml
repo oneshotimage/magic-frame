@@ -1,6 +1,6 @@
 <view class="design-page purchase-page">
   <view class="warm-bg"></view>
-  <nav-bar title="AI影像写真馆" bind:back="goBack" />
+  <nav-bar title="妙影工坊" bind:back="goBack" />
 
   <view class="purchase-main">
     <view class="balance-card">

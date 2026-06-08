@@ -1,20 +1,62 @@
-<view class="page stack">
-  <view class="card">
-    <view class="title">选择风格</view>
-    <view class="subtitle">默认生成四种风格，也可以只保留你想要的风格。</view>
-  </view>
-  <view class="grid-two">
-    <block wx:for="{{styles}}" wx:key="id">
-      <view class="style-option {{selectedMap[item.id] ? 'active' : ''}}" data-id="{{item.id}}" bindtap="toggleStyle">
-        <view class="style-cover {{item.theme}}">
-          <view class="style-symbol">{{item.icon}}</view>
+<view class="style-page">
+  <nav-bar title="妙影工坊" compact="{{true}}" bind:back="goBack" />
+
+  <view class="style-main">
+    <view class="hero-copy">
+      <view class="brand-line">MagicFrame</view>
+      <view class="page-title">选择风格 <text>✦</text></view>
+      <view class="page-subtitle">选择你想生成的写真风格</view>
+    </view>
+
+    <view class="featured-card {{selectedMap[featuredStyle.id] ? 'active' : ''}}" data-id="{{featuredStyle.id}}" bindtap="toggleStyle">
+      <image class="featured-image" src="{{featuredStyle.image}}" mode="aspectFill" />
+      <view class="featured-shade"></view>
+      <view class="featured-info">
+        <view class="featured-title-row">
+          <view class="featured-title">{{featuredStyle.short}}</view>
+          <view wx:if="{{featuredStyle.badge}}" class="hot-badge">{{featuredStyle.badge}}</view>
         </view>
-        <view class="option-info">
-          <view>{{item.name}}</view>
-          <text>{{item.desc}}</text>
-        </view>
+        <view class="featured-desc">{{featuredStyle.desc}} · 质感真实</view>
+        <view class="featured-line"></view>
+        <view class="featured-pill">当前主推风格</view>
       </view>
-    </block>
+      <view class="select-mark large {{selectedMap[featuredStyle.id] ? 'checked' : ''}}">
+        <text>{{selectedMap[featuredStyle.id] ? '✓' : ''}}</text>
+      </view>
+    </view>
+
+    <view class="style-toolbar">
+      <view class="selected-count">已选 <text>{{selectedCount}}</text> 个风格</view>
+      <scroll-view class="filter-scroll" scroll-x enable-flex>
+        <block wx:for="{{filters}}" wx:key="name">
+          <view class="filter-chip {{activeFilter === item.name ? 'active' : ''}}" data-name="{{item.name}}" bindtap="selectFilter">
+            <text class="filter-icon">{{item.icon}}</text>
+            <text>{{item.name}}</text>
+          </view>
+        </block>
+      </scroll-view>
+    </view>
+
+    <view class="style-grid">
+      <block wx:for="{{styles}}" wx:key="id">
+        <view class="style-card {{selectedMap[item.id] ? 'active' : ''}}" data-id="{{item.id}}" bindtap="toggleStyle">
+          <image class="style-image" src="{{item.image}}" mode="aspectFill" />
+          <view class="style-gradient"></view>
+          <view wx:if="{{item.badge}}" class="card-badge">{{item.badge}}</view>
+          <view class="style-copy">
+            <view class="style-name">{{item.short}}</view>
+            <view class="style-desc">{{item.desc}}</view>
+          </view>
+          <view class="select-mark {{selectedMap[item.id] ? 'checked' : ''}}">
+            <text>{{selectedMap[item.id] ? '✓' : ''}}</text>
+          </view>
+        </view>
+      </block>
+    </view>
   </view>
-  <app-button text="下一步" bind:press="next" />
+
+  <view class="bottom-action">
+    <app-button text="下一步" icon="✦" variant="home-cta" bind:press="next" />
+    <view class="action-hint">ⓘ 可多选，至少保留一种风格</view>
+  </view>
 </view>

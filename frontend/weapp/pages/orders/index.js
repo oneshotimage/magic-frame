@@ -10,6 +10,12 @@ Page({
     this.load();
   },
 
+  goBack() {
+    wx.navigateBack({
+      fail: () => wx.switchTab({ url: '/pages/profile/index' })
+    });
+  },
+
   load() {
     this.setData({ loading: true });
     request({ url: '/orders' }).then((res) => {

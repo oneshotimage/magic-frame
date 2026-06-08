@@ -13,6 +13,12 @@ Page({
     }).catch(() => {});
   },
 
+  goBack() {
+    wx.navigateBack({
+      fail: () => wx.switchTab({ url: '/pages/profile/index' })
+    });
+  },
+
   completeAd() {
     this.setData({ loading: true });
     request({

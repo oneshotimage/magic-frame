@@ -1,34 +1,36 @@
 <view class="login-page">
-  <view class="warm-bg"></view>
-  <view class="glow glow-right"></view>
-  <view class="glow glow-left"></view>
+  <nav-bar title="" fixed="{{false}}" bind:back="goBack" />
 
-  <nav-bar title="" fixed="{{false}}" showMore="{{false}}" bind:back="goBack" />
+  <view class="brand-lockup">
+    <view class="logo-mark">M<text>✦</text></view>
+    <view class="brand-title">妙影工坊</view>
+    <view class="brand-en">MagicFrame</view>
+    <view class="brand-copy">上传一张照片，生成你的 AI 艺术写真</view>
+  </view>
 
-  <view class="brand-panel">
-    <view class="app-logo">
-      <view class="logo-spark main">✦</view>
-      <view class="logo-spark small-a">✦</view>
-      <view class="logo-spark small-b">✦</view>
+  <view class="studio-preview">
+    <view class="lamp"></view>
+    <view class="photo-stack">
+      <view class="photo-shadow"></view>
+      <image class="portrait-photo" mode="aspectFill" src="/assets/home-hero-figma.png" />
     </view>
-    <view class="brand-title">AI影像写真馆</view>
-    <view class="brand-subtitle">
-      <view>登录后即可保存您的艺术写真，</view>
-      <view>多端同步作品集。</view>
-    </view>
+    <view class="camera"></view>
   </view>
 
   <view class="login-actions">
-    <app-button text="微信一键登录" icon="" loading="{{loading}}" disabled="{{loading}}" bind:press="login" />
-    <button class="phone-btn" loading="{{loading}}" disabled="{{loading}}" bindtap="skipProfile">手机号登录/注册</button>
+    <app-button text="微信一键登录" icon="●" loading="{{loading}}" disabled="{{loading}}" bind:press="login" />
+    <button class="guest-btn" loading="{{loading}}" disabled="{{loading}}" bindtap="skipProfile">
+      <text class="guest-icon">♙</text>
+      <text>先逛逛</text>
+    </button>
 
     <view class="agreement-row" bindtap="toggleAgree">
       <view class="check {{agreed ? 'checked' : ''}}">{{agreed ? '✓' : ''}}</view>
       <view class="agreement-text">
-        <text>我已阅读并同意 </text>
-        <text class="link" catchtap="openAgreement">《用户协议》</text>
-        <text> 与 </text>
-        <text class="link" catchtap="openPrivacy">《隐私政策》</text>
+        <text>登录即表示同意</text>
+        <text class="link" catchtap="openAgreement">用户协议</text>
+        <text>与</text>
+        <text class="link" catchtap="openPrivacy">隐私政策</text>
       </view>
     </view>
   </view>

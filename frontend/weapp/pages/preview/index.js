@@ -2,11 +2,30 @@ const { showToast, resolveAssetUrl } = require('../../utils/api');
 
 Page({
   data: {
-    image: ''
+    image: '',
+    dateText: '',
+    timeText: ''
   },
 
   onShow() {
-    this.setData({ image: resolveAssetUrl(getApp().globalData.previewImage || '') });
+    const now = new Date();
+    this.setData({
+      image: resolveAssetUrl(getApp().globalData.previewImage || ''),
+      dateText: this.formatDate(now),
+      timeText: this.formatTime(now)
+    });
+  },
+
+  formatDate(date) {
+    const month = `${date.getMonth() + 1}`.padStart(2, '0');
+    const day = `${date.getDate()}`.padStart(2, '0');
+    return `${date.getFullYear()}-${month}-${day}`;
+  },
+
+  formatTime(date) {
+    const hour = `${date.getHours()}`.padStart(2, '0');
+    const minute = `${date.getMinutes()}`.padStart(2, '0');
+    return `${hour}:${minute}`;
   },
 
   saveImage() {
@@ -42,6 +61,14 @@ Page({
 
   sharePoster() {
     wx.navigateTo({ url: '/pages/share-poster/index' });
+  },
+
+  regenerate() {
+    wx.switchTab({ url: '/pages/home/index' });
+  },
+
+  goBack() {
+    wx.navigateBack();
   },
 
   onShareAppMessage() {

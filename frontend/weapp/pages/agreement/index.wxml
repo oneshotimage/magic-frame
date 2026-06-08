@@ -1,12 +1,46 @@
-<view class="page stack">
-  <view class="card">
-    <view class="title">授权与合规确认</view>
-    <view class="subtitle">我确认上传本人或已获得授权的人像照片，并同意图片仅用于本次 AI 生成与必要安全审核。</view>
+<view class="agreement-page">
+  <nav-bar title="妙影工坊" compact="{{true}}" bind:back="goBack" />
+
+  <view class="page-head">
+    <view class="title">授权确认</view>
+    <view class="subtitle">为保障体验与安全，请确认以下内容</view>
   </view>
-  <view class="card legal">
-    <view>禁止上传色情、暴力、政治敏感、侵犯他人肖像权或未经授权的照片。</view>
-    <view>AI 生成可能存在轻微五官偏差。生成失败、超时或内容拦截不会扣减生成次数。</view>
-    <view>用户可在“我的”页面提交反馈、查看协议或注销账号。</view>
+
+  <view class="task-card">
+    <view class="task-title"><text>盾</text> 本次生成任务 ✦</view>
+    <view class="task-body">
+      <image class="task-image" mode="aspectFill" src="{{preview || '/assets/home-hero-figma.png'}}" />
+      <view class="task-info">
+        <view class="task-name">写真生成 <text>AI 艺术写真</text></view>
+        <view class="task-line">单人写真</view>
+        <view class="task-line">自然光 · 温暖风格</view>
+        <view class="task-line">预计生成 {{styleCount}} 张</view>
+        <view class="task-line">预计时长 1~3 分钟</view>
+      </view>
+    </view>
   </view>
-  <app-button text="同意并开始生成" bind:press="createTask" />
+
+  <view class="consent-card">
+    <block wx:for="{{agreements}}" wx:key="text">
+      <view class="consent-row" data-index="{{index}}" bindtap="toggleAgreement">
+        <view class="circle {{item.checked ? 'checked' : ''}}">{{item.checked ? '✓' : ''}}</view>
+        <text>{{item.text}}</text>
+        <text class="chevron">›</text>
+      </view>
+    </block>
+  </view>
+
+  <view class="risk-card">
+    <view class="risk-icon">盾</view>
+    <view>
+      <view class="risk-title">风险提示</view>
+      <view class="risk-text">请勿上传涉及隐私、他人肖像或侵权内容。我们将对内容进行安全审核，违规内容将被拒绝处理。</view>
+    </view>
+  </view>
+
+  <view class="bottom-actions">
+    <app-button text="同意并开始生成" icon="✦" variant="home-cta" disabled="{{!allChecked}}" bind:press="createTask" />
+    <button class="secondary-action" bindtap="goBack">返回修改</button>
+    <view class="safe-note">锁 您的信息安全受保护，仅用于生成服务</view>
+  </view>
 </view>

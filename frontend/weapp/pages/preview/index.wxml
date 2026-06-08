@@ -1,9 +1,55 @@
 <view class="preview-page">
-  <image wx:if="{{image}}" class="preview-image" mode="aspectFit" src="{{image}}" />
-  <view wx:else class="empty">暂无可预览图片</view>
+  <nav-bar title="妙影工坊" variant="glass" compact="{{true}}" bind:back="goBack" />
 
-  <view class="preview-actions">
-    <button class="secondary-btn" bindtap="sharePoster">分享</button>
-    <app-button text="保存到相册" icon="" bind:press="saveImage" />
+  <image wx:if="{{image}}" class="preview-image" mode="aspectFill" src="{{image}}" />
+  <view wx:else class="empty">暂无可预览图片</view>
+  <view class="shade top"></view>
+  <view class="shade bottom"></view>
+
+  <view class="counter">1/4</view>
+  <view class="style-chip"><text>✦</text> 写实插画</view>
+  <view class="watermark">
+    <view class="watermark-mark">✧</view>
+    <view>
+      <view>妙影工坊</view>
+      <text>MagicFrame</text>
+    </view>
+  </view>
+
+  <view class="action-panel">
+    <view class="action-item" bindtap="saveImage">
+      <view class="action-circle save-icon">
+        <view class="download-arrow"></view>
+        <view class="download-line"></view>
+      </view>
+      <text>保存图片</text>
+    </view>
+    <view class="action-item" bindtap="sharePoster">
+      <view class="action-circle share-icon">↗</view>
+      <text>分享海报</text>
+    </view>
+    <view class="action-item" bindtap="regenerate">
+      <view class="action-circle muted">↻</view>
+      <text>重新生成</text>
+    </view>
+  </view>
+
+  <view class="meta-bar">
+    <view class="meta-item">
+      <text class="meta-icon">◇</text>
+      <text>写实插画</text>
+    </view>
+    <view class="meta-divider"></view>
+    <view class="meta-item">
+      <text class="meta-icon">□</text>
+      <text>{{dateText}}</text>
+    </view>
+    <view class="meta-divider"></view>
+    <view class="meta-item">
+      <text class="meta-icon">◷</text>
+      <text>{{timeText}}</text>
+    </view>
+    <view class="meta-divider"></view>
+    <text class="meta-more">•••</text>
   </view>
 </view>

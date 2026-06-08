@@ -1,5 +1,5 @@
 <view class="design-page result-page">
-  <nav-bar title="AI影像写真馆" bind:back="goBack" />
+  <nav-bar title="妙影工坊" bind:back="goBack" />
 
   <view class="result-main">
     <view class="result-hero">

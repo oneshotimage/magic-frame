@@ -1,8 +1,11 @@
-<view class="page stack ad-page">
-  <view class="card stack">
-    <view class="title">观看激励视频</view>
-    <view class="subtitle">开发调试模式下点击完成即可模拟广告完整观看，并获得 1 次生成额度。</view>
-    <view class="credit-badge">当前 {{creditText}} 次</view>
+<view class="ad-shell">
+  <nav-bar title="妙影工坊" compact="{{true}}" bind:back="goBack" />
+  <view class="page stack ad-page">
+    <view class="card stack">
+      <view class="title">观看激励视频</view>
+      <view class="subtitle">开发调试模式下点击完成即可模拟广告完整观看，并获得 1 次生成额度。</view>
+      <view class="credit-badge">当前 {{creditText}} 次</view>
+    </view>
+    <app-button text="模拟观看完成" loading="{{loading}}" bind:press="completeAd" />
   </view>
-  <app-button text="模拟观看完成" loading="{{loading}}" bind:press="completeAd" />
 </view>

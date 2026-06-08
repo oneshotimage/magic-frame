@@ -61,7 +61,7 @@ async def lifespan(_app: FastAPI):
 
 
 app = FastAPI(
-    title="AI影像写真馆 FastAPI",
+    title="妙影工坊 MagicFrame FastAPI",
     version="0.1.0",
     description="Reference xinge/backend style FastAPI service for WeChat mini-program integration.",
     lifespan=lifespan,

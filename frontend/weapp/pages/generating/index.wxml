@@ -1,50 +1,93 @@
-<view class="design-page generating-page">
-  <nav-bar title="AI影像写真馆" bind:back="goBack" />
+<view class="generating-page">
+  <nav-bar title="妙影工坊" compact="{{true}}" bind:back="goBack" />
 
-  <view class="glow glow-main"></view>
-  <view class="glow glow-side"></view>
+  <view class="page-grid"></view>
 
-  <view class="stage">
-    <view class="progress-shell">
-      <view class="ring-back"></view>
-      <view class="ring-front" style="transform: rotate({{progressDeg}}deg);"></view>
-      <view class="avatar-wrap">
-        <view class="avatar-css">
-          <view class="avatar-hair"></view>
-          <view class="avatar-face"></view>
-          <view class="avatar-body"></view>
-          <view class="shimmer"></view>
+  <view class="main">
+    <view class="visual-panel">
+      <view class="panel-head">
+        <view>
+          <view class="eyebrow">MagicFrame</view>
+          <view class="panel-title">正在生成专属写真</view>
+        </view>
+        <view class="live-pill">
+          <view class="live-dot"></view>
+          <text>生成中</text>
         </view>
       </view>
-      <view class="sparkle-main">✦</view>
-      <view class="sparkle-small">✦</view>
+
+      <view class="photo-stage">
+        <view class="photo-card photo-card-back"></view>
+        <view class="photo-card photo-card-mid"></view>
+        <view class="photo-card photo-card-main">
+          <view class="corner corner-lt"></view>
+          <view class="corner corner-rt"></view>
+          <view class="corner corner-lb"></view>
+          <view class="corner corner-rb"></view>
+          <view class="portrait">
+            <image class="preview-image" mode="aspectFill" src="{{previewImage}}" />
+            <view class="portrait-highlight"></view>
+          </view>
+          <view class="scan-line"></view>
+          <view class="grain-layer"></view>
+        </view>
+        <view class="ai-chip">
+          <text>AI</text>
+        </view>
+      </view>
+
+      <view class="progress-block">
+        <view class="progress-copy">
+          <view class="percent-row">
+            <text class="percent-number">{{displayProgress || 0}}</text>
+            <text class="percent-mark">%</text>
+          </view>
+          <view class="generating-subtitle">{{estimateText}}</view>
+        </view>
+        <view class="progress-track">
+          <view class="progress-fill" style="width: {{displayProgress || 0}}%;"></view>
+        </view>
+      </view>
     </view>
 
-    <view class="percent-row">
-      <text class="percent-number">{{displayProgress || 0}}</text>
-      <text class="percent-mark">%</text>
+    <view class="time-grid">
+      <view class="time-card">
+        <view class="time-label">已等待</view>
+        <view class="time-value">{{elapsedText}}</view>
+      </view>
+      <view class="time-card">
+        <view class="time-label">预计剩余</view>
+        <view class="time-value">{{remainingText}}</view>
+      </view>
     </view>
-    <view class="generating-title">AI正在为您创作艺术写真</view>
-    <view class="elapsed-row">
-      <text class="elapsed-label">已等待</text>
-      <text class="elapsed-value">{{elapsedText}}</text>
+
+    <view class="pipeline-card">
+      <view class="pipeline-item done">
+        <view class="pipeline-dot"></view>
+        <text>上传完成</text>
+      </view>
+      <view class="pipeline-line"></view>
+      <view class="pipeline-item active">
+        <view class="pipeline-dot"></view>
+        <text>风格渲染</text>
+      </view>
+      <view class="pipeline-line"></view>
+      <view class="pipeline-item">
+        <view class="pipeline-dot"></view>
+        <text>高清出片</text>
+      </view>
     </view>
-    <view class="elapsed-row remaining-row">
-      <text class="elapsed-label">预计剩余</text>
-      <text class="elapsed-value">{{remainingText}}</text>
+
+    <view class="tips-panel">
+      <view class="tips-icon">✦</view>
+      <view class="tips-text">照片正在后台生成，离开此页也不会取消任务。</view>
     </view>
-    <view class="generating-subtitle">{{estimateText}}，请耐心等待</view>
+
+    <view wx:if="{{providerSummary}}" class="provider-panel">{{providerSummary}}</view>
   </view>
-
-  <view class="tips-panel">
-    <view class="tips-icon">💡</view>
-    <view class="tips-text">提示：照片越清晰，生成的写真效果越好。</view>
-  </view>
-
-  <view wx:if="{{providerSummary}}" class="provider-panel">{{providerSummary}}</view>
 
   <view class="bottom-actions">
-    <button class="ghost-button" bindtap="cancelTask">取消任务</button>
-    <button class="ghost-button" bindtap="goWorks">返回作品集</button>
+    <button class="ghost-button danger" bindtap="cancelTask">取消任务</button>
+    <button class="ghost-button primary" bindtap="goWorks">返回作品集</button>
   </view>
 </view>

@@ -2,7 +2,12 @@ const { request, showToast } = require('../../utils/api');
 
 Page({
   data: {
-    preview: ''
+    preview: '',
+    checks: [
+      { label: '真人正面更佳' },
+      { label: '光线清晰' },
+      { label: '无明显遮挡' }
+    ]
   },
 
   onShow() {

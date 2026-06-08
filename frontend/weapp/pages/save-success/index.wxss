@@ -1,4 +1,10 @@
+.success-shell {
+  min-height: 100vh;
+  background: #f8f8f8;
+}
+
 .success-page {
+  padding-top: calc(env(safe-area-inset-top) + 160rpx);
   align-items: stretch;
   justify-content: center;
   text-align: center;

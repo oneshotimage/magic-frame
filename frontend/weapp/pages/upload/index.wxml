@@ -1,5 +1,5 @@
 <view class="design-page upload-page">
-  <nav-bar title="AI影像写真馆" bind:back="goBack" />
+  <nav-bar title="妙影工坊" bind:back="goBack" />
 
   <view class="upload-main">
     <view class="page-intent">

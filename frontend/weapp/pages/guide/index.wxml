@@ -1,5 +1,5 @@
 <view class="guide-page">
-  <nav-bar title="使用指南" leftText="跳过" showMore="{{false}}" bind:back="skip" />
+  <nav-bar title="使用指南" leftText="跳过" bind:back="skip" />
 
   <view class="hero">
     <view class="hero-title">三步生成专属头像</view>

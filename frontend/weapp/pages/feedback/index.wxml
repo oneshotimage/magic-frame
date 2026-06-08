@@ -1,10 +1,52 @@
-<view class="page stack">
-  <view>
-    <view class="title">意见反馈</view>
-    <view class="subtitle">描述你遇到的问题或希望增加的功能。</view>
+<view class="feedback-page">
+  <nav-bar title="妙影工坊" compact="{{true}}" bind:back="goBack" />
+
+  <view class="hero">
+    <view class="hero-icon">☻</view>
+    <view>
+      <view class="title">意见反馈</view>
+      <view class="subtitle">遇到问题？告诉我们</view>
+    </view>
+    <view class="mail-illus">
+      <view class="paper"></view>
+    </view>
   </view>
 
-  <textarea class="textarea" maxlength="800" value="{{content}}" bindinput="onContentInput" placeholder="请输入反馈内容" />
-  <input class="input" value="{{contact}}" bindinput="onContactInput" placeholder="联系方式（选填）" />
-  <app-button text="提交反馈" loading="{{submitting}}" bind:press="submit" />
+  <view class="card">
+    <view class="card-title">问题分类</view>
+    <view class="chip-row">
+      <block wx:for="{{categories}}" wx:key="value">
+        <view class="chip {{category === item.value ? 'active' : ''}}" data-value="{{item.value}}" bindtap="selectCategory">
+          <text>{{item.icon}}</text>{{item.label}}
+        </view>
+      </block>
+    </view>
+  </view>
+
+  <view class="card">
+    <view class="card-title">请描述你的问题或建议</view>
+    <textarea class="textarea" maxlength="500" value="{{content}}" bindinput="onContentInput" placeholder="请详细描述你的问题或建议，我们会尽快为你解决..." />
+    <view class="count">{{contentLength}}/500</view>
+  </view>
+
+  <view class="contact-row">
+    <text class="contact-icon">♙</text>
+    <text class="contact-label">联系方式（选填）</text>
+    <input class="contact-input" value="{{contact}}" bindinput="onContactInput" placeholder="手机号 / 微信 / 邮箱" />
+    <text class="chevron">›</text>
+  </view>
+
+  <view class="card upload-card">
+    <view class="card-title">上传截图（选填）</view>
+    <view class="upload-tile">
+      <view class="camera-icon">▣</view>
+      <view>上传截图</view>
+      <text>最多上传 3 张</text>
+    </view>
+  </view>
+
+  <view class="bottom-action">
+    <app-button text="提交反馈" icon="▷" variant="home-cta" loading="{{submitting}}" disabled="{{submitting}}" bind:press="submit" />
+    <view class="safe-note">盾 你的反馈将帮助我们不断改进产品体验</view>
+  </view>
 </view>

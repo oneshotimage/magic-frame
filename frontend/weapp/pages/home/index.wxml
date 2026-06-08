@@ -1,5 +1,5 @@
 <view class="home-page">
-  <nav-bar title="AI影像写真馆" bind:back="goBack" />
+  <nav-bar title="妙影工坊" variant="home" bind:back="goBack" />
 
   <view class="main">
     <view class="home-hero">
@@ -26,7 +26,7 @@
 
     <view class="workflow-card">
       <view class="workflow-step">
-        <view class="workflow-icon">⇧</view>
+        <view class="workflow-icon upload-icon"></view>
         <view class="workflow-copy">
           <view class="workflow-title">1. 上传照片</view>
           <view class="workflow-desc">真人正面更佳</view>
@@ -34,7 +34,7 @@
       </view>
       <view class="workflow-line"></view>
       <view class="workflow-step">
-        <view class="workflow-icon">✦</view>
+        <view class="workflow-icon sparkle-icon">✦</view>
         <view class="workflow-copy">
           <view class="workflow-title">2. 选择风格</view>
           <view class="workflow-desc">多种风格可选</view>
@@ -42,7 +42,7 @@
       </view>
       <view class="workflow-line"></view>
       <view class="workflow-step">
-        <view class="workflow-icon">▣</view>
+        <view class="workflow-icon camera-icon"></view>
         <view class="workflow-copy">
           <view class="workflow-title">3. AI生成</view>
           <view class="workflow-desc">专属写真出片</view>

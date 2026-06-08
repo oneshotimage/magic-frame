@@ -10,8 +10,8 @@ const styles = [
 ];
 
 const routes = {
-  splash: "AI影像写真馆",
-  home: "AI影像写真馆",
+  splash: "妙影工坊",
+  home: "妙影工坊",
   style: "选择风格",
   upload: "上传照片",
   confirm: "确认照片",
@@ -145,7 +145,7 @@ function creditBadge() {
 function renderSplash() {
   return `<div class="splash">
     <div class="hero-visual">
-      <img src="${figmaHero}" alt="AI影像写真馆" onerror="this.style.display='none'" />
+      <img src="${figmaHero}" alt="妙影工坊" onerror="this.style.display='none'" />
       <div class="floating-icon left">♥</div>
       <div class="floating-icon right">▣</div>
       <div class="glass-chip">
@@ -291,7 +291,7 @@ function renderSharePoster() {
     <section class="card poster">
       <h2>分享海报</h2>
       <p class="subtitle">邀请好友一起制作，后续可接入分享奖励。</p>
-      <div class="result-thumb" style="margin-top:14px">${image ? `<img src="${image}" alt="分享图" />` : "AI影像写真馆"}</div>
+      <div class="result-thumb" style="margin-top:14px">${image ? `<img src="${image}" alt="分享图" />` : "妙影工坊"}</div>
     </section>
     <button class="secondary-btn" data-action="createPoster">生成海报</button>
     <button class="primary-btn" data-action="shareReward">分享给好友</button>
@@ -436,7 +436,7 @@ const renderers = {
 };
 
 function render() {
-  els.title.textContent = routes[state.route] || "AI影像写真馆";
+  els.title.textContent = routes[state.route] || "妙影工坊";
   els.screen.innerHTML = renderers[state.route]();
   els.tabbar.style.display = ["splash", "generating", "preview"].includes(state.route) ? "none" : "grid";
   els.tabbar.querySelectorAll("button").forEach((button) => button.classList.toggle("active", button.dataset.route === state.route));

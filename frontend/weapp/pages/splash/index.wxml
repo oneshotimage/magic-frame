@@ -1,22 +1,31 @@
-<view class="page splash-page">
-  <view class="brand">AI影像写真馆</view>
-  <view class="hero-card">
-    <view class="hero-img css-portrait">
-      <view class="portrait-head"></view>
-      <view class="portrait-body"></view>
-    </view>
-    <view class="float-badge left">♥</view>
-    <view class="float-badge right">▣</view>
-    <view class="glass-panel">
-      <view class="ai-dot">AI</view>
-      <view>
-        <view class="glass-title">AI 智能生成</view>
-        <view class="muted">快速解锁多款风格</view>
+<view class="splash-page">
+  <nav-bar title="" fixed="{{false}}" showBack="{{false}}" />
+  <view class="studio-light"></view>
+  <view class="brand-mark">
+    <view class="mark-film">M</view>
+    <view class="mark-spark">✦</view>
+  </view>
+  <view class="brand">妙影工坊</view>
+  <view class="brand-en">MagicFrame</view>
+  <view class="tagline">AI 艺术写真工坊</view>
+
+  <view class="studio-scene">
+    <view class="photo-stack">
+      <view class="photo photo-back"></view>
+      <view class="photo photo-front">
+        <image class="photo-img" mode="aspectFill" src="/assets/home-hero-figma.png" />
       </view>
     </view>
+    <view class="camera-body"></view>
+    <view class="film-roll one">400</view>
+    <view class="film-roll two">36</view>
   </view>
-  <view class="bottom-copy">
-    <view class="subtitle">一张照片 解锁你的艺术写真</view>
-    <app-button text="{{loggedIn ? '进入写真馆' : '登录后开始制作'}}" bind:press="start" />
+
+  <view class="entry-area">
+    <view class="loading-copy">正在进入</view>
+    <view class="loading-track">
+      <view class="loading-fill"></view>
+    </view>
+    <app-button text="{{loggedIn ? '进入妙影工坊' : '登录后开始制作'}}" variant="home-cta" bind:press="start" />
   </view>
 </view>

@@ -1,4 +1,10 @@
 Page({
+  goBack() {
+    wx.navigateBack({
+      fail: () => wx.switchTab({ url: '/pages/works/index' })
+    });
+  },
+
   home() {
     wx.switchTab({ url: '/pages/home/index' });
   },

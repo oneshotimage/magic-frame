@@ -6,6 +6,7 @@ Page({
     task: {},
     progressDeg: 0,
     displayProgress: 0,
+    previewImage: '/assets/home-style-realistic-figma.jpg',
     providerSummary: '',
     elapsedText: '00:00',
     remainingText: '01:00',
@@ -84,7 +85,8 @@ Page({
       getApp().globalData.currentTask = task;
       this.setData({
         task,
-        providerSummary: this.buildProviderSummary(task)
+        providerSummary: this.buildProviderSummary(task),
+        previewImage: this.buildPreviewImage(task)
       });
       this.updateElapsedText();
       if (['SUCCESS', 'FAILED', 'PARTIAL_SUCCESS', 'TIMEOUT', 'CANCELLED'].includes(task.status)) {
@@ -110,6 +112,13 @@ Page({
       task.elapsedMs ? `耗时：${this.formatElapsed(task.elapsedMs)}` : ''
     ].filter(Boolean);
     return parts.join(' · ');
+  },
+
+  buildPreviewImage(task = {}) {
+    const images = Array.isArray(task.images) ? task.images : [];
+    const firstStyleId = images[0]?.style || images[0]?.styleId;
+    const matched = styles.find((item) => item.id === firstStyleId);
+    return matched?.image || '/assets/home-style-realistic-figma.jpg';
   },
 
   cancelTask() {
